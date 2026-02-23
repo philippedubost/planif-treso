@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Transaction, Category, MonthData, calculateProjection } from '@/lib/financeEngine';
 import { format } from 'date-fns';
+import { useMemo } from 'react';
 
 interface FinanceState {
     transactions: Transaction[];
@@ -20,9 +21,17 @@ interface FinanceState {
 
     setStartingBalance: (balance: number) => void;
     setStartingMonth: (month: string) => void;
+}
 
-    // Selectors
-    getProjection: () => MonthData[];
+export function useProjection() {
+    const startingBalance = useFinanceStore((state) => state.startingBalance);
+    const startingMonth = useFinanceStore((state) => state.startingMonth);
+    const transactions = useFinanceStore((state) => state.transactions);
+
+    return useMemo(
+        () => calculateProjection(startingBalance, startingMonth, transactions),
+        [startingBalance, startingMonth, transactions]
+    );
 }
 
 const defaultCategories: Category[] = [
@@ -67,11 +76,6 @@ export const useFinanceStore = create<FinanceState>()(
 
             setStartingBalance: (balance) => set({ startingBalance: balance }),
             setStartingMonth: (month) => set({ startingMonth: month }),
-
-            getProjection: () => {
-                const { startingBalance, startingMonth, transactions } = get();
-                return calculateProjection(startingBalance, startingMonth, transactions);
-            },
         }),
         {
             name: 'planif-treso-storage',

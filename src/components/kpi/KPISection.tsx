@@ -1,12 +1,12 @@
 'use client';
 
-import { useFinanceStore } from '@/store/useFinanceStore';
+import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function KPISection() {
-    const projection = useFinanceStore((state) => state.getProjection());
+    const projection = useProjection();
 
     if (projection.length === 0) return null;
 

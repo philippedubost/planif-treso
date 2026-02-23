@@ -13,7 +13,7 @@ import {
     Cell,
     ReferenceLine
 } from 'recharts';
-import { useFinanceStore } from '@/store/useFinanceStore';
+import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { MonthData } from '@/lib/financeEngine';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
 export function CashflowGraph() {
-    const projection = useFinanceStore((state) => state.getProjection());
+    const projection = useProjection();
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
     const formatMonth = (monthStr: string) => {
