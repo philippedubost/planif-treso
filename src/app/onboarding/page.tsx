@@ -148,19 +148,19 @@ export default function OnboardingPage() {
 
                     {step === 1 && (
                         <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-10">
-                            <div className="relative w-56 h-56 mx-auto bg-white rounded-[48px] shadow-premium flex items-center justify-center overflow-hidden">
-                                <Image src="/illustrations/mascot-balance-day.webp" alt="Balance" fill className="object-contain p-6" />
+                            <div className="relative w-40 h-40 md:w-56 md:h-56 mx-auto bg-white rounded-[40px] md:rounded-[48px] shadow-premium flex items-center justify-center overflow-hidden">
+                                <Image src="/illustrations/mascot-balance-day.webp" alt="Balance" fill className="object-contain p-4 md:p-6" />
                             </div>
                             <div className="space-y-3">
                                 <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">Solde Actuel</h1>
                                 <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest px-8">Le montant en banque aujourd'hui</p>
                                 <div className="relative pt-2">
-                                    <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0.00" className="w-full p-6 text-4xl font-black text-center bg-white shadow-soft border-none rounded-[32px] outline-none focus:ring-4 focus:ring-zinc-900/5 text-zinc-900 placeholder:text-zinc-100" autoFocus onKeyDown={(e) => e.key === 'Enter' && next()} />
-                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-xl text-zinc-200">{currency}</span>
+                                    <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0.00" className="w-full p-4 md:p-6 text-2xl md:text-4xl font-black text-center bg-white shadow-soft border-none rounded-[24px] md:rounded-[32px] outline-none focus:ring-4 focus:ring-zinc-900/5 text-zinc-900 placeholder:text-zinc-100" autoFocus onKeyDown={(e) => e.key === 'Enter' && next()} />
+                                    <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 font-black text-lg md:text-xl text-zinc-200">{currency}</span>
                                 </div>
                             </div>
-                            <div className="pt-4 space-y-4">
-                                <button onClick={next} className="w-full py-6 bg-zinc-900 text-white rounded-[40px] font-black italic text-lg shadow-premium active:scale-95 transition-all">Continuer</button>
+                            <div className="pt-2 md:pt-4 space-y-3 md:space-y-4">
+                                <button onClick={next} className="w-full py-4 md:py-6 bg-zinc-900 text-white rounded-[32px] md:rounded-[40px] font-black italic text-base md:text-lg shadow-premium active:scale-95 transition-all">Continuer</button>
                                 <button onClick={prev} className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 transition-colors">Retour</button>
                             </div>
                         </motion.div>
@@ -187,7 +187,7 @@ export default function OnboardingPage() {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         layout
-                                        className="p-4 bg-white rounded-[32px] shadow-soft border border-zinc-50 space-y-4"
+                                        className="p-3 md:p-4 bg-white rounded-[24px] md:rounded-[32px] shadow-soft border border-zinc-50 space-y-3 md:space-y-4"
                                     >
                                         <div className="grid grid-cols-5 gap-2 items-center">
                                             <input
@@ -195,7 +195,7 @@ export default function OnboardingPage() {
                                                 value={row.label}
                                                 onChange={(e) => updateRow(step === 2 ? 'income' : 'expense', i, 'label', e.target.value)}
                                                 placeholder="Ex: Salaire"
-                                                className="col-span-3 p-3 bg-zinc-50 rounded-2xl border-none outline-none font-bold text-sm text-zinc-900 placeholder:text-zinc-200"
+                                                className="col-span-3 p-2.5 md:p-3 bg-zinc-50 rounded-xl md:rounded-2xl border-none outline-none font-bold text-xs md:text-sm text-zinc-900 placeholder:text-zinc-200"
                                             />
                                             <div className="col-span-2 relative">
                                                 <input
@@ -203,30 +203,30 @@ export default function OnboardingPage() {
                                                     value={row.amount}
                                                     onChange={(e) => updateRow(step === 2 ? 'income' : 'expense', i, 'amount', e.target.value)}
                                                     placeholder="0"
-                                                    className="w-full p-3 pr-6 bg-zinc-50 rounded-2xl border-none outline-none font-black text-sm text-zinc-900 text-right"
+                                                    className="w-full p-2.5 md:p-3 pr-6 md:pr-6 bg-zinc-50 rounded-xl md:rounded-2xl border-none outline-none font-black text-xs md:text-sm text-zinc-900 text-right"
                                                 />
-                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-200">{currency}</span>
+                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] md:text-[10px] font-black text-zinc-200">{currency}</span>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3">
-                                            <div className="flex bg-zinc-50 p-1 rounded-2xl">
-                                                <button onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'isMonthly', true)} className={clsx("flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center space-x-2", row.isMonthly ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400")}>
-                                                    <Repeat className="w-3 h-3" /> <span>Mensuel</span>
+                                        <div className="space-y-2 md:space-y-3">
+                                            <div className="flex bg-zinc-50 p-1 rounded-xl md:rounded-2xl">
+                                                <button onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'isMonthly', true)} className={clsx("flex-1 py-1.5 md:py-2 text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg md:rounded-xl transition-all flex items-center justify-center space-x-1 md:space-x-2", row.isMonthly ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400")}>
+                                                    <Repeat className="w-2.5 h-2.5 md:w-3 md:h-3" /> <span>Mensuel</span>
                                                 </button>
-                                                <button onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'isMonthly', false)} className={clsx("flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center space-x-2", !row.isMonthly ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400")}>
-                                                    <Calendar className="w-3 h-3" /> <span>Ponctuel</span>
+                                                <button onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'isMonthly', false)} className={clsx("flex-1 py-1.5 md:py-2 text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg md:rounded-xl transition-all flex items-center justify-center space-x-1 md:space-x-2", !row.isMonthly ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400")}>
+                                                    <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3" /> <span>Ponctuel</span>
                                                 </button>
                                             </div>
 
                                             {!row.isMonthly && (
-                                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex overflow-x-auto no-scrollbar space-x-2 py-1">
+                                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex overflow-x-auto no-scrollbar space-x-1.5 md:space-x-2 py-1">
                                                     {nextMonths.map((m) => (
                                                         <button
                                                             key={m.value}
                                                             onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'month', m.value)}
                                                             className={clsx(
-                                                                "flex-shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                                                                "flex-shrink-0 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all",
                                                                 (row.month === m.value || (!row.month && i === 0 && m.value === format(new Date(), 'yyyy-MM')))
                                                                     ? "bg-zinc-900 text-white"
                                                                     : "bg-zinc-100 text-zinc-400"
