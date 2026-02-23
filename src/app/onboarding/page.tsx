@@ -85,7 +85,7 @@ export default function OnboardingPage() {
     const slide = slides[currentSlide];
 
     return (
-        <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col p-6 max-w-md mx-auto">
+        <div className="min-h-screen bg-transparent flex flex-col p-6 max-w-md mx-auto relative z-10">
             <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <AnimatePresence mode="wait">
                     <motion.div

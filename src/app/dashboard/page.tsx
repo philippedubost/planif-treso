@@ -11,7 +11,7 @@ export default function DashboardPage() {
     const [isPanelExpanded, setIsPanelExpanded] = useState(false);
 
     return (
-        <div className="min-h-screen bg-[#fdfcf9] flex flex-col overflow-hidden">
+        <div className="min-h-screen bg-transparent flex flex-col overflow-hidden relative z-10">
             {/* Header */}
             <header className="px-8 py-6 flex justify-between items-center bg-transparent">
                 <div>

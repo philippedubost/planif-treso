@@ -14,53 +14,45 @@
 }
 
 :root {
-  /* Using a pure white material palette for maximum "light" feel */
+  /* Luminous default look - subtle and airy */
   --background: #ffffff;
   --foreground: #2d3436;
 
   --card: #ffffff;
   --card-foreground: #2d3436;
 
-  --muted: #f1f2f6;
-  --muted-foreground: #a4b0be;
+  --muted: #f8fafc;
+  --muted-foreground: #94a3b8;
 
   --accent: #ff7675;
-  /* A soft red/pink from the mascot */
 
   --income: #fbbf24;
-  /* Warm yellow */
   --expense: #3b82f6;
-  /* Modern blue */
   --balance: #10b981;
-  /* Fresh emerald */
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at top, #ffffff 0%, #f7f9fc 100%);
   color: var(--foreground);
   font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
-/* Glassmorphism */
+/* Glassmorphism - refined for luminous look */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-.dark .glass {
-  background: rgba(47, 53, 66, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* Satisfying Shadows */
 .shadow-soft {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
 }
 
 .shadow-premium {
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.06);
 }
 
 /* Button & Interaction Effects */

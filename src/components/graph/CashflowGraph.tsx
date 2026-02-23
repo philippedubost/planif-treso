@@ -31,14 +31,14 @@ export function CashflowGraph() {
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(val);
 
-    if (projection.length === 0) return <div className="h-[300px] flex items-center justify-center text-zinc-400">No data</div>;
+    if (projection.length === 0) return <div className="h-[300px] flex items-center justify-center text-zinc-400 font-bold italic">Aucune donnée</div>;
 
     const handleBarClick = (data: any) => {
         setSelectedMonth(data.month);
     };
 
     return (
-        <div className="w-full h-[400px] bg-white rounded-[40px] p-6 shadow-soft relative select-none touch-none overflow-hidden group">
+        <div className="w-full h-[400px] bg-white/70 backdrop-blur-sm rounded-[40px] p-6 shadow-soft relative select-none touch-none overflow-hidden group border border-white">
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection}
@@ -122,11 +122,11 @@ export function CashflowGraph() {
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="absolute inset-x-6 bottom-6 flex justify-between items-center glass p-4 rounded-3xl shadow-premium border-none"
+                        className="absolute inset-x-6 bottom-6 flex justify-between items-center glass p-6 rounded-[32px] shadow-premium border-none"
                     >
                         <div className="flex flex-col">
-                            <span className="text-[10px] uppercase font-black tracking-widest text-zinc-400">Selected Month</span>
-                            <span className="text-zinc-900 font-black italic">{format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: fr })}</span>
+                            <span className="text-[10px] uppercase font-black tracking-[0.2em] text-zinc-400">Mois sélectionné</span>
+                            <span className="text-zinc-900 font-black italic text-lg leading-tight">{format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: fr })}</span>
                         </div>
                         <button
                             onClick={() => setSelectedMonth(null)}
