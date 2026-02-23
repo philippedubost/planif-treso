@@ -22,7 +22,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
     const [recurrence, setRecurrence] = useState<Recurrence>(initialData?.recurrence || 'none');
     const [month, setMonth] = useState(initialData?.month || format(new Date(), 'yyyy-MM'));
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const data = {
             label,
             amount: parseFloat(amount) || 0,
@@ -34,11 +34,16 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
         };
 
         if (initialData?.id) {
-            updateTransaction(initialData.id, data);
+            await updateTransaction(initialData.id, data);
+            onClose();
         } else {
-            addTransaction(data);
+            const success = await addTransaction(data);
+            if (success) {
+                onClose();
+            } else {
+                alert("Limite atteinte ! Connectez-vous pour ajouter plus de 8 flux et partager avec vos proches.");
+            }
         }
-        onClose();
     };
 
     return (

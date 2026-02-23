@@ -1,258 +1,226 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { Plus, ChevronRight, Check } from 'lucide-react';
+import { ChevronRight, User, Briefcase, Calendar, Repeat, Plus } from 'lucide-react';
 import Image from 'next/image';
-import { format } from 'date-fns'; // Added import for date-fns format
+import { format, addMonths, startOfMonth } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { clsx } from 'clsx';
 
-const slides = [
-    {
-        id: 'welcome',
-        title: 'Bienvenue sur Planif-Treso',
-        description: 'Maîtrisez votre trésorerie en quelques gestes.',
-        image: '/illustrations/mascot-onboarding-start.png',
-    },
-    {
-        id: 'balance',
-        title: 'Votre Solde Actuel',
-        description: 'Quel montant avez-vous en banque aujourd\'hui ?',
-        image: '/illustrations/mascot-balance-day.png',
-        type: 'input',
-        field: 'startingBalance',
-    },
-    {
-        id: 'income',
-        title: 'Revenus',
-        description: 'Ajoutez vos revenus prévus.',
-        image: '/illustrations/mascot-income-recurring.png',
-        type: 'suggestions',
-        sections: [
-            { label: 'Récurrent', suggestions: ['Salaire', 'Loyer perçu', 'Pension'], recurrence: 'monthly' as const },
-            { label: 'Ponctuel', suggestions: ['Cadeau', 'Vente', 'Remboursement'], recurrence: 'none' as const }
-        ],
-        direction: 'income' as const,
-    },
-    {
-        id: 'expense',
-        title: 'Dépenses',
-        description: 'Loyer, abonnements, factures...',
-        image: '/illustrations/mascot-expense-recurring.png',
-        type: 'suggestions',
-        sections: [
-            { label: 'Récurrent', suggestions: ['Loyer', 'Internet', 'Netflix', 'Assurance'], recurrence: 'monthly' as const },
-            { label: 'Ponctuel', suggestions: ['Courses', 'Loisirs', 'Imprévu'], recurrence: 'none' as const }
-        ],
-        direction: 'expense' as const,
-    },
-    {
-        id: 'ready',
-        title: 'Tout est Prêt !',
-        description: 'Vous pouvez maintenant suivre vos projections sur 12 mois.',
-        image: '/illustrations/mascot-success-ready.png',
-    },
-];
+type Row = {
+    label: string;
+    amount: string;
+    isMonthly: boolean;
+    month?: string; // YYYY-MM for one-off
+};
 
 export default function OnboardingPage() {
-    const [currentSlide, setCurrentSlide] = useState(0);
-    const { setStartingBalance, addTransaction } = useFinanceStore();
-    const [inputValue, setInputValue] = useState('');
-    const [addedCount, setAddedCount] = useState(0);
+    const [step, setStep] = useState(0); // 0: Context, 1: Balance, 2: Income, 3: Expenses
+    const { setContext, context, setStartingBalance, addTransaction } = useFinanceStore();
+    const [balance, setBalance] = useState('');
+    const [incomeRows, setIncomeRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
+    const [expenseRows, setExpenseRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
     const router = useRouter();
 
-    const handleNext = () => {
-        const slide = slides[currentSlide];
-        if (slide.id === 'balance') {
-            setStartingBalance(parseFloat(inputValue) || 0);
-        }
+    const nextMonths = Array.from({ length: 12 }).map((_, i) => {
+        const d = addMonths(startOfMonth(new Date()), i);
+        return { label: format(d, 'MMM', { locale: fr }), value: format(d, 'yyyy-MM') };
+    });
 
-        if (currentSlide < slides.length - 1) {
-            setCurrentSlide(currentSlide + 1);
-            setInputValue('');
-            setAddedCount(0);
+    // Context-based initial examples (but only 1 row)
+    useEffect(() => {
+        if (context === 'business') {
+            setIncomeRows([{ label: 'Ventes Clients', amount: '', isMonthly: true }]);
+            setExpenseRows([{ label: 'Charges fixes', amount: '', isMonthly: true }]);
         } else {
-            router.push('/dashboard');
+            setIncomeRows([{ label: 'Salaire', amount: '', isMonthly: true }]);
+            setExpenseRows([{ label: 'Loyer / Crédit', amount: '', isMonthly: true }]);
+        }
+    }, [context]);
+
+    const handleFinalize = async () => {
+        setStartingBalance(parseFloat(balance) || 0);
+
+        const allRows = [...incomeRows, ...expenseRows];
+        for (const row of allRows) {
+            const isIncome = incomeRows.includes(row);
+            if (row.label && row.amount && parseFloat(row.amount) > 0) {
+                await addTransaction({
+                    label: row.label,
+                    amount: parseFloat(row.amount),
+                    direction: isIncome ? 'income' : 'expense',
+                    categoryId: isIncome ? 'cat-salary' : 'cat-rent',
+                    recurrence: row.isMonthly ? 'monthly' : 'none',
+                    startMonth: format(new Date(), 'yyyy-MM'),
+                    month: !row.isMonthly ? (row.month || format(new Date(), 'yyyy-MM')) : undefined,
+                });
+            }
+        }
+
+        router.push('/dashboard');
+    };
+
+    const next = () => setStep(s => s + 1);
+    const prev = () => setStep(s => Math.max(0, s - 1));
+
+    const addRow = (type: 'income' | 'expense') => {
+        const rows = type === 'income' ? incomeRows : expenseRows;
+        if (rows.length < 3) {
+            const newRows = [...rows, { label: '', amount: '', isMonthly: true }];
+            if (type === 'income') setIncomeRows(newRows); else setExpenseRows(newRows);
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleNext();
-        }
+    const updateRow = (type: 'income' | 'expense', index: number, field: keyof Row, value: any) => {
+        const rows = type === 'income' ? [...incomeRows] : [...expenseRows];
+        rows[index] = { ...rows[index], [field]: value };
+        if (type === 'income') setIncomeRows(rows); else setExpenseRows(rows);
     };
-
-    const handleSkip = () => {
-        if (currentSlide < slides.length - 1) {
-            setCurrentSlide(currentSlide + 1);
-            setInputValue('');
-            setAddedCount(0);
-        } else {
-            router.push('/dashboard');
-        }
-    };
-
-    const handleSuggestionAdd = (label: string, direction: 'income' | 'expense', recurrence: 'none' | 'monthly') => {
-        const amount = parseFloat(inputValue) || 0;
-        addTransaction({
-            label,
-            amount: amount,
-            direction,
-            categoryId: direction === 'income' ? 'cat-salary' : 'cat-rent',
-            recurrence,
-            startMonth: format(new Date(), 'yyyy-MM'),
-            month: recurrence === 'none' ? format(new Date(), 'yyyy-MM') : undefined,
-        });
-        setInputValue('');
-        setAddedCount(prev => prev + 1);
-    };
-
-    const slide = slides[currentSlide];
 
     return (
-        <div className="min-h-screen bg-transparent flex flex-col p-6 max-w-md mx-auto relative z-10">
-            {/* Skip Link */}
-            <div className="flex justify-end pt-2">
-                <button
-                    onClick={() => router.push('/dashboard')}
-                    className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-600 transition-colors"
-                >
-                    Passer l'onboarding
-                </button>
-            </div>
-
+        <div className="min-h-screen bg-transparent flex flex-col p-6 max-w-md mx-auto relative z-10 font-sans">
             <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <AnimatePresence mode="wait">
-                    <motion.div
-                        key={slide.id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="w-full"
-                    >
-                        <motion.div
-                            layoutId="image-container"
-                            className="relative w-full aspect-square max-w-[200px] mx-auto mb-6 bg-white rounded-[40px] shadow-premium overflow-hidden flex items-center justify-center group"
-                        >
-                            <Image
-                                src={slide.image}
-                                alt={slide.title}
-                                fill
-                                className="object-contain p-4 group-hover:scale-110 transition-transform duration-700 ease-out"
-                                priority
-                            />
+                    {step === 0 && (
+                        <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full space-y-6">
+                            <div className="relative w-28 h-28 mx-auto bg-white rounded-[40px] shadow-premium flex items-center justify-center overflow-hidden group">
+                                <Image src="/illustrations/mascot-onboarding-start.webp" alt="Welcome" fill className="object-contain p-4 group-hover:scale-110 transition-transform duration-700" />
+                            </div>
+                            <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">C'est pour qui ?</h1>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={() => { setContext('perso'); next(); }} className={clsx("flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square", context === 'perso' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50")}>
+                                    <User className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
+                                    <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Perso</span>
+                                </button>
+                                <button onClick={() => { setContext('business'); next(); }} className={clsx("flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square", context === 'business' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50")}>
+                                    <Briefcase className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
+                                    <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Entreprise</span>
+                                </button>
+                            </div>
                         </motion.div>
+                    )}
 
-                        <h1 className="text-3xl font-black mb-1 text-zinc-900 italic tracking-tighter leading-none">
-                            {slide.title}
-                        </h1>
-                        <p className="text-zinc-500 font-medium leading-relaxed px-4 text-xs mb-6">
-                            {slide.description}
-                        </p>
+                    {step === 1 && (
+                        <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-6">
+                            <div className="relative w-20 h-20 mx-auto bg-white rounded-[32px] shadow-premium flex items-center justify-center overflow-hidden">
+                                <Image src="/illustrations/mascot-balance-day.webp" alt="Balance" fill className="object-contain p-2" />
+                            </div>
+                            <div className="space-y-3">
+                                <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">Solde Actuel</h1>
+                                <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest px-8">Le montant en banque aujourd'hui</p>
+                                <div className="relative pt-2">
+                                    <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0.00" className="w-full p-6 text-4xl font-black text-center bg-white shadow-soft border-none rounded-[32px] outline-none focus:ring-4 focus:ring-zinc-900/5 text-zinc-900 placeholder:text-zinc-100" autoFocus onKeyDown={(e) => e.key === 'Enter' && next()} />
+                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-xl text-zinc-200">€</span>
+                                </div>
+                            </div>
+                            <div className="pt-4 space-y-4">
+                                <button onClick={next} className="w-full py-6 bg-zinc-900 text-white rounded-[40px] font-black italic text-lg shadow-premium active:scale-95 transition-all">Continuer</button>
+                                <button onClick={prev} className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 transition-colors">Retour</button>
+                            </div>
+                        </motion.div>
+                    )}
 
-                        <div className="w-full">
-                            {(slide.type === 'input' || slide.type === 'suggestions') && (
-                                <motion.div
-                                    initial={{ scale: 0.9, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    className="space-y-4"
-                                >
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            value={inputValue}
-                                            onChange={(e) => setInputValue(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                            placeholder="0.00"
-                                            className="w-full p-6 text-4xl font-black text-center bg-white shadow-soft border-none rounded-[32px] selection:bg-zinc-100 outline-none focus:ring-4 focus:ring-zinc-900/5 transition-all text-zinc-900 placeholder:text-zinc-100"
-                                            autoFocus
-                                        />
-                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-xl text-zinc-200">€</span>
-                                    </div>
+                    {(step === 2 || step === 3) && (
+                        <motion.div key={`step${step}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-3">
+                            <div className="space-y-1">
+                                <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">{step === 2 ? 'Recettes' : 'Dépenses'}</h1>
+                                <p className="text-zinc-400 text-[9px] font-bold uppercase tracking-[0.2em] leading-tight px-4 underline underline-offset-4 decoration-zinc-100">
+                                    {step === 2 ? "Vos rentrées d'argent" : "Vos sorties"}
+                                </p>
+                            </div>
 
-                                    {slide.type === 'suggestions' && (
-                                        <div className="space-y-4">
-                                            {slide.sections?.map((section, sIndex) => (
-                                                <div key={section.label} className="space-y-2">
-                                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 text-left px-4">
-                                                        {section.label}
-                                                    </p>
-                                                    <div className="flex flex-wrap justify-start gap-1.5 px-2">
-                                                        {section.suggestions.map((sub, i) => (
-                                                            <motion.button
-                                                                key={sub}
-                                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                                animate={{ opacity: 1, scale: 1 }}
-                                                                transition={{ delay: (sIndex * 3 + i) * 0.05 }}
-                                                                onClick={() => handleSuggestionAdd(sub, slide.direction as any, section.recurrence)}
-                                                                className="px-4 py-2 bg-white shadow-soft rounded-xl hover:bg-zinc-50 active:scale-[0.98] transition-all group flex items-center space-x-2 border border-zinc-50"
-                                                            >
-                                                                <span className="font-bold text-[11px] text-zinc-700">{sub}</span>
-                                                                <Plus className="w-3 h-3 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
-                                                            </motion.button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
+                            <div className="space-y-3">
+                                {(step === 2 ? incomeRows : expenseRows).map((row, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        layout
+                                        className="p-4 bg-white rounded-[32px] shadow-soft border border-zinc-50 space-y-4"
+                                    >
+                                        <div className="grid grid-cols-5 gap-2 items-center">
+                                            <input
+                                                type="text"
+                                                value={row.label}
+                                                onChange={(e) => updateRow(step === 2 ? 'income' : 'expense', i, 'label', e.target.value)}
+                                                placeholder="Ex: Salaire"
+                                                className="col-span-3 p-3 bg-zinc-50 rounded-2xl border-none outline-none font-bold text-sm text-zinc-900 placeholder:text-zinc-200"
+                                            />
+                                            <div className="col-span-2 relative">
+                                                <input
+                                                    type="number"
+                                                    value={row.amount}
+                                                    onChange={(e) => updateRow(step === 2 ? 'income' : 'expense', i, 'amount', e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-full p-3 pr-6 bg-zinc-50 rounded-2xl border-none outline-none font-black text-sm text-zinc-900 text-right"
+                                                />
+                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-200">€</span>
+                                            </div>
+                                        </div>
 
-                                            {addedCount > 0 && (
-                                                <motion.p
-                                                    initial={{ opacity: 0, y: 5 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    className="text-emerald-500 font-black italic text-[10px]"
-                                                >
-                                                    {addedCount} flux ajouté{addedCount > 1 ? 's' : ''} !
-                                                </motion.p>
+                                        <div className="space-y-3">
+                                            <div className="flex bg-zinc-50 p-1 rounded-2xl">
+                                                <button onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'isMonthly', true)} className={clsx("flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center space-x-2", row.isMonthly ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400")}>
+                                                    <Repeat className="w-3 h-3" /> <span>Mensuel</span>
+                                                </button>
+                                                <button onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'isMonthly', false)} className={clsx("flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center space-x-2", !row.isMonthly ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400")}>
+                                                    <Calendar className="w-3 h-3" /> <span>Ponctuel</span>
+                                                </button>
+                                            </div>
+
+                                            {/* Month Selector for Ponctuel */}
+                                            {!row.isMonthly && (
+                                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex overflow-x-auto no-scrollbar space-x-2 py-1">
+                                                    {nextMonths.map((m) => (
+                                                        <button
+                                                            key={m.value}
+                                                            onClick={() => updateRow(step === 2 ? 'income' : 'expense', i, 'month', m.value)}
+                                                            className={clsx(
+                                                                "flex-shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                                                                (row.month === m.value || (!row.month && i === 0 && m.value === format(new Date(), 'yyyy-MM')))
+                                                                    ? "bg-zinc-900 text-white"
+                                                                    : "bg-zinc-100 text-zinc-400"
+                                                            )}
+                                                        >
+                                                            {m.label}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
                                             )}
                                         </div>
-                                    )}
-                                </motion.div>
-                            )}
-                        </div>
-                    </motion.div>
+                                    </motion.div>
+                                ))}
+
+                                {/* Add Button */}
+                                {(step === 2 ? incomeRows : expenseRows).length < 3 && (
+                                    <button
+                                        onClick={() => addRow(step === 2 ? 'income' : 'expense')}
+                                        className="w-full py-4 border-2 border-dashed border-zinc-100 rounded-[32px] flex items-center justify-center space-x-2 group hover:border-zinc-200 transition-colors"
+                                    >
+                                        <Plus className="w-4 h-4 text-zinc-200 group-hover:text-zinc-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300 group-hover:text-zinc-500">Ajouter un autre flux</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="pt-4 space-y-4">
+                                <button onClick={step === 2 ? next : handleFinalize} className="w-full py-6 bg-zinc-900 text-white rounded-[40px] font-black italic text-lg shadow-premium active:scale-95 transition-all">
+                                    {step === 2 ? 'Suivant' : 'C\'est parti !'}
+                                </button>
+                                <button onClick={prev} className="text-[10px] font-black uppercase tracking-widest text-zinc-300 hover:text-zinc-900 transition-colors">Retour</button>
+                            </div>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </div>
-
-            <div className="py-6 space-y-4">
-                <div className="flex justify-center space-x-3">
-                    {slides.map((_, i) => (
-                        <div
-                            key={i}
-                            className={`h-2 rounded-full transition-all duration-500 ease-out ${i === currentSlide ? 'w-10 bg-zinc-900' : 'w-2 bg-zinc-200'}`}
-                        />
-                    ))}
-                </div>
-
-                <div className="px-2">
-                    <button
-                        onClick={handleNext}
-                        className="w-full py-6 bg-zinc-900 text-white rounded-[32px] font-black text-xl flex items-center justify-center space-x-3 active:scale-95 transition-all shadow-premium hover:opacity-90 active:bg-black"
-                    >
-                        <span>{currentSlide === slides.length - 1 ? 'C\'EST PARTI !' : 'CONTINUER'}</span>
-                        <ChevronRight className="w-6 h-6 stroke-[3px]" />
-                    </button>
-
-                    <div className="flex justify-between items-center mt-6">
-                        {currentSlide > 0 ? (
-                            <button
-                                onClick={() => setCurrentSlide(currentSlide - 1)}
-                                className="py-2 text-zinc-400 font-bold uppercase tracking-widest text-[10px] tap-effect"
-                            >
-                                Retour
-                            </button>
-                        ) : <div />}
-
-                        {(slide.type === 'suggestions' || slide.id === 'balance') && (
-                            <button
-                                onClick={handleSkip}
-                                className="py-2 text-zinc-400 font-bold uppercase tracking-widest text-[10px] tap-effect"
-                            >
-                                Passer
-                            </button>
-                        )}
-                    </div>
-                </div>
+            {/* Dots */}
+            <div className="flex justify-center space-x-2 py-8">
+                {[0, 1, 2, 3].map((s) => (
+                    <div key={s} className={clsx("h-1.5 rounded-full transition-all duration-500", step === s ? "w-8 bg-zinc-900" : "w-1.5 bg-zinc-200")} />
+                ))}
             </div>
         </div>
     );

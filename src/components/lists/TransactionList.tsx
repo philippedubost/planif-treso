@@ -21,8 +21,8 @@ export function TransactionList() {
 
     return (
         <div className="flex flex-col h-full bg-white">
-            <div className="p-8 pb-4">
-                <div className="relative">
+            <div className="p-8 pb-4 flex items-center space-x-4">
+                <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
                     <input
                         type="text"
@@ -32,15 +32,36 @@ export function TransactionList() {
                         className="w-full pl-12 pr-6 py-4 bg-zinc-50 border-none rounded-2xl focus:ring-4 focus:ring-zinc-900/5 transition-all text-sm font-bold text-zinc-900 placeholder:text-zinc-300"
                     />
                 </div>
+                {!useFinanceStore.getState().user && (
+                    <div className="px-4 py-2 bg-zinc-50 border border-zinc-100 rounded-xl flex flex-col items-center justify-center">
+                        <span className="text-[10px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
+                        <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">FLUX</span>
+                    </div>
+                )}
+                <button
+                    onClick={() => setIsAddSheetOpen(true)}
+                    className="p-4 bg-zinc-900 text-white rounded-2xl shadow-soft active:scale-95 transition-all hover:bg-black"
+                >
+                    <Plus className="w-5 h-5 stroke-[3px]" />
+                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-8 pb-32 no-scrollbar">
                 {filteredTransactions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
-                            <Plus className="w-8 h-8 text-zinc-200" />
-                        </div>
-                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">Aucun mouvement trouvé</p>
+                        <button
+                            onClick={() => setIsAddSheetOpen(true)}
+                            className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6 hover:bg-zinc-100 transition-colors group active:scale-95"
+                        >
+                            <Plus className="w-8 h-8 text-zinc-200 group-hover:text-zinc-400 transition-colors" />
+                        </button>
+                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] mb-2">Aucun mouvement trouvé</p>
+                        <button
+                            onClick={() => setIsAddSheetOpen(true)}
+                            className="text-zinc-900 font-black italic text-sm underline underline-offset-4"
+                        >
+                            Ajouter un flux
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -101,16 +122,20 @@ export function TransactionList() {
             </div>
 
             <BottomSheet
-                isOpen={!!editingTransaction}
-                onClose={() => setEditingTransaction(null)}
-                title="Modifier le flux"
+                isOpen={isAddSheetOpen || !!editingTransaction}
+                onClose={() => {
+                    setIsAddSheetOpen(false);
+                    setEditingTransaction(null);
+                }}
+                title={editingTransaction ? "Modifier le flux" : "Ajouter un flux"}
             >
-                {editingTransaction && (
-                    <TransactionEditor
-                        onClose={() => setEditingTransaction(null)}
-                        initialData={editingTransaction}
-                    />
-                )}
+                <TransactionEditor
+                    onClose={() => {
+                        setIsAddSheetOpen(false);
+                        setEditingTransaction(null);
+                    }}
+                    initialData={editingTransaction}
+                />
             </BottomSheet>
         </div>
     );

@@ -3,17 +3,23 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { Transaction, Category, MonthData, calculateProjection } from '@/lib/financeEngine';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 interface FinanceState {
     transactions: Transaction[];
     categories: Category[];
     startingBalance: number;
     startingMonth: string;
+    context: 'perso' | 'business';
+    user: User | null;
 
     // Actions
-    addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-    updateTransaction: (id: string, updates: Partial<Transaction>) => void;
-    deleteTransaction: (id: string) => void;
+    initAuth: () => void;
+    setContext: (context: 'perso' | 'business') => void;
+    addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<boolean>;
+    updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
+    deleteTransaction: (id: string) => Promise<void>;
 
     addCategory: (category: Omit<Category, 'id'>) => void;
     updateCategory: (id: string, updates: Partial<Category>) => void;
@@ -21,16 +27,17 @@ interface FinanceState {
 
     setStartingBalance: (balance: number) => void;
     setStartingMonth: (month: string) => void;
+    fetchTransactions: () => Promise<void>;
 }
 
-export function useProjection() {
+export function useProjection(horizonMonths: number = 24) {
     const startingBalance = useFinanceStore((state) => state.startingBalance);
     const startingMonth = useFinanceStore((state) => state.startingMonth);
     const transactions = useFinanceStore((state) => state.transactions);
 
     return useMemo(
-        () => calculateProjection(startingBalance, startingMonth, transactions),
-        [startingBalance, startingMonth, transactions]
+        () => calculateProjection(startingBalance, startingMonth, transactions, horizonMonths),
+        [startingBalance, startingMonth, transactions, horizonMonths]
     );
 }
 
@@ -49,18 +56,79 @@ export const useFinanceStore = create<FinanceState>()(
             categories: defaultCategories,
             startingBalance: 0,
             startingMonth: format(new Date(), 'yyyy-MM'),
+            context: 'perso',
+            user: null,
 
-            addTransaction: (t) => set((state) => ({
-                transactions: [...state.transactions, { ...t, id: crypto.randomUUID() }]
-            })),
+            initAuth: () => {
+                supabase.auth.onAuthStateChange((_event, session) => {
+                    set({ user: session?.user ?? null });
+                    if (session?.user) {
+                        get().fetchTransactions();
+                    }
+                });
+            },
 
-            updateTransaction: (id, updates) => set((state) => ({
-                transactions: state.transactions.map((t) => t.id === id ? { ...t, ...updates } : t)
-            })),
+            fetchTransactions: async () => {
+                const { user } = get();
+                if (!user) return;
+                const { data, error } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', user.id);
 
-            deleteTransaction: (id) => set((state) => ({
-                transactions: state.transactions.filter((t) => t.id !== id)
-            })),
+                if (data && !error) {
+                    set({ transactions: data });
+                }
+            },
+
+            setContext: (context) => set({ context }),
+
+            addTransaction: async (t) => {
+                const { user, transactions } = get();
+
+                // 8-flux limit for guests
+                if (!user && transactions.length >= 8) {
+                    return false;
+                }
+
+                const newId = crypto.randomUUID();
+                const newTx = { ...t, id: newId };
+
+                set((state) => ({
+                    transactions: [...state.transactions, newTx]
+                }));
+
+                if (user) {
+                    await supabase.from('transactions').insert({
+                        ...t,
+                        id: newId,
+                        user_id: user.id
+                    });
+                }
+                return true;
+            },
+
+            updateTransaction: async (id, updates) => {
+                const { user } = get();
+                set((state) => ({
+                    transactions: state.transactions.map((t) => t.id === id ? { ...t, ...updates } : t)
+                }));
+
+                if (user) {
+                    await supabase.from('transactions').update(updates).eq('id', id);
+                }
+            },
+
+            deleteTransaction: async (id) => {
+                const { user } = get();
+                set((state) => ({
+                    transactions: state.transactions.filter((t) => t.id !== id)
+                }));
+
+                if (user) {
+                    await supabase.from('transactions').delete().eq('id', id);
+                }
+            },
 
             addCategory: (c) => set((state) => ({
                 categories: [...state.categories, { ...c, id: crypto.randomUUID() }]
@@ -80,6 +148,13 @@ export const useFinanceStore = create<FinanceState>()(
         {
             name: 'planif-treso-storage',
             storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({
+                transactions: state.transactions,
+                categories: state.categories,
+                startingBalance: state.startingBalance,
+                startingMonth: state.startingMonth,
+                context: state.context
+            }),
         }
     )
 );

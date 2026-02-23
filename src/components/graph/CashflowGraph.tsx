@@ -20,8 +20,8 @@ import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
-export function CashflowGraph() {
-    const projection = useProjection();
+export function CashflowGraph({ width, height = 280 }: { width?: number, height?: number }) {
+    const projection = useProjection(24);
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
     const formatMonth = (monthStr: string) => {
@@ -38,7 +38,10 @@ export function CashflowGraph() {
     };
 
     return (
-        <div className="w-full h-[400px] bg-white/70 backdrop-blur-sm rounded-[40px] p-6 shadow-soft relative select-none touch-none overflow-hidden group border border-white">
+        <div
+            className="bg-white/70 backdrop-blur-sm rounded-[40px] p-6 shadow-soft relative select-none touch-none overflow-visible group border border-white"
+            style={{ width: width ? `${width}px` : '100%', height: `${height}px` }}
+        >
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection}

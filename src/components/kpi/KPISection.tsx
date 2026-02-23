@@ -20,22 +20,22 @@ export function KPISection() {
         new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(val);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             <KPICard
                 label="Solde Actuel"
                 value={formatCurrency(currentBalance)}
-                icon={<Wallet className="text-zinc-400" />}
+                icon={<Wallet className="text-zinc-400 w-4 h-4" />}
             />
             <KPICard
-                label="Solde à +12 mois"
+                label="Solde à +24 mois"
                 value={formatCurrency(targetBalance)}
-                icon={<TrendingUp className="text-amber-500" />}
+                icon={<TrendingUp className="text-amber-500 w-4 h-4" />}
             />
             <KPICard
                 label="Point Bas (Risque)"
                 value={formatCurrency(minBalance)}
                 status={isRisk ? 'risk' : 'safe'}
-                icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500" : "text-zinc-200"} />}
+                icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500 w-4 h-4" : "text-zinc-200 w-4 h-4"} />}
             />
         </div>
     );
@@ -44,20 +44,20 @@ export function KPISection() {
 function KPICard({ label, value, icon, status }: { label: string; value: string; icon: React.ReactNode; status?: 'risk' | 'safe' }) {
     return (
         <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
+            whileHover={{ y: -2, scale: 1.01 }}
             className={clsx(
-                "p-6 rounded-3xl border shadow-soft transition-all duration-300 relative overflow-hidden group",
+                "p-4 rounded-3xl border shadow-soft transition-all duration-300 relative overflow-hidden group",
                 status === 'risk' ? "bg-rose-50/50 border-rose-100" : "bg-white border-white"
             )}
         >
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                 {icon}
             </div>
-            <div className="flex justify-between items-start mb-4">
-                <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest">{label}</span>
+            <div className="flex justify-between items-start mb-2">
+                <span className="text-zinc-400 font-bold text-[9px] uppercase tracking-widest">{label}</span>
             </div>
             <div className={clsx(
-                "text-3xl font-black tracking-tighter leading-none",
+                "text-2xl font-black tracking-tighter leading-none",
                 status === 'risk' ? "text-rose-600" : "text-zinc-900"
             )}>
                 {value}
