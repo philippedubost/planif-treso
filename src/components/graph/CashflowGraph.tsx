@@ -20,7 +20,7 @@ import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
 
-export function CashflowGraph({ width, height = 280 }: { width?: number, height?: number }) {
+export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?: number, height?: number, leftPadding?: number }) {
     const projection = useProjection(24);
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
@@ -45,17 +45,17 @@ export function CashflowGraph({ width, height = 280 }: { width?: number, height?
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection}
-                    margin={{ top: 20, right: 10, bottom: 20, left: -20 }}
+                    margin={{ top: 20, right: 0, bottom: 20, left: leftPadding }}
                     onClick={(e: any) => e && e.activePayload && handleBarClick(e.activePayload[0].payload)}
                 >
                     <defs>
                         <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.2} />
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
                         </linearGradient>
                         <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.2} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
@@ -65,12 +65,13 @@ export function CashflowGraph({ width, height = 280 }: { width?: number, height?
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }}
+                        interval={0}
                     />
                     <YAxis
                         axisLine={false}
                         tickLine={false}
-                        tickFormatter={formatCurrency}
-                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }}
+                        tick={false}
+                        width={0}
                     />
                     <Tooltip
                         content={<CustomTooltip />}
@@ -86,7 +87,7 @@ export function CashflowGraph({ width, height = 280 }: { width?: number, height?
                         {projection.map((entry, index) => (
                             <Cell
                                 key={`cell-income-${index}`}
-                                fill={entry.month === selectedMonth ? '#fbbf24' : 'url(#colorIncome)'}
+                                fill={entry.month === selectedMonth ? '#10b981' : 'url(#colorIncome)'}
                                 className="cursor-pointer transition-all duration-300"
                             />
                         ))}
@@ -101,7 +102,7 @@ export function CashflowGraph({ width, height = 280 }: { width?: number, height?
                         {projection.map((entry, index) => (
                             <Cell
                                 key={`cell-expense-${index}`}
-                                fill={entry.month === selectedMonth ? '#3b82f6' : 'url(#colorExpense)'}
+                                fill={entry.month === selectedMonth ? '#f43f5e' : 'url(#colorExpense)'}
                                 className="cursor-pointer transition-all duration-300"
                             />
                         ))}
@@ -109,9 +110,9 @@ export function CashflowGraph({ width, height = 280 }: { width?: number, height?
                     <Line
                         type="monotone"
                         dataKey="balance"
-                        stroke="#10b981"
+                        stroke="#0f172a"
                         strokeWidth={4}
-                        dot={{ r: 6, fill: '#10b981', strokeWidth: 3, stroke: '#fff' }}
+                        dot={{ r: 6, fill: '#0f172a', strokeWidth: 3, stroke: '#fff' }}
                         activeDot={{ r: 8, strokeWidth: 0 }}
                         animationDuration={2000}
                     />
@@ -155,15 +156,15 @@ const CustomTooltip = ({ active, payload }: any) => {
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-zinc-400">Revenus</span>
-                        <span className="text-sm font-black text-amber-500">+{data.income}€</span>
+                        <span className="text-sm font-black text-emerald-500">+{data.income}€</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-zinc-400">Dépenses</span>
-                        <span className="text-sm font-black text-zinc-900">-{data.expense}€</span>
+                        <span className="text-sm font-black text-rose-500">-{data.expense}€</span>
                     </div>
                     <div className="pt-2 border-t border-zinc-100 flex justify-between items-center">
                         <span className="text-xs font-bold text-zinc-900">Solde Projeté</span>
-                        <span className="text-lg font-black text-emerald-500 tracking-tighter">{data.balance}€</span>
+                        <span className="text-lg font-black text-slate-900 tracking-tighter">{data.balance}€</span>
                     </div>
                 </div>
             </div>

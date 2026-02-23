@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 
 export function TransactionList() {
-    const { transactions, deleteTransaction, categories } = useFinanceStore();
+    const { transactions, deleteTransaction, categories, currency } = useFinanceStore();
     const [search, setSearch] = useState('');
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -38,30 +38,17 @@ export function TransactionList() {
                         <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">FLUX</span>
                     </div>
                 )}
-                <button
-                    onClick={() => setIsAddSheetOpen(true)}
-                    className="p-4 bg-zinc-900 text-white rounded-2xl shadow-soft active:scale-95 transition-all hover:bg-black"
-                >
-                    <Plus className="w-5 h-5 stroke-[3px]" />
-                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-8 pb-32 no-scrollbar">
                 {filteredTransactions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <button
-                            onClick={() => setIsAddSheetOpen(true)}
-                            className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6 hover:bg-zinc-100 transition-colors group active:scale-95"
+                        <div
+                            className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6"
                         >
-                            <Plus className="w-8 h-8 text-zinc-200 group-hover:text-zinc-400 transition-colors" />
-                        </button>
+                            <Search className="w-8 h-8 text-zinc-100" />
+                        </div>
                         <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] mb-2">Aucun mouvement trouvé</p>
-                        <button
-                            onClick={() => setIsAddSheetOpen(true)}
-                            className="text-zinc-900 font-black italic text-sm underline underline-offset-4"
-                        >
-                            Ajouter un flux
-                        </button>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -91,9 +78,9 @@ export function TransactionList() {
                                         <div className="text-right">
                                             <p className={clsx(
                                                 "text-xl font-black tracking-tighter italic leading-none",
-                                                tx.direction === 'income' ? "text-amber-500" : "text-zinc-900"
+                                                tx.direction === 'income' ? "text-emerald-500" : "text-rose-500"
                                             )}>
-                                                {tx.direction === 'income' ? '+' : '-'}{tx.amount}€
+                                                {tx.direction === 'income' ? '+' : '-'}{tx.amount}{currency}
                                             </p>
                                             <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest mt-1">
                                                 {tx.recurrence !== 'none' ? 'Récurrent' : 'Unique'}
@@ -122,16 +109,14 @@ export function TransactionList() {
             </div>
 
             <BottomSheet
-                isOpen={isAddSheetOpen || !!editingTransaction}
+                isOpen={!!editingTransaction}
                 onClose={() => {
-                    setIsAddSheetOpen(false);
                     setEditingTransaction(null);
                 }}
-                title={editingTransaction ? "Modifier le flux" : "Ajouter un flux"}
+                title="Modifier le flux"
             >
                 <TransactionEditor
                     onClose={() => {
-                        setIsAddSheetOpen(false);
                         setEditingTransaction(null);
                     }}
                     initialData={editingTransaction}

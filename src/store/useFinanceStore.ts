@@ -13,6 +13,7 @@ interface FinanceState {
     startingMonth: string;
     context: 'perso' | 'business';
     user: User | null;
+    currency: string;
 
     // Actions
     initAuth: () => void;
@@ -28,6 +29,8 @@ interface FinanceState {
     setStartingBalance: (balance: number) => void;
     setStartingMonth: (month: string) => void;
     fetchTransactions: () => Promise<void>;
+    resetSimulation: () => Promise<void>;
+    setCurrency: (currency: string) => void;
 }
 
 export function useProjection(horizonMonths: number = 24) {
@@ -42,11 +45,11 @@ export function useProjection(horizonMonths: number = 24) {
 }
 
 const defaultCategories: Category[] = [
-    { id: 'cat-salary', label: 'Salaire', direction: 'income', color: '#fbbf24' }, // warm yellow
-    { id: 'cat-dividend', label: 'Dividendes', direction: 'income', color: '#f59e0b' }, // dark yellow
-    { id: 'cat-rent', label: 'Loyer', direction: 'expense', color: '#3b82f6' }, // blue
-    { id: 'cat-food', label: 'Alimentation', direction: 'expense', color: '#60a5fa' }, // light blue
-    { id: 'cat-transport', label: 'Transport', direction: 'expense', color: '#93c5fd' }, // pale blue
+    { id: 'cat-salary', label: 'Salaire', direction: 'income', color: '#10b981' }, // emerald-500
+    { id: 'cat-dividend', label: 'Dividendes', direction: 'income', color: '#34d399' }, // emerald-400
+    { id: 'cat-rent', label: 'Loyer', direction: 'expense', color: '#f43f5e' }, // rose-500
+    { id: 'cat-food', label: 'Alimentation', direction: 'expense', color: '#fb7185' }, // rose-400
+    { id: 'cat-transport', label: 'Transport', direction: 'expense', color: '#fda4af' }, // rose-300
 ];
 
 export const useFinanceStore = create<FinanceState>()(
@@ -58,6 +61,7 @@ export const useFinanceStore = create<FinanceState>()(
             startingMonth: format(new Date(), 'yyyy-MM'),
             context: 'perso',
             user: null,
+            currency: '€',
 
             initAuth: () => {
                 supabase.auth.onAuthStateChange((_event, session) => {
@@ -144,6 +148,30 @@ export const useFinanceStore = create<FinanceState>()(
 
             setStartingBalance: (balance) => set({ startingBalance: balance }),
             setStartingMonth: (month) => set({ startingMonth: month }),
+            setCurrency: (currency) => set({ currency }),
+
+            resetSimulation: async () => {
+                const { user } = get();
+                if (user) {
+                    const { confirm } = window;
+                    if (confirm("Voulez-vous vraiment effacer toutes vos données de simulation ?")) {
+                        await supabase.from('transactions').delete().eq('user_id', user.id);
+                        set({
+                            transactions: [],
+                            startingBalance: 0,
+                            startingMonth: format(new Date(), 'yyyy-MM'),
+                            context: 'perso'
+                        });
+                    }
+                } else {
+                    set({
+                        transactions: [],
+                        startingBalance: 0,
+                        startingMonth: format(new Date(), 'yyyy-MM'),
+                        context: 'perso'
+                    });
+                }
+            }
         }),
         {
             name: 'planif-treso-storage',
@@ -153,7 +181,8 @@ export const useFinanceStore = create<FinanceState>()(
                 categories: state.categories,
                 startingBalance: state.startingBalance,
                 startingMonth: state.startingMonth,
-                context: state.context
+                context: state.context,
+                currency: state.currency
             }),
         }
     )

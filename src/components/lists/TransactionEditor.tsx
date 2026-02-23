@@ -54,7 +54,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                         onClick={() => setDirection('income')}
                         className={clsx(
                             "flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-2xl transition-all duration-500",
-                            direction === 'income' ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400"
+                            direction === 'income' ? "bg-white shadow-premium text-emerald-600" : "text-zinc-400"
                         )}
                     >
                         Encaissement
@@ -63,7 +63,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                         onClick={() => setDirection('expense')}
                         className={clsx(
                             "flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-2xl transition-all duration-500",
-                            direction === 'expense' ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400"
+                            direction === 'expense' ? "bg-white shadow-premium text-rose-600" : "text-zinc-400"
                         )}
                     >
                         Décaissement

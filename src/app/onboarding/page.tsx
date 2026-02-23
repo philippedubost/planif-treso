@@ -18,19 +18,27 @@ type Row = {
 };
 
 export default function OnboardingPage() {
-    const [step, setStep] = useState(0); // 0: Context, 1: Balance, 2: Income, 3: Expenses
-    const { setContext, context, setStartingBalance, addTransaction } = useFinanceStore();
+    const [step, setStep] = useState(0); // 0: Context + Currency, 1: Balance, 2: Income, 3: Expenses
+    const { setContext, context, setStartingBalance, addTransaction, currency, setCurrency } = useFinanceStore();
     const [balance, setBalance] = useState('');
     const [incomeRows, setIncomeRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
     const [expenseRows, setExpenseRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
     const router = useRouter();
+
+    const currencies = [
+        { label: 'EUR', symbol: '€', code: 'EUR' },
+        { label: 'USD', symbol: '$', code: 'USD' },
+        { label: 'GBP', symbol: '£', code: 'GBP' },
+        { label: 'CHF', symbol: 'CHF', code: 'CHF' },
+        { label: 'CAD', symbol: 'CA$', code: 'CAD' }
+    ];
 
     const nextMonths = Array.from({ length: 12 }).map((_, i) => {
         const d = addMonths(startOfMonth(new Date()), i);
         return { label: format(d, 'MMM', { locale: fr }), value: format(d, 'yyyy-MM') };
     });
 
-    // Context-based initial examples (but only 1 row)
+    // Context-based initial examples
     useEffect(() => {
         if (context === 'business') {
             setIncomeRows([{ label: 'Ventes Clients', amount: '', isMonthly: true }]);
@@ -85,35 +93,70 @@ export default function OnboardingPage() {
             <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <AnimatePresence mode="wait">
                     {step === 0 && (
-                        <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full space-y-6">
-                            <div className="relative w-28 h-28 mx-auto bg-white rounded-[40px] shadow-premium flex items-center justify-center overflow-hidden group">
-                                <Image src="/illustrations/mascot-onboarding-start.webp" alt="Welcome" fill className="object-contain p-4 group-hover:scale-110 transition-transform duration-700" />
+                        <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full space-y-12">
+                            <div className="relative w-72 h-72 mx-auto bg-white rounded-[64px] shadow-premium flex items-center justify-center overflow-hidden group">
+                                <Image src="/illustrations/mascot-onboarding-start.webp" alt="Welcome" fill className="object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
                             </div>
-                            <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">C'est pour qui ?</h1>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button onClick={() => { setContext('perso'); next(); }} className={clsx("flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square", context === 'perso' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50")}>
-                                    <User className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
-                                    <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Perso</span>
-                                </button>
-                                <button onClick={() => { setContext('business'); next(); }} className={clsx("flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square", context === 'business' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50")}>
-                                    <Briefcase className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
-                                    <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Entreprise</span>
-                                </button>
+
+                            <div className="space-y-4">
+                                <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">C'est pour qui ?</h1>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => { setContext('perso'); next(); }}
+                                        className={clsx(
+                                            "flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square",
+                                            context === 'perso' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50"
+                                        )}
+                                    >
+                                        <User className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
+                                        <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Perso</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { setContext('business'); next(); }}
+                                        className={clsx(
+                                            "flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square",
+                                            context === 'business' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50"
+                                        )}
+                                    >
+                                        <Briefcase className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
+                                        <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Entreprise</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-zinc-50 space-y-3">
+                                <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Devise Préférée</p>
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    {currencies.map((c) => (
+                                        <button
+                                            key={c.code}
+                                            onClick={() => setCurrency(c.symbol)}
+                                            className={clsx(
+                                                "px-4 py-2 rounded-xl text-xs font-black italic transition-all active:scale-95",
+                                                currency === c.symbol
+                                                    ? "bg-zinc-900 text-white shadow-premium"
+                                                    : "bg-white border border-zinc-100 text-zinc-400 shadow-soft hover:bg-zinc-50"
+                                            )}
+                                        >
+                                            {c.symbol} {c.code}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </motion.div>
                     )}
 
                     {step === 1 && (
-                        <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-6">
-                            <div className="relative w-20 h-20 mx-auto bg-white rounded-[32px] shadow-premium flex items-center justify-center overflow-hidden">
-                                <Image src="/illustrations/mascot-balance-day.webp" alt="Balance" fill className="object-contain p-2" />
+                        <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-10">
+                            <div className="relative w-56 h-56 mx-auto bg-white rounded-[48px] shadow-premium flex items-center justify-center overflow-hidden">
+                                <Image src="/illustrations/mascot-balance-day.webp" alt="Balance" fill className="object-contain p-6" />
                             </div>
                             <div className="space-y-3">
                                 <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">Solde Actuel</h1>
                                 <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest px-8">Le montant en banque aujourd'hui</p>
                                 <div className="relative pt-2">
                                     <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0.00" className="w-full p-6 text-4xl font-black text-center bg-white shadow-soft border-none rounded-[32px] outline-none focus:ring-4 focus:ring-zinc-900/5 text-zinc-900 placeholder:text-zinc-100" autoFocus onKeyDown={(e) => e.key === 'Enter' && next()} />
-                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-xl text-zinc-200">€</span>
+                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-xl text-zinc-200">{currency}</span>
                                 </div>
                             </div>
                             <div className="pt-4 space-y-4">
@@ -126,7 +169,12 @@ export default function OnboardingPage() {
                     {(step === 2 || step === 3) && (
                         <motion.div key={`step${step}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-3">
                             <div className="space-y-1">
-                                <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">{step === 2 ? 'Recettes' : 'Dépenses'}</h1>
+                                <h1 className={clsx(
+                                    "text-2xl font-black italic tracking-tighter leading-none",
+                                    step === 2 ? "text-emerald-500" : "text-rose-500"
+                                )}>
+                                    {step === 2 ? 'Recettes' : 'Dépenses'}
+                                </h1>
                                 <p className="text-zinc-400 text-[9px] font-bold uppercase tracking-[0.2em] leading-tight px-4 underline underline-offset-4 decoration-zinc-100">
                                     {step === 2 ? "Vos rentrées d'argent" : "Vos sorties"}
                                 </p>
@@ -157,7 +205,7 @@ export default function OnboardingPage() {
                                                     placeholder="0"
                                                     className="w-full p-3 pr-6 bg-zinc-50 rounded-2xl border-none outline-none font-black text-sm text-zinc-900 text-right"
                                                 />
-                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-200">€</span>
+                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-200">{currency}</span>
                                             </div>
                                         </div>
 
@@ -171,7 +219,6 @@ export default function OnboardingPage() {
                                                 </button>
                                             </div>
 
-                                            {/* Month Selector for Ponctuel */}
                                             {!row.isMonthly && (
                                                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex overflow-x-auto no-scrollbar space-x-2 py-1">
                                                     {nextMonths.map((m) => (
@@ -194,7 +241,6 @@ export default function OnboardingPage() {
                                     </motion.div>
                                 ))}
 
-                                {/* Add Button */}
                                 {(step === 2 ? incomeRows : expenseRows).length < 3 && (
                                     <button
                                         onClick={() => addRow(step === 2 ? 'income' : 'expense')}
@@ -216,10 +262,16 @@ export default function OnboardingPage() {
                     )}
                 </AnimatePresence>
             </div>
-            {/* Dots */}
+
             <div className="flex justify-center space-x-2 py-8">
                 {[0, 1, 2, 3].map((s) => (
-                    <div key={s} className={clsx("h-1.5 rounded-full transition-all duration-500", step === s ? "w-8 bg-zinc-900" : "w-1.5 bg-zinc-200")} />
+                    <div key={s} className={clsx(
+                        "h-1.5 rounded-full transition-all duration-500",
+                        step === s ? (
+                            step === 2 ? "w-8 bg-emerald-500" :
+                                step === 3 ? "w-8 bg-rose-500" : "w-8 bg-zinc-900"
+                        ) : "w-1.5 bg-zinc-200"
+                    )} />
                 ))}
             </div>
         </div>

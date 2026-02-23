@@ -10,19 +10,32 @@ import { ChevronUp, ChevronDown, Settings, Plus, LogIn, LogOut, User as UserIcon
 import { clsx } from 'clsx';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
+import { TransactionEditor } from '@/components/lists/TransactionEditor';
 
 export default function DashboardPage() {
-    const [isPanelExpanded, setIsPanelExpanded] = useState(false);
-    const [view, setView] = useState<'line' | 'detail'>('detail');
+    const [showDetails, setShowDetails] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const { initAuth, user } = useFinanceStore();
+    const { initAuth, user, resetSimulation, transactions, currency, setCurrency } = useFinanceStore();
+    const router = useRouter();
 
     useEffect(() => {
         initAuth();
     }, [initAuth]);
 
+    const currencies = [
+        { label: 'Euro', symbol: '€' },
+        { label: 'Dollar', symbol: '$' },
+        { label: 'Livre', symbol: '£' },
+        { label: 'Franc', symbol: 'CHF' },
+        { label: 'CAD', symbol: 'CA$' }
+    ];
+
     const handleLogin = async () => {
-        // Simple Magic Link login for family/friends
         const email = window.prompt("Entrez votre email pour vous connecter :");
         if (email) {
             await supabase.auth.signInWithOtp({ email });
@@ -34,120 +47,226 @@ export default function DashboardPage() {
         await supabase.auth.signOut();
     };
 
+    const handleReset = async () => {
+        await resetSimulation();
+        router.push('/onboarding');
+    };
+
     const COLUMN_WIDTH = 96; // w-24
-    const LABEL_WIDTH = 160; // w-40
+    const LABEL_WIDTH = 128; // w-32
     const TOTAL_WIDTH = LABEL_WIDTH + (24 * COLUMN_WIDTH);
 
     return (
-        <div className="min-h-screen bg-transparent flex flex-col overflow-hidden relative z-10 font-sans">
-            <header className="px-6 py-4 flex justify-between items-center bg-transparent">
-                <div className="flex items-center space-x-4">
-                    <div>
-                        <h1 className="text-xl font-black italic tracking-tighter text-zinc-900 uppercase leading-none">Planif-Treso</h1>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.2em] ml-0.5 leading-none mt-1">Maîtrisez vos flux</p>
+        <div className="min-h-screen bg-zinc-50/50 flex flex-col overflow-hidden relative font-sans">
+            {/* Premium Header */}
+            <header className="fixed top-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-xl z-50 border-b border-zinc-100 px-8 flex items-center justify-between">
+                <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                        <div className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center">
+                            <div className="w-5 h-5 border-2 border-white rounded-lg flex items-center justify-center">
+                                <div className="w-1 h-1 bg-white rounded-full" />
+                            </div>
+                        </div>
+                        <span className="font-black italic text-xl tracking-tighter text-zinc-900">PLANIF.</span>
+                    </div>
+
+                    <div className="h-4 w-px bg-zinc-200" />
+
+                    <div className="flex items-center space-x-3">
+                        {!user && (
+                            <div className="px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center space-x-2">
+                                <span className="text-[9px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
+                                <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">FLUX GUEST</span>
+                            </div>
+                        )}
                     </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    {user ? (
+
+                <div className="flex items-center space-x-4">
+                    {/* Settings / Currency */}
+                    <div className="relative">
                         <button
-                            onClick={handleLogout}
-                            className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-white shadow-soft text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-all border border-zinc-50"
+                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                            className="px-4 py-2 bg-white border border-zinc-100 rounded-2xl flex items-center space-x-2 shadow-soft hover:shadow-premium transition-all active:scale-95"
                         >
-                            <UserIcon className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
-                            <LogOut className="w-3.5 h-3.5" />
+                            <span className="font-black italic text-zinc-900">{currency}</span>
+                            <ChevronDown className={clsx("w-3 h-3 text-zinc-400 transition-transform", isSettingsOpen && "rotate-180")} />
                         </button>
-                    ) : (
+
+                        <AnimatePresence>
+                            {isSettingsOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-48 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                >
+                                    <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest p-3">Devise</p>
+                                    {currencies.map((c) => (
+                                        <button
+                                            key={c.symbol}
+                                            onClick={() => { setCurrency(c.symbol); setIsSettingsOpen(false); }}
+                                            className={clsx(
+                                                "w-full flex items-center justify-between p-3 rounded-xl transition-colors",
+                                                currency === c.symbol ? "bg-zinc-900 text-white" : "hover:bg-zinc-50 text-zinc-900"
+                                            )}
+                                        >
+                                            <span className="font-black italic text-sm">{c.label}</span>
+                                            <span className="font-bold opacity-50">{c.symbol}</span>
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Profile Menu */}
+                    <div className="relative">
                         <button
-                            onClick={handleLogin}
-                            className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-zinc-900 text-white shadow-premium text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="px-4 py-2 bg-zinc-900 text-white rounded-2xl flex items-center space-x-3 shadow-premium hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-95"
                         >
-                            <LogIn className="w-3.5 h-3.5" />
-                            <span>Connexion</span>
+                            <span className="font-black italic text-sm tracking-tight">{user?.email?.split('@')[0] || 'Invité'}</span>
+                            <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
+                                <ChevronDown className={clsx("w-3 h-3 transition-transform", isMenuOpen && "rotate-180")} />
+                            </div>
                         </button>
-                    )}
-                    <button className="p-2.5 rounded-xl bg-white shadow-soft text-zinc-400 active:scale-95 transition-transform hover:text-zinc-900">
-                        <Settings className="w-4.5 h-4.5" />
-                    </button>
+
+                        <AnimatePresence>
+                            {isMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-56 bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-3 z-[60]"
+                                >
+                                    <button
+                                        onClick={() => setIsResetModalOpen(true)}
+                                        className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                                    >
+                                        <LogIn className="w-4 h-4" />
+                                        <span className="font-black italic text-sm">Nouvelle simulation</span>
+                                    </button>
+                                    <div className="h-px bg-zinc-50 my-2" />
+                                    {user ? (
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-400 hover:text-zinc-900 transition-colors"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span className="font-black italic text-sm">Déconnexion</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleLogin}
+                                            className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                                        >
+                                            <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center">
+                                                <Plus className="w-2 h-2 text-white" />
+                                            </div>
+                                            <span className="font-black italic text-sm">Se connecter</span>
+                                        </button>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto px-6 pb-32 no-scrollbar">
+            <main className="flex-1 overflow-y-auto px-6 pt-28 pb-32 no-scrollbar">
                 <KPISection />
 
-                <div className="space-y-4">
-                    <div className="flex justify-between items-end px-2">
-                        <div>
-                            <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 mb-0.5">Projection</h2>
-                            <p className="text-lg font-black text-zinc-900 italic tracking-tight">Horizon Financier</p>
-                        </div>
-                        <div className="flex bg-white p-1 rounded-2xl shadow-soft">
-                            <button
-                                onClick={() => setView('line')}
-                                className={clsx("px-4 py-2 text-xs font-black rounded-xl transition-all", view === 'line' ? "bg-zinc-900 text-white" : "text-zinc-300 hover:text-zinc-500")}
-                            >
-                                LIGNE
-                            </button>
-                            <button
-                                onClick={() => setView('detail')}
-                                className={clsx("px-4 py-2 text-xs font-black rounded-xl transition-all", view === 'detail' ? "bg-zinc-900 text-white" : "text-zinc-300 hover:text-zinc-500")}
-                            >
-                                DETAIL
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Scrollable Container for Graph + Timeline */}
+                <div className="space-y-8">
                     <div
                         ref={scrollContainerRef}
-                        className="overflow-x-auto no-scrollbar pb-4"
+                        className="overflow-x-auto no-scrollbar pb-8 -mx-6 px-6"
                     >
                         <div style={{ width: `${TOTAL_WIDTH}px` }} className="space-y-4">
-                            <div className="pl-40">
-                                <CashflowGraph width={TOTAL_WIDTH - LABEL_WIDTH} height={view === 'detail' ? 240 : 320} />
+                            <div className="relative">
+                                <CashflowGraph
+                                    width={TOTAL_WIDTH}
+                                    height={showDetails ? 240 : 480}
+                                    leftPadding={LABEL_WIDTH}
+                                />
                             </div>
 
-                            {view === 'detail' && (
-                                <TimelineView />
-                            )}
+                            {/* Light Toggle Button on the left */}
+                            <div className="flex justify-start">
+                                <button
+                                    onClick={() => setShowDetails(!showDetails)}
+                                    className="flex items-center space-x-2 px-6 py-2.5 bg-white rounded-2xl shadow-soft border border-zinc-100 group transition-all active:scale-95 hover:bg-zinc-50"
+                                >
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
+                                        {showDetails ? "Masquer les détails" : "Voir les recettes et dépenses"}
+                                    </span>
+                                    <motion.div
+                                        animate={{ rotate: showDetails ? 180 : 0 }}
+                                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                    >
+                                        <ChevronDown className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900" />
+                                    </motion.div>
+                                </button>
+                            </div>
+
+                            <AnimatePresence>
+                                {showDetails && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <TimelineView />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
                 </div>
             </main>
 
-            {/* Collapsible Editor Panel */}
-            <motion.div
-                initial={false}
-                animate={{
-                    height: isPanelExpanded ? '85%' : '88px',
-                    y: 0
-                }}
-                className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.1)] rounded-t-[48px] z-40 flex flex-col overflow-hidden border-t border-zinc-50"
-            >
-                <button
-                    onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-                    className="w-full h-[88px] flex items-center justify-between px-10 flex-shrink-0 group"
-                >
-                    <div className="flex items-center space-x-5">
-                        <div className="p-3 bg-zinc-900 rounded-2xl group-active:scale-90 transition-transform shadow-premium">
-                            <Plus className="w-5 h-5 text-white stroke-[3px]" />
-                        </div>
-                        <div>
-                            <span className="block font-black text-lg text-zinc-900 italic tracking-tight text-left">Gestion des flux</span>
-                            <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none text-left">Gérer vos transactions</span>
-                        </div>
-                    </div>
-                    <div className="bg-zinc-50 p-2 rounded-xl">
-                        {isPanelExpanded ? <ChevronDown className="w-5 h-5 text-zinc-400" /> : <ChevronUp className="w-5 h-5 text-zinc-400" />}
-                    </div>
-                </button>
-
-                <div className="flex-1 overflow-hidden">
-                    <TransactionList />
-                </div>
-            </motion.div>
-
+            {/* Reset Confirmation Modal */}
+            <AnimatePresence>
+                {isResetModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden p-8 text-center"
+                        >
+                            <div className="w-20 h-20 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                                <Plus className="w-10 h-10 text-rose-500 rotate-45" />
+                            </div>
+                            <h3 className="text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Tout effacer ?</h3>
+                            <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-8">
+                                Cette action supprimera définitivement tous vos flux et réinitialisera votre simulation.
+                            </p>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={handleReset}
+                                    className="w-full py-5 bg-rose-500 text-white rounded-[24px] font-black italic shadow-premium active:scale-95 transition-all"
+                                >
+                                    Oui, réinitialiser
+                                </button>
+                                <button
+                                    onClick={() => setIsResetModalOpen(false)}
+                                    className="w-full py-4 bg-zinc-50 text-zinc-400 rounded-[24px] font-black italic active:scale-95 transition-all text-xs uppercase tracking-widest"
+                                >
+                                    Annuler
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

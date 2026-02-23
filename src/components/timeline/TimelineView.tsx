@@ -5,10 +5,12 @@ import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { clsx } from 'clsx';
-import { motion, useDragControls } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Plus, X } from 'lucide-react';
+import { Transaction } from '@/lib/financeEngine';
 
 export function TimelineView() {
-    const { transactions, updateTransaction, startingMonth } = useFinanceStore();
+    const { transactions, addTransaction, startingMonth } = useFinanceStore();
     const projection = useProjection(24);
 
     const months = Array.from({ length: 24 }).map((_, i) => {
@@ -16,19 +18,34 @@ export function TimelineView() {
         return format(date, 'yyyy-MM');
     });
 
-    const incomeTransactions = transactions.filter(t => t.direction === 'income' && t.amount > 0 && t.label);
-    const expenseTransactions = transactions.filter(t => t.direction === 'expense' && t.amount > 0 && t.label);
+    const incomeTransactions = transactions.filter(t => t.direction === 'income');
+    const expenseTransactions = transactions.filter(t => t.direction === 'expense');
 
     const recurringIncome = incomeTransactions.filter(t => t.recurrence !== 'none');
     const recurringExpense = expenseTransactions.filter(t => t.recurrence !== 'none');
-    const oneOffTransactions = transactions.filter(t => t.recurrence === 'none' && t.amount > 0 && t.label);
+    const oneOffTransactions = transactions.filter(t => t.recurrence === 'none');
+
+    // Calculate max amount for dot scaling
+    const maxAmount = Math.max(...transactions.map(t => t.amount), 1);
+
+    const handleAdd = async (direction: 'income' | 'expense', month?: string) => {
+        await addTransaction({
+            label: '',
+            amount: 0,
+            direction,
+            categoryId: direction === 'income' ? 'cat-other' : 'cat-other',
+            recurrence: month ? 'none' : 'monthly',
+            month: month,
+            startMonth: month ? undefined : months[0]
+        });
+    };
 
     return (
-        <div className="w-full flex flex-col space-y-4 select-none">
+        <div className="w-full flex flex-col space-y-4 select-none mb-32">
             <div className="inline-flex flex-col min-w-full">
                 {/* Header: Months */}
                 <div className="flex border-b border-zinc-100 pb-2">
-                    <div className="w-40 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[10px] uppercase tracking-widest text-zinc-300">
+                    <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[10px] uppercase tracking-widest text-zinc-300">
                         Flux
                     </div>
                     {months.map((m) => (
@@ -38,36 +55,46 @@ export function TimelineView() {
                     ))}
                 </div>
 
-                {/* Section: Recurring Income (Lignes) */}
-                {recurringIncome.length > 0 && (
-                    <>
-                        <SectionLabel label="Recettes" color="text-amber-500" />
-                        {recurringIncome.map(tx => (
-                            <TimelineRow key={tx.id} transaction={tx} months={months} type="line" color="amber" />
-                        ))}
-                    </>
-                )}
+                {/* Section: Recurring Income */}
+                <SectionLabel
+                    label="Recettes"
+                    color="text-emerald-500"
+                    onAdd={() => handleAdd('income')}
+                />
+                {recurringIncome.map(tx => (
+                    <TimelineRow key={tx.id} transaction={tx} months={months} color="emerald" maxAmount={maxAmount} />
+                ))}
 
-                {/* Section: Recurring Expense (Lignes) */}
-                {recurringExpense.length > 0 && (
-                    <>
-                        <SectionLabel label="Dépenses" color="text-zinc-900" />
-                        {recurringExpense.map(tx => (
-                            <TimelineRow key={tx.id} transaction={tx} months={months} type="line" color="zinc" />
-                        ))}
-                    </>
-                )}
+                {/* Section: Recurring Expense */}
+                <SectionLabel
+                    label="Dépenses"
+                    color="text-rose-500"
+                    onAdd={() => handleAdd('expense')}
+                />
+                {recurringExpense.map(tx => (
+                    <TimelineRow key={tx.id} transaction={tx} months={months} color="rose" maxAmount={maxAmount} />
+                ))}
 
-                {/* Section: Mixed One-off (Pills) */}
-                <SectionLabel label="Ponctuel" color="text-zinc-400" />
+                {/* Section: Mixed One-off */}
+                <SectionLabel
+                    label="Ponctuel"
+                    color="text-zinc-400"
+                    onAdd={() => handleAdd('expense', months[0])}
+                />
                 <div className="flex relative">
-                    <div className="w-40 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20" />
+                    <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20" />
                     <div className="flex">
                         {months.map(m => (
-                            <div key={m} className="w-24 flex-shrink-0 flex flex-col items-center justify-start py-4 space-y-2 border-l border-zinc-50 border-dashed min-h-[100px]">
+                            <div key={m} className="w-24 flex-shrink-0 flex flex-col items-center justify-start py-4 space-y-2 border-l border-zinc-50 border-dashed min-h-[140px]">
                                 {oneOffTransactions.filter(t => t.month === m).map(t => (
-                                    <Pill key={t.id} transaction={t} color={t.direction === 'income' ? 'amber' : 'zinc'} months={months} />
+                                    <Pill key={t.id} transaction={t} color={t.direction === 'income' ? 'emerald' : 'rose'} months={months} />
                                 ))}
+                                <button
+                                    onClick={() => handleAdd('expense', m)}
+                                    className="w-16 h-10 rounded-xl border-2 border-dashed border-zinc-100 hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center group/add"
+                                >
+                                    <Plus className="w-4 h-4 text-zinc-200 group-hover/add:text-zinc-400" />
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -77,62 +104,71 @@ export function TimelineView() {
     );
 }
 
-function SectionLabel({ label, color }: { label: string, color: string }) {
+function SectionLabel({ label, color, onAdd }: { label: string, color: string, onAdd: () => void }) {
     return (
-        <div className="flex mt-4 mb-1">
-            <div className={clsx("w-40 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[9px] uppercase tracking-[0.2em]", color)}>
-                {label}
+        <div className="flex mt-6 mb-2 items-center">
+            <div className={clsx("w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[9px] uppercase tracking-[0.2em] flex items-center space-x-2", color)}>
+                <span>{label}</span>
+                <button
+                    onClick={onAdd}
+                    className="p-1 bg-zinc-50 rounded-md hover:bg-zinc-100 transition-colors"
+                >
+                    <Plus className="w-3 h-3 text-zinc-400" />
+                </button>
             </div>
         </div>
     );
 }
 
-function TimelineRow({ transaction, months, type, color }: { transaction: any, months: string[], type: 'line' | 'pill', color: 'amber' | 'zinc' }) {
-    const { updateTransaction } = useFinanceStore();
-    const [isEditingLabel, setIsEditingLabel] = useState(false);
-    const [isEditingAmount, setIsEditingAmount] = useState(false);
+function TimelineRow({ transaction, months, color, maxAmount }: { transaction: any, months: string[], color: 'emerald' | 'rose', maxAmount: number }) {
+    const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
+    const [isHovered, setIsHovered] = useState(false);
 
     const thickness = Math.min(2, Math.max(0.5, Math.sqrt(transaction.amount / 500)));
     const opacity = Math.min(0.5, Math.max(0.1, Math.sqrt(transaction.amount / 1500)));
 
-    return (
-        <div className="flex group/row">
-            <div className="w-40 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 py-1 flex flex-col justify-center border-r border-zinc-50 border-dashed">
-                {isEditingLabel ? (
-                    <input
-                        autoFocus
-                        className="bg-zinc-50 p-1 rounded-lg font-black italic text-[11px] outline-none w-full"
-                        value={transaction.label}
-                        onBlur={() => setIsEditingLabel(false)}
-                        onKeyDown={e => e.key === 'Enter' && setIsEditingLabel(false)}
-                        onChange={e => updateTransaction(transaction.id, { label: e.target.value })}
-                    />
-                ) : (
-                    <span
-                        onClick={() => setIsEditingLabel(true)}
-                        className="font-black italic text-zinc-900 text-[11px] leading-tight hover:text-amber-500 cursor-pointer transition-colors truncate"
-                    >
-                        {transaction.label}
-                    </span>
-                )}
+    // Calculate dot size (min 4px, max 24px)
+    const dotSize = 4 + (Math.sqrt(transaction.amount / maxAmount) * 20);
 
-                {isEditingAmount ? (
+    return (
+        <div
+            className="flex group/row"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 py-1.5 flex flex-col justify-center border-r border-zinc-50 border-dashed relative">
+                <input
+                    className={clsx(
+                        "bg-transparent font-black italic text-[11px] outline-none w-full border-none p-0 focus:bg-zinc-50 focus:px-1 rounded transition-colors mb-0.5",
+                        color === 'emerald' ? "text-emerald-500" : "text-rose-500"
+                    )}
+                    placeholder="Titre..."
+                    value={transaction.label}
+                    autoFocus={transaction.label === ''}
+                    onChange={e => updateTransaction(transaction.id, { label: e.target.value })}
+                />
+
+                <div className="flex items-center space-x-1">
+                    <span className="text-[10px] font-bold text-zinc-300 pointer-events-none">
+                        {transaction.direction === 'expense' ? '-' : '+'}
+                    </span>
                     <input
-                        autoFocus
                         type="number"
-                        className="bg-zinc-50 p-1 rounded-lg font-bold text-[8px] outline-none w-16"
-                        value={transaction.amount}
-                        onBlur={() => setIsEditingAmount(false)}
-                        onKeyDown={e => e.key === 'Enter' && setIsEditingAmount(false)}
+                        className="bg-transparent font-black text-xs outline-none w-20 border-none p-0 focus:bg-zinc-50 focus:px-1 rounded transition-colors text-zinc-900"
+                        value={transaction.amount === 0 ? '' : transaction.amount}
+                        placeholder="0"
                         onChange={e => updateTransaction(transaction.id, { amount: parseFloat(e.target.value) || 0 })}
                     />
-                ) : (
-                    <span
-                        onClick={() => setIsEditingAmount(true)}
-                        className="font-bold text-zinc-300 text-[8px] cursor-pointer hover:text-zinc-600"
+                    <span className="text-[10px] font-bold text-zinc-300 pointer-events-none">{currency}</span>
+                </div>
+
+                {isHovered && (
+                    <button
+                        onClick={() => deleteTransaction(transaction.id)}
+                        className="absolute -left-2 top-1/2 -translate-y-1/2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-premium z-30 transition-all scale-100 hover:scale-110"
                     >
-                        {transaction.amount}€ / m
-                    </span>
+                        <X className="w-3 h-3 stroke-[3px]" />
+                    </button>
                 )}
             </div>
 
@@ -140,7 +176,7 @@ function TimelineRow({ transaction, months, type, color }: { transaction: any, m
                 <div
                     className={clsx(
                         "absolute left-0 right-0 z-0",
-                        color === 'amber' ? "bg-amber-400" : "bg-zinc-300"
+                        color === 'emerald' ? "bg-emerald-400" : "bg-rose-300"
                     )}
                     style={{
                         opacity,
@@ -150,11 +186,17 @@ function TimelineRow({ transaction, months, type, color }: { transaction: any, m
                     }}
                 />
                 {months.map(m => (
-                    <div key={m} className="w-24 h-8 flex-shrink-0 flex items-center justify-center relative">
-                        <div className={clsx(
-                            "w-1.5 h-1.5 rounded-full z-10 shadow-sm border border-white",
-                            color === 'amber' ? "bg-amber-400" : "bg-zinc-900"
-                        )} />
+                    <div key={m} className="w-24 h-10 flex-shrink-0 flex items-center justify-center relative">
+                        <div
+                            className={clsx(
+                                "rounded-full z-10 shadow-sm border border-white transition-all",
+                                color === 'emerald' ? "bg-emerald-400" : "bg-rose-500"
+                            )}
+                            style={{
+                                width: `${dotSize}px`,
+                                height: `${dotSize}px`
+                            }}
+                        />
                     </div>
                 ))}
             </div>
@@ -162,10 +204,10 @@ function TimelineRow({ transaction, months, type, color }: { transaction: any, m
     );
 }
 
-function Pill({ transaction, color, months }: { transaction: any, color: 'amber' | 'zinc', months: string[] }) {
-    const { updateTransaction } = useFinanceStore();
-    const [isEditing, setIsEditing] = useState(false);
-    const COLUMN_WIDTH = 96; // 24 * 4 = 96px
+function Pill({ transaction, color, months }: { transaction: any, color: 'emerald' | 'rose', months: string[] }) {
+    const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
+    const [isHovered, setIsHovered] = useState(false);
+    const COLUMN_WIDTH = 96;
 
     const handleDragEnd = (event: any, info: any) => {
         const offset = Math.round(info.offset.x / COLUMN_WIDTH);
@@ -185,48 +227,46 @@ function Pill({ transaction, color, months }: { transaction: any, color: 'amber'
             onDragEnd={handleDragEnd}
             whileHover={{ scale: 1.05 }}
             whileDrag={{ scale: 1.1, zIndex: 100, cursor: 'grabbing' }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             className={clsx(
-                "px-2 py-1 rounded-lg shadow-sm flex flex-col items-center justify-center min-w-[64px] cursor-grab border active:cursor-grabbing",
-                color === 'amber' ? "bg-amber-50 border-amber-100" : "bg-white border-zinc-100"
+                "px-2 py-2 rounded-xl shadow-sm flex flex-col items-center justify-center min-w-[72px] cursor-grab border active:cursor-grabbing relative group",
+                color === 'emerald' ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
             )}
-            onClick={(e) => {
-                // If it was a drag, don't open editor (but onClick is complex with drag)
-                // framer-motion handles this usually, but let's be safe.
-            }}
-            onDoubleClick={() => setIsEditing(true)}
         >
-            <span className="text-[8px] font-black italic uppercase leading-none mb-1 text-zinc-400 truncate w-12 text-center pointer-events-none">
-                {transaction.label}
-            </span>
-            <span className={clsx("text-[10px] font-black leading-none pointer-events-none", color === 'amber' ? "text-amber-500" : "text-zinc-900")}>
-                {transaction.amount}€
-            </span>
+            <input
+                className="bg-transparent text-[9px] font-black italic uppercase leading-none mb-1 text-zinc-400 text-center w-full outline-none border-none p-0"
+                value={transaction.label}
+                placeholder="Flux..."
+                autoFocus={transaction.label === ''}
+                onChange={e => updateTransaction(transaction.id, { label: e.target.value })}
+            />
+            <div className="flex items-center justify-center space-x-0.5">
+                <span className={clsx("text-xs font-black leading-none", color === 'emerald' ? "text-emerald-500" : "text-rose-500")}>
+                    {transaction.direction === 'expense' ? '-' : '+'}
+                </span>
+                <input
+                    type="number"
+                    className={clsx(
+                        "bg-transparent text-xs font-black leading-none w-14 text-center outline-none border-none p-0",
+                        color === 'emerald' ? "text-emerald-600" : "text-rose-600"
+                    )}
+                    value={transaction.amount === 0 ? '' : transaction.amount}
+                    placeholder="0"
+                    onChange={e => updateTransaction(transaction.id, { amount: parseFloat(e.target.value) || 0 })}
+                />
+                <span className={clsx("text-[10px] font-bold leading-none", color === 'emerald' ? "text-emerald-300" : "text-rose-300")}>
+                    {currency}
+                </span>
+            </div>
 
-            {isEditing && (
-                <div className="fixed inset-0 bg-black/5 z-[100] flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setIsEditing(false); }}>
-                    <div className="bg-white p-6 rounded-[32px] shadow-premium space-y-4" onClick={e => e.stopPropagation()}>
-                        <div className="flex bg-zinc-50 p-1 rounded-2xl mb-4">
-                            <button onClick={() => updateTransaction(transaction.id, { direction: 'income' })} className={clsx("flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all", transaction.direction === 'income' ? "bg-white shadow-soft text-zinc-900" : "text-zinc-400")}>Recette</button>
-                            <button onClick={() => updateTransaction(transaction.id, { direction: 'expense' })} className={clsx("flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all", transaction.direction === 'expense' ? "bg-white shadow-soft text-zinc-900" : "text-zinc-400")}>Dépense</button>
-                        </div>
-                        <input
-                            autoFocus
-                            placeholder="Label"
-                            className="block w-full p-4 bg-zinc-50 rounded-2xl font-black italic border-none outline-none"
-                            value={transaction.label}
-                            onChange={e => updateTransaction(transaction.id, { label: e.target.value })}
-                        />
-                        <input
-                            type="number"
-                            placeholder="Amount"
-                            className="block w-full p-4 bg-zinc-50 rounded-2xl font-black border-none outline-none text-2xl"
-                            value={transaction.amount}
-                            onChange={e => updateTransaction(transaction.id, { amount: parseFloat(e.target.value) || 0 })}
-                            onKeyDown={e => e.key === 'Enter' && setIsEditing(false)}
-                        />
-                        <button onClick={() => setIsEditing(false)} className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black italic">OK</button>
-                    </div>
-                </div>
+            {isHovered && (
+                <button
+                    onClick={() => deleteTransaction(transaction.id)}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-premium z-50 transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <X className="w-3 h-3 stroke-[3px]" />
+                </button>
             )}
         </motion.div>
     );

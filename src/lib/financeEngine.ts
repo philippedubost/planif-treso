@@ -46,7 +46,7 @@ export const calculateProjection = (
   for (let i = 0; i < monthsCount; i++) {
     const currentDate = addMonths(startDate, i);
     const monthKey = format(currentDate, 'yyyy-MM');
-    
+
     let monthIncome = 0;
     let monthExpense = 0;
     const categoryTotals: Record<string, number> = {};
@@ -60,14 +60,19 @@ export const calculateProjection = (
       } else if (t.recurrence === 'monthly') {
         const start = parseISO(`${t.startMonth}-01`);
         const end = t.endMonth ? parseISO(`${t.endMonth}-01`) : null;
-        applies = !isBefore(currentDate, start) && (!end || !isAfter(currentDate, end));
+        // Skip current month for recurring
+        const isCurrentMonth = i === 0;
+        applies = !isCurrentMonth && !isBefore(currentDate, start) && (!end || !isAfter(currentDate, end));
       } else if (t.recurrence === 'yearly') {
         const start = parseISO(`${t.startMonth}-01`);
         const end = t.endMonth ? parseISO(`${t.endMonth}-01`) : null;
         const startMonthNum = start.getMonth();
-        applies = 
-          !isBefore(currentDate, start) && 
-          (!end || !isAfter(currentDate, end)) && 
+        // Skip current month for recurring
+        const isCurrentMonth = i === 0;
+        applies =
+          !isCurrentMonth &&
+          !isBefore(currentDate, start) &&
+          (!end || !isAfter(currentDate, end)) &&
           currentDate.getMonth() === startMonthNum;
       }
 
@@ -78,7 +83,7 @@ export const calculateProjection = (
         } else {
           monthExpense += amount;
         }
-        
+
         categoryTotals[t.categoryId] = (categoryTotals[t.categoryId] || 0) + amount;
         monthTransactions.push(t);
       }

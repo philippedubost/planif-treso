@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
@@ -7,6 +8,13 @@ import { motion } from 'framer-motion';
 
 export function KPISection() {
     const projection = useProjection();
+    const { startingBalance, setStartingBalance, currency } = useFinanceStore();
+    const [isEditing, setIsEditing] = useState(false);
+    const [inputValue, setInputValue] = useState(startingBalance.toString());
+
+    useEffect(() => {
+        setInputValue(startingBalance.toString());
+    }, [startingBalance, isEditing]);
 
     if (projection.length === 0) return null;
 
@@ -16,20 +24,63 @@ export function KPISection() {
     const minBalance = Math.min(...balances);
     const isRisk = minBalance < 0;
 
-    const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(val);
+    const formatCurrency = (val: number) => {
+        const sign = val < 0 ? '-' : '';
+        const absVal = Math.abs(val);
+        const formatted = new Intl.NumberFormat('fr-FR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(absVal);
+        return `${sign}${formatted}${currency}`;
+    };
+
+    const handleBalanceSubmit = () => {
+        const val = parseFloat(inputValue);
+        if (!isNaN(val)) {
+            setStartingBalance(val);
+        } else {
+            setInputValue(startingBalance.toString());
+        }
+        setIsEditing(false);
+    };
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            <KPICard
-                label="Solde Actuel"
-                value={formatCurrency(currentBalance)}
-                icon={<Wallet className="text-zinc-400 w-4 h-4" />}
-            />
+            <motion.div
+                whileHover={{ y: -2, scale: 1.01 }}
+                className="p-4 rounded-3xl border border-white bg-white shadow-soft transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                onClick={() => !isEditing && setIsEditing(true)}
+            >
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Wallet className="text-zinc-400 w-4 h-4" />
+                </div>
+                <div className="flex justify-between items-start mb-2">
+                    <span className="text-zinc-400 font-bold text-[9px] uppercase tracking-widest">Solde Actuel</span>
+                </div>
+                {isEditing ? (
+                    <div className="flex items-center">
+                        <input
+                            autoFocus
+                            type="number"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onBlur={handleBalanceSubmit}
+                            onKeyDown={(e) => e.key === 'Enter' && handleBalanceSubmit()}
+                            className="text-2xl font-black tracking-tighter leading-none text-zinc-900 bg-zinc-50 rounded-lg w-full outline-none p-1 border-b-2 border-zinc-900"
+                        />
+                        <span className="ml-1 text-xl font-black text-zinc-400">{currency}</span>
+                    </div>
+                ) : (
+                    <div className="text-2xl font-black tracking-tighter leading-none text-zinc-900 group-hover:text-zinc-500 transition-colors flex items-center">
+                        {formatCurrency(currentBalance)}
+                        <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] uppercase tracking-widest text-zinc-300 font-bold">Éditer</span>
+                    </div>
+                )}
+            </motion.div>
             <KPICard
                 label="Solde à +24 mois"
                 value={formatCurrency(targetBalance)}
-                icon={<TrendingUp className="text-amber-500 w-4 h-4" />}
+                icon={<TrendingUp className="text-emerald-500 w-4 h-4" />}
             />
             <KPICard
                 label="Point Bas (Risque)"
