@@ -93,33 +93,33 @@ export default function OnboardingPage() {
             <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <AnimatePresence mode="wait">
                     {step === 0 && (
-                        <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full space-y-12">
-                            <div className="relative w-72 h-72 mx-auto bg-white rounded-[64px] shadow-premium flex items-center justify-center overflow-hidden group">
-                                <Image src="/illustrations/mascot-onboarding-start.webp" alt="Welcome" fill className="object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
+                        <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full space-y-8 md:space-y-12">
+                            <div className="relative w-40 h-40 md:w-72 md:h-72 mx-auto bg-white rounded-[40px] md:rounded-[64px] shadow-premium flex items-center justify-center overflow-hidden group">
+                                <Image src="/illustrations/mascot-onboarding-start.webp" alt="Welcome" fill className="object-contain p-4 md:p-8 group-hover:scale-110 transition-transform duration-700" />
                             </div>
 
                             <div className="space-y-4">
-                                <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">C'est pour qui ?</h1>
+                                <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">C'est pour qui ?</h1>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => { setContext('perso'); next(); }}
                                         className={clsx(
-                                            "flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square",
+                                            "flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-[24px] md:rounded-[32px] shadow-soft border-2 transition-all group aspect-square",
                                             context === 'perso' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50"
                                         )}
                                     >
-                                        <User className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
-                                        <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Perso</span>
+                                        <User className="w-8 h-8 md:w-10 md:h-10 mb-2 md:mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
+                                        <span className="font-black italic text-[10px] md:text-sm text-zinc-900 uppercase tracking-tighter text-center">Perso</span>
                                     </button>
                                     <button
                                         onClick={() => { setContext('business'); next(); }}
                                         className={clsx(
-                                            "flex flex-col items-center justify-center p-6 bg-white rounded-[32px] shadow-soft border-2 transition-all group aspect-square",
+                                            "flex flex-col items-center justify-center p-4 md:p-6 bg-white rounded-[24px] md:rounded-[32px] shadow-soft border-2 transition-all group aspect-square",
                                             context === 'business' ? "border-zinc-900" : "border-transparent text-zinc-400 hover:bg-zinc-50"
                                         )}
                                     >
-                                        <Briefcase className="w-10 h-10 mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
-                                        <span className="font-black italic text-zinc-900 uppercase tracking-tighter">Entreprise</span>
+                                        <Briefcase className="w-8 h-8 md:w-10 md:h-10 mb-2 md:mb-4 group-hover:scale-110 transition-transform text-zinc-900" />
+                                        <span className="font-black italic text-[10px] md:text-sm text-zinc-900 uppercase tracking-tighter text-center">Entreprise</span>
                                     </button>
                                 </div>
                             </div>
@@ -132,7 +132,7 @@ export default function OnboardingPage() {
                                             key={c.code}
                                             onClick={() => setCurrency(c.symbol)}
                                             className={clsx(
-                                                "px-4 py-2 rounded-xl text-xs font-black italic transition-all active:scale-95",
+                                                "px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black italic transition-all active:scale-95",
                                                 currency === c.symbol
                                                     ? "bg-zinc-900 text-white shadow-premium"
                                                     : "bg-white border border-zinc-100 text-zinc-400 shadow-soft hover:bg-zinc-50"

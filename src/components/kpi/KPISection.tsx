@@ -45,17 +45,17 @@ export function KPISection() {
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-2 md:gap-3 mb-6">
             <motion.div
                 whileHover={{ y: -2, scale: 1.01 }}
-                className="p-4 rounded-3xl border border-white bg-white shadow-soft transition-all duration-300 relative overflow-hidden group cursor-pointer"
+                className="p-3 md:p-4 rounded-2xl md:rounded-3xl border border-white bg-white shadow-soft transition-all duration-300 relative overflow-hidden group cursor-pointer min-h-[100px] flex flex-col justify-between"
                 onClick={() => !isEditing && setIsEditing(true)}
             >
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Wallet className="text-zinc-400 w-4 h-4" />
+                <div className="absolute top-0 right-0 p-2 md:p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Wallet className="text-zinc-400 w-3 h-3 md:w-4 md:h-4" />
                 </div>
-                <div className="flex justify-between items-start mb-2">
-                    <span className="text-zinc-400 font-bold text-[9px] uppercase tracking-widest">Solde Actuel</span>
+                <div className="flex justify-between items-start">
+                    <span className="text-zinc-400 font-bold text-[7px] md:text-[9px] uppercase tracking-widest leading-tight">Solde Actuel</span>
                 </div>
                 {isEditing ? (
                     <div className="flex items-center">
@@ -66,27 +66,25 @@ export function KPISection() {
                             onChange={(e) => setInputValue(e.target.value)}
                             onBlur={handleBalanceSubmit}
                             onKeyDown={(e) => e.key === 'Enter' && handleBalanceSubmit()}
-                            className="text-2xl font-black tracking-tighter leading-none text-zinc-900 bg-zinc-50 rounded-lg w-full outline-none p-1 border-b-2 border-zinc-900"
+                            className="text-sm md:text-2xl font-black tracking-tighter leading-none text-zinc-900 bg-zinc-50 rounded-lg w-full outline-none p-1 border-b-2 border-zinc-900"
                         />
-                        <span className="ml-1 text-xl font-black text-zinc-400">{currency}</span>
                     </div>
                 ) : (
-                    <div className="text-2xl font-black tracking-tighter leading-none text-zinc-900 group-hover:text-zinc-500 transition-colors flex items-center">
+                    <div className="text-sm md:text-2xl font-black tracking-tighter leading-none text-zinc-900 group-hover:text-zinc-500 transition-colors flex items-center">
                         {formatCurrency(currentBalance)}
-                        <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] uppercase tracking-widest text-zinc-300 font-bold">Éditer</span>
                     </div>
                 )}
             </motion.div>
             <KPICard
-                label="Solde à +24 mois"
+                label="Simulation +24m"
                 value={formatCurrency(targetBalance)}
-                icon={<TrendingUp className="text-emerald-500 w-4 h-4" />}
+                icon={<TrendingUp className="text-emerald-500 w-3 h-3 md:w-4 md:h-4" />}
             />
             <KPICard
                 label="Point Bas (Risque)"
                 value={formatCurrency(minBalance)}
                 status={isRisk ? 'risk' : 'safe'}
-                icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500 w-4 h-4" : "text-zinc-200 w-4 h-4"} />}
+                icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500 w-3 h-3 md:w-4 md:h-4" : "text-zinc-200 w-3 h-3 md:w-4 md:h-4"} />}
             />
         </div>
     );
@@ -97,18 +95,18 @@ function KPICard({ label, value, icon, status }: { label: string; value: string;
         <motion.div
             whileHover={{ y: -2, scale: 1.01 }}
             className={clsx(
-                "p-4 rounded-3xl border shadow-soft transition-all duration-300 relative overflow-hidden group",
+                "p-3 md:p-4 rounded-2xl md:rounded-3xl border shadow-soft transition-all duration-300 relative overflow-hidden group min-h-[100px] flex flex-col justify-between",
                 status === 'risk' ? "bg-rose-50/50 border-rose-100" : "bg-white border-white"
             )}
         >
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="absolute top-0 right-0 p-2 md:p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                 {icon}
             </div>
-            <div className="flex justify-between items-start mb-2">
-                <span className="text-zinc-400 font-bold text-[9px] uppercase tracking-widest">{label}</span>
+            <div className="flex justify-between items-start">
+                <span className="text-zinc-400 font-bold text-[7px] md:text-[9px] uppercase tracking-widest leading-tight">{label}</span>
             </div>
             <div className={clsx(
-                "text-2xl font-black tracking-tighter leading-none",
+                "text-sm md:text-2xl font-black tracking-tighter leading-none",
                 status === 'risk' ? "text-rose-600" : "text-zinc-900"
             )}>
                 {value}

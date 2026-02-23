@@ -59,38 +59,38 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-zinc-50/50 flex flex-col overflow-hidden relative font-sans">
             {/* Premium Header */}
-            <header className="fixed top-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-xl z-50 border-b border-zinc-100 px-8 flex items-center justify-between">
-                <div className="flex items-center space-x-6">
+            <header className="fixed top-0 left-0 right-0 h-16 md:h-20 bg-white/80 backdrop-blur-xl z-50 border-b border-zinc-100 px-4 md:px-8 flex items-center justify-between">
+                <div className="flex items-center space-x-3 md:space-x-6">
                     <div className="flex items-center space-x-2">
-                        <div className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center">
-                            <div className="w-5 h-5 border-2 border-white rounded-lg flex items-center justify-center">
-                                <div className="w-1 h-1 bg-white rounded-full" />
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-900 rounded-xl md:rounded-2xl flex items-center justify-center">
+                            <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white rounded-lg flex items-center justify-center">
+                                <div className="w-0.5 h-0.5 md:w-1 md:h-1 bg-white rounded-full" />
                             </div>
                         </div>
-                        <span className="font-black italic text-xl tracking-tighter text-zinc-900">PLANIF.</span>
+                        <span className="font-black italic text-lg md:text-xl tracking-tighter text-zinc-900">PLANIF.</span>
                     </div>
 
-                    <div className="h-4 w-px bg-zinc-200" />
+                    <div className="hidden md:block h-4 w-px bg-zinc-200" />
 
                     <div className="flex items-center space-x-3">
                         {!user && (
-                            <div className="px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center space-x-2">
-                                <span className="text-[9px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
-                                <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">FLUX GUEST</span>
+                            <div className="px-2 py-1 md:px-3 md:py-1.5 bg-zinc-50 border border-zinc-100 rounded-lg md:rounded-xl flex items-center space-x-1 md:space-x-2">
+                                <span className="text-[8px] md:text-[9px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
+                                <span className="text-[6px] md:text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">GUEST</span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 md:space-x-4">
                     {/* Settings / Currency */}
                     <div className="relative">
                         <button
                             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                            className="px-4 py-2 bg-white border border-zinc-100 rounded-2xl flex items-center space-x-2 shadow-soft hover:shadow-premium transition-all active:scale-95"
+                            className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center space-x-1 md:space-x-2 shadow-soft hover:shadow-premium transition-all active:scale-95"
                         >
-                            <span className="font-black italic text-zinc-900">{currency}</span>
-                            <ChevronDown className={clsx("w-3 h-3 text-zinc-400 transition-transform", isSettingsOpen && "rotate-180")} />
+                            <span className="font-black italic text-xs md:text-sm text-zinc-900">{currency}</span>
+                            <ChevronDown className={clsx("w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-400 transition-transform", isSettingsOpen && "rotate-180")} />
                         </button>
 
                         <AnimatePresence>
@@ -124,11 +124,11 @@ export default function DashboardPage() {
                     <div className="relative">
                         <button
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="px-4 py-2 bg-zinc-900 text-white rounded-2xl flex items-center space-x-3 shadow-premium hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-95"
+                            className="px-3 py-1.5 md:px-4 md:py-2 bg-zinc-900 text-white rounded-xl md:rounded-2xl flex items-center space-x-2 md:space-x-3 shadow-premium hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-95"
                         >
-                            <span className="font-black italic text-sm tracking-tight">{user?.email?.split('@')[0] || 'Invité'}</span>
-                            <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                                <ChevronDown className={clsx("w-3 h-3 transition-transform", isMenuOpen && "rotate-180")} />
+                            <span className="font-black italic text-xs md:text-sm tracking-tight">{user?.email?.split('@')[0] || 'Invité'}</span>
+                            <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-white/20 flex items-center justify-center">
+                                <ChevronDown className={clsx("w-2.5 h-2.5 md:w-3 md:h-3 transition-transform", isMenuOpen && "rotate-180")} />
                             </div>
                         </button>
 
@@ -175,19 +175,19 @@ export default function DashboardPage() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto px-6 pt-28 pb-32 no-scrollbar">
+            <main className="flex-1 overflow-y-auto px-4 md:px-6 pt-24 md:pt-28 pb-32 no-scrollbar">
                 <KPISection />
 
                 <div className="space-y-8">
                     <div
                         ref={scrollContainerRef}
-                        className="overflow-x-auto no-scrollbar pb-8 -mx-6 px-6"
+                        className="overflow-x-auto no-scrollbar pb-8 -mx-4 md:-mx-6 px-4 md:px-6"
                     >
                         <div style={{ width: `${TOTAL_WIDTH}px` }} className="space-y-4">
                             <div className="relative">
                                 <CashflowGraph
                                     width={TOTAL_WIDTH}
-                                    height={showDetails ? 240 : 480}
+                                    height={showDetails ? 240 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 320 : 480)}
                                     leftPadding={LABEL_WIDTH}
                                 />
                             </div>
@@ -196,10 +196,10 @@ export default function DashboardPage() {
                             <div className="flex justify-start">
                                 <button
                                     onClick={() => setShowDetails(!showDetails)}
-                                    className="flex items-center space-x-2 px-6 py-2.5 bg-white rounded-2xl shadow-soft border border-zinc-100 group transition-all active:scale-95 hover:bg-zinc-50"
+                                    className="flex items-center space-x-2 px-5 md:px-6 py-3 md:py-2.5 bg-white rounded-2xl shadow-soft border border-zinc-100 group transition-all active:scale-95 hover:bg-zinc-50"
                                 >
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                        {showDetails ? "Masquer les détails" : "Voir les recettes et dépenses"}
+                                    <span className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
+                                        {showDetails ? (typeof window !== 'undefined' && window.innerWidth < 768 ? "Masquer" : "Masquer les détails") : "Voir les recettes et dépenses"}
                                     </span>
                                     <motion.div
                                         animate={{ rotate: showDetails ? 180 : 0 }}
@@ -234,31 +234,31 @@ export default function DashboardPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+                        className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-6"
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden p-8 text-center"
+                            className="bg-white w-full max-w-sm rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden p-6 md:p-8 text-center"
                         >
-                            <div className="w-20 h-20 bg-rose-50 rounded-[32px] flex items-center justify-center mx-auto mb-6">
-                                <Plus className="w-10 h-10 text-rose-500 rotate-45" />
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-rose-50 rounded-[24px] md:rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                                <Plus className="w-8 h-8 md:w-10 md:h-10 text-rose-500 rotate-45" />
                             </div>
-                            <h3 className="text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Tout effacer ?</h3>
-                            <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-8">
+                            <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Tout effacer ?</h3>
+                            <p className="text-zinc-400 text-xs md:text-sm font-medium leading-relaxed mb-8">
                                 Cette action supprimera définitivement tous vos flux et réinitialisera votre simulation.
                             </p>
                             <div className="space-y-3">
                                 <button
                                     onClick={handleReset}
-                                    className="w-full py-5 bg-rose-500 text-white rounded-[24px] font-black italic shadow-premium active:scale-95 transition-all"
+                                    className="w-full py-4 md:py-5 bg-rose-500 text-white rounded-[20px] md:rounded-[24px] font-black italic shadow-premium active:scale-95 transition-all text-sm md:text-base"
                                 >
                                     Oui, réinitialiser
                                 </button>
                                 <button
                                     onClick={() => setIsResetModalOpen(false)}
-                                    className="w-full py-4 bg-zinc-50 text-zinc-400 rounded-[24px] font-black italic active:scale-95 transition-all text-xs uppercase tracking-widest"
+                                    className="w-full py-3 md:py-4 bg-zinc-50 text-zinc-400 rounded-[20px] md:rounded-[24px] font-black italic active:scale-95 transition-all text-[10px] md:text-xs uppercase tracking-widest"
                                 >
                                     Annuler
                                 </button>

@@ -39,8 +39,8 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
 
     return (
         <div
-            className="bg-white/70 backdrop-blur-sm rounded-[40px] p-6 shadow-soft relative select-none touch-none overflow-visible group border border-white"
-            style={{ width: width ? `${width}px` : '100%', height: `${height}px` }}
+            className="bg-white/70 backdrop-blur-sm rounded-[32px] md:rounded-[40px] p-4 md:p-6 shadow-soft relative select-none touch-none overflow-visible group border border-white"
+            style={{ width: width ? `${width}px` : '100%', height: height ? `${height}px` : (window.innerWidth < 768 ? '320px' : '480px') }}
         >
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
