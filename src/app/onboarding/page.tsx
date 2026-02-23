@@ -6,46 +6,47 @@ import { useRouter } from 'next/navigation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Plus, ChevronRight, Check } from 'lucide-react';
 import Image from 'next/image';
+import { format } from 'date-fns'; // Added import for date-fns format
 
 const slides = [
     {
         id: 'welcome',
-        title: 'Welcome to Planif-Treso',
-        description: 'Master your cashflow with a few swipes.',
+        title: 'Bienvenue sur Planif-Treso',
+        description: 'Maîtrisez votre trésorerie en quelques gestes.',
         image: '/illustrations/mascot-onboarding-start.png',
     },
     {
         id: 'balance',
-        title: 'Starting Point',
-        description: 'What is your current balance today?',
+        title: 'Votre Solde Actuel',
+        description: 'Quel montant avez-vous en banque aujourd\'hui ?',
         image: '/illustrations/mascot-balance-day.png',
         type: 'input',
         field: 'startingBalance',
     },
     {
-        id: 'income-recurring',
-        title: 'Recurring Incomes',
-        description: 'Add your salary or other monthly incomes.',
+        id: 'income', // Changed from 'income-recurring'
+        title: 'Revenus Récurrents',
+        description: 'Ajoutez vos revenus mensuels prévus.',
         image: '/illustrations/mascot-income-recurring.png',
         type: 'suggestions',
-        suggestions: ['Salary', 'Freelance', 'Dividends'],
+        suggestions: ['Salaire', 'Dividendes', 'Loyer perçu', 'Pension'], // Updated suggestions
         direction: 'income',
-        recurrence: 'monthly',
+        // Removed recurrence: 'monthly'
     },
     {
-        id: 'expense-recurring',
-        title: 'Recurring Expenses',
-        description: 'Rent, subscriptions, utilities...',
+        id: 'expense', // Changed from 'expense-recurring'
+        title: 'Dépenses Fixes',
+        description: 'Loyer, abonnements, factures...',
         image: '/illustrations/mascot-expense-recurring.png',
         type: 'suggestions',
-        suggestions: ['Rent', 'Netflix', 'Electricity', 'Gym'],
+        suggestions: ['Loyer', 'Électricité', 'Internet', 'Netflix', 'Assurance'], // Updated suggestions
         direction: 'expense',
-        recurrence: 'monthly',
+        // Removed recurrence: 'monthly'
     },
     {
         id: 'ready',
-        title: 'You are ready!',
-        description: 'Let\'s check your 12-month projection.',
+        title: 'Tout est Prêt !',
+        description: 'Vous pouvez maintenant suivre vos projections sur 12 mois.',
         image: '/illustrations/mascot-success-ready.png',
     },
 ];
@@ -57,7 +58,8 @@ export default function OnboardingPage() {
     const router = useRouter();
 
     const handleNext = () => {
-        if (slides[currentSlide].id === 'balance') {
+        const slide = slides[currentSlide]; // Moved this line to the top
+        if (slide.id === 'balance') {
             setStartingBalance(parseFloat(inputValue) || 0);
         }
 
@@ -72,11 +74,11 @@ export default function OnboardingPage() {
     const handleSuggestionAdd = (label: string, direction: 'income' | 'expense') => {
         addTransaction({
             label,
-            categoryId: `cat-${label.toLowerCase()}`,
-            amount: direction === 'income' ? 2000 : 500, // Dummy defaults
+            amount: 0, // Changed default amount
             direction,
+            categoryId: direction === 'income' ? 'cat-salary' : 'cat-rent', // Changed categoryId logic
             recurrence: 'monthly',
-            startMonth: new Date().toISOString().substring(0, 7),
+            startMonth: format(new Date(), 'yyyy-MM'), // Changed date format
         });
     };
 
@@ -166,7 +168,7 @@ export default function OnboardingPage() {
                         onClick={handleNext}
                         className="w-full py-6 bg-zinc-900 text-white rounded-[32px] font-black text-xl flex items-center justify-center space-x-3 active:scale-95 transition-all shadow-premium hover:opacity-90 active:bg-black"
                     >
-                        <span>{currentSlide === slides.length - 1 ? 'START ADVENTURE' : 'CONTINUE'}</span>
+                        <span>{currentSlide === slides.length - 1 ? 'C\'EST PARTI !' : 'CONTINUER'}</span>
                         <ChevronRight className="w-6 h-6 stroke-[3px]" />
                     </button>
 
@@ -175,7 +177,7 @@ export default function OnboardingPage() {
                             onClick={() => setCurrentSlide(currentSlide - 1)}
                             className="w-full mt-4 py-2 text-zinc-400 font-bold uppercase tracking-widest text-xs tap-effect"
                         >
-                            Go back
+                            Retour
                         </button>
                     ) : (
                         <div className="h-[40px]" />

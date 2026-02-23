@@ -141,32 +141,29 @@ export function CashflowGraph() {
     );
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
-            <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-zinc-900/90 backdrop-blur-md p-5 rounded-3xl shadow-2xl border border-white/10 min-w-[180px]"
-            >
-                <p className="text-zinc-400 text-[10px] uppercase font-black tracking-tighter mb-4">{format(parseISO(`${label}-01`), 'MMMM yyyy', { locale: fr })}</p>
+            <div className="bg-white/90 backdrop-blur-xl p-6 rounded-[32px] shadow-premium border border-white/40 min-w-[200px]">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-3">
+                    {format(parseISO(`${data.month}-01`), 'MMMM yyyy', { locale: fr })}
+                </p>
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                        <span className="text-zinc-400 text-xs font-bold">Income</span>
-                        <span className="text-amber-400 font-black tracking-tight">+{data.income}€</span>
+                        <span className="text-xs font-bold text-zinc-400">Revenus</span>
+                        <span className="text-sm font-black text-amber-500">+{data.income}€</span>
                     </div>
                     <div className="flex justify-between items-center">
-                        <span className="text-zinc-400 text-xs font-bold">Expense</span>
-                        <span className="text-blue-400 font-black tracking-tight">-{data.expense}€</span>
+                        <span className="text-xs font-bold text-zinc-400">Dépenses</span>
+                        <span className="text-sm font-black text-zinc-900">-{data.expense}€</span>
                     </div>
-                    <div className="h-[1px] bg-white/10 my-2" />
-                    <div className="flex justify-between items-center">
-                        <span className="text-white text-xs font-black italic">Balance</span>
-                        <span className="text-emerald-400 font-black text-lg tracking-tighter">{data.balance}€</span>
+                    <div className="pt-2 border-t border-zinc-100 flex justify-between items-center">
+                        <span className="text-xs font-bold text-zinc-900">Solde Projeté</span>
+                        <span className="text-lg font-black text-emerald-500 tracking-tighter">{data.balance}€</span>
                     </div>
                 </div>
-            </motion.div>
+            </div>
         );
     }
     return null;

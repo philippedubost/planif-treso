@@ -16,7 +16,7 @@ export default function DashboardPage() {
             <header className="px-8 py-6 flex justify-between items-center bg-transparent">
                 <div>
                     <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 uppercase">Planif-Treso</h1>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] ml-0.5">Cashflow Master</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] ml-0.5">Maîtrisez vos flux</p>
                 </div>
                 <button className="p-3 rounded-2xl bg-white shadow-soft text-zinc-400 active:scale-95 transition-transform hover:text-zinc-900">
                     <Settings className="w-5 h-5" />
@@ -31,11 +31,11 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-end px-2">
                         <div>
                             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">Projection</h2>
-                            <p className="text-xl font-black text-zinc-900 italic tracking-tight">Financial Horizon</p>
+                            <p className="text-xl font-black text-zinc-900 italic tracking-tight">Horizon Financier</p>
                         </div>
                         <div className="flex bg-white p-1 rounded-2xl shadow-soft">
-                            <button className="px-4 py-2 text-xs font-black rounded-xl bg-zinc-900 text-white transition-all">LINE</button>
-                            <button className="px-4 py-2 text-xs font-black rounded-xl text-zinc-300 hover:text-zinc-500 transition-all">STARK</button>
+                            <button className="px-4 py-2 text-xs font-black rounded-xl bg-zinc-900 text-white transition-all">LIGNE</button>
+                            <button className="px-4 py-2 text-xs font-black rounded-xl text-zinc-300 hover:text-zinc-500 transition-all">DETAIL</button>
                         </div>
                     </div>
                     <CashflowGraph />
@@ -60,8 +60,8 @@ export default function DashboardPage() {
                             <Plus className="w-5 h-5 text-white stroke-[3px]" />
                         </div>
                         <div>
-                            <span className="block font-black text-lg text-zinc-900 italic tracking-tight">Dashboard Editor</span>
-                            <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Manage flow</span>
+                            <span className="block font-black text-lg text-zinc-900 italic tracking-tight text-left">Gestion des flux</span>
+                            <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none text-left">Gérer vos transactions</span>
                         </div>
                     </div>
                     <div className="bg-zinc-50 p-2 rounded-xl">

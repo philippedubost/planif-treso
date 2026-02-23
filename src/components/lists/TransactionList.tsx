@@ -26,7 +26,7 @@ export function TransactionList() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
                     <input
                         type="text"
-                        placeholder="Search flow..."
+                        placeholder="Rechercher un flux..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-12 pr-6 py-4 bg-zinc-50 border-none rounded-2xl focus:ring-4 focus:ring-zinc-900/5 transition-all text-sm font-bold text-zinc-900 placeholder:text-zinc-300"
@@ -40,7 +40,7 @@ export function TransactionList() {
                         <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
                             <Plus className="w-8 h-8 text-zinc-200" />
                         </div>
-                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">No movement found</p>
+                        <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">Aucun mouvement trouvé</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -62,7 +62,7 @@ export function TransactionList() {
                                         </div>
                                         <div>
                                             <h3 className="font-black text-zinc-900 italic tracking-tight text-lg leading-none mb-1">{tx.label}</h3>
-                                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{category?.label || 'Other'}</p>
+                                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{category?.label || 'Autre'}</p>
                                         </div>
                                     </div>
 
@@ -75,7 +75,7 @@ export function TransactionList() {
                                                 {tx.direction === 'income' ? '+' : '-'}{tx.amount}€
                                             </p>
                                             <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest mt-1">
-                                                {tx.recurrence !== 'none' ? 'Recurring' : 'One-off'}
+                                                {tx.recurrence !== 'none' ? 'Récurrent' : 'Unique'}
                                             </p>
                                         </div>
                                         <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -103,7 +103,7 @@ export function TransactionList() {
             <BottomSheet
                 isOpen={!!editingTransaction}
                 onClose={() => setEditingTransaction(null)}
-                title="Edit Flow"
+                title="Modifier le flux"
             >
                 {editingTransaction && (
                     <TransactionEditor

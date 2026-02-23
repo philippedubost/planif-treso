@@ -2,7 +2,7 @@
 
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
-import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function KPISection() {
@@ -20,22 +20,22 @@ export function KPISection() {
         new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(val);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
             <KPICard
-                label="Balance Today"
+                label="Solde Actuel"
                 value={formatCurrency(currentBalance)}
-                icon={<TrendingUp className="text-emerald-500" />}
+                icon={<Wallet className="text-zinc-400" />}
             />
             <KPICard
-                label="In 12 Months"
+                label="Solde à +12 mois"
                 value={formatCurrency(targetBalance)}
-                icon={targetBalance >= currentBalance ? <TrendingUp className="text-emerald-500" /> : <TrendingDown className="text-amber-500" />}
+                icon={<TrendingUp className="text-amber-500" />}
             />
             <KPICard
-                label="Lowest Point"
+                label="Point Bas (Risque)"
                 value={formatCurrency(minBalance)}
                 status={isRisk ? 'risk' : 'safe'}
-                icon={<AlertCircle className={clsx(isRisk ? "text-rose-500" : "text-emerald-500")} />}
+                icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500" : "text-zinc-200"} />}
             />
         </div>
     );

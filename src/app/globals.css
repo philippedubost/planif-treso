@@ -35,17 +35,6 @@
   /* Fresh emerald */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1e272e;
-    --foreground: #f1f2f6;
-    --card: #2f3542;
-    --card-foreground: #f1f2f6;
-    --muted: #353b48;
-    --muted-foreground: #7f8c8d;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);

@@ -52,7 +52,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                             direction === 'income' ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400"
                         )}
                     >
-                        Positive Flow
+                        Encaissement
                     </button>
                     <button
                         onClick={() => setDirection('expense')}
@@ -61,15 +61,15 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                             direction === 'expense' ? "bg-white shadow-premium text-zinc-900" : "text-zinc-400"
                         )}
                     >
-                        Outgoing
+                        Décaissement
                     </button>
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Label</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Libellé</label>
                     <input
                         type="text"
-                        placeholder="What for?"
+                        placeholder="C'est pour quoi ?"
                         value={label}
                         onChange={(e) => setLabel(e.target.value)}
                         className="w-full p-6 bg-zinc-50 border-none rounded-[32px] font-black text-zinc-900 italic tracking-tight focus:ring-4 focus:ring-zinc-100 transition-all text-xl"
@@ -77,7 +77,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Amount</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Montant</label>
                     <div className="relative">
                         <input
                             type="number"
@@ -91,7 +91,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                 </div>
 
                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Category</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Catégorie</label>
                     <div className="grid grid-cols-2 gap-3">
                         {categories.filter(c => c.direction === direction).map((cat) => (
                             <button
@@ -112,7 +112,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                 </div>
 
                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Recurrence</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Récurrence</label>
                     <div className="flex space-x-3">
                         {['none', 'monthly', 'yearly'].map((r) => (
                             <button
@@ -123,7 +123,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                                     recurrence === r ? "bg-white border-zinc-900 shadow-premium text-zinc-900" : "bg-zinc-50 border-transparent text-zinc-300"
                                 )}
                             >
-                                {r === 'none' ? 'Once' : r}
+                                {r === 'none' ? 'Unique' : r === 'monthly' ? 'Mensuel' : 'Annuel'}
                             </button>
                         ))}
                     </div>
@@ -135,7 +135,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                     onClick={handleSave}
                     className="w-full py-6 bg-zinc-900 text-white rounded-[40px] font-black text-xl italic tracking-tight shadow-premium active:scale-95 transition-all flex items-center justify-center space-x-3"
                 >
-                    <span>{initialData ? 'Update Flow' : 'Create Flow'}</span>
+                    <span>{initialData ? 'Mettre à jour' : 'Ajouter le flux'}</span>
                     <Plus className={clsx("w-6 h-6 stroke-[3px]", initialData && "hidden")} />
                 </button>
             </div>
