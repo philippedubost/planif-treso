@@ -14,9 +14,8 @@
 }
 
 :root {
-  /* Using a warm, soft material palette inspired by the mascot image */
-  --background: #fdfcf9;
-  /* Very soft cream */
+  /* Using a pure white material palette for maximum "light" feel */
+  --background: #ffffff;
   --foreground: #2d3436;
 
   --card: #ffffff;
