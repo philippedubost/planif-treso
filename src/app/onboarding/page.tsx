@@ -93,69 +93,94 @@ export default function OnboardingPage() {
                         exit={{ opacity: 0, x: -20 }}
                         className="w-full"
                     >
-                        <div className="relative w-64 h-64 mx-auto mb-8 bg-zinc-100 dark:bg-zinc-900 rounded-[48px] overflow-hidden flex items-center justify-center">
-                            <div className="text-zinc-400 text-xs italic p-4">Illustration placeholder:<br />{slide.image}</div>
-                            {/* <Image src={slide.image} alt={slide.title} fill className="object-contain" /> */}
-                        </div>
-
-                        <h1 className="text-3xl font-bold mb-4 text-zinc-900 dark:text-zinc-100 italic tracking-tight">{slide.title}</h1>
-                        <p className="text-zinc-500 dark:text-zinc-400 mb-8">{slide.description}</p>
-
-                        {slide.type === 'input' && (
-                            <input
-                                type="number"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="0.00 €"
-                                className="w-full p-4 text-2xl font-bold text-center bg-zinc-50 dark:bg-zinc-900 border-none rounded-2xl focus:ring-2 focus:ring-zinc-900 outline-none mb-8"
-                                autoFocus
+                        <motion.div
+                            layoutId="image-container"
+                            className="relative w-full aspect-square max-w-[280px] mx-auto mb-12 bg-white rounded-[48px] shadow-premium overflow-hidden flex items-center justify-center group"
+                        >
+                            <Image
+                                src={slide.image}
+                                alt={slide.title}
+                                fill
+                                className="object-contain p-4 group-hover:scale-110 transition-transform duration-700 ease-out"
+                                priority
                             />
-                        )}
+                        </motion.div>
 
-                        {slide.type === 'suggestions' && (
-                            <div className="grid grid-cols-2 gap-3 mb-8">
-                                {slide.suggestions?.map((sub) => (
-                                    <button
-                                        key={sub}
-                                        onClick={() => handleSuggestionAdd(sub, slide.direction as any)}
-                                        className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                                    >
-                                        <span className="font-medium">{sub}</span>
-                                        <Plus className="w-4 h-4 text-zinc-400" />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <h1 className="text-4xl font-black mb-4 text-zinc-900 italic tracking-tighter leading-none">
+                            {slide.title}
+                        </h1>
+                        <p className="text-zinc-500 font-medium leading-relaxed px-4">
+                            {slide.description}
+                        </p>
+
+                        <div className="mt-12 w-full">
+                            {slide.type === 'input' && (
+                                <motion.input
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    type="number"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    placeholder="0.00 €"
+                                    className="w-full p-6 text-4xl font-black text-center bg-white shadow-soft border-none rounded-3xl selection:bg-zinc-100 outline-none focus:ring-4 focus:ring-zinc-900/5 transition-all text-zinc-900"
+                                    autoFocus
+                                />
+                            )}
+
+                            {slide.type === 'suggestions' && (
+                                <div className="grid grid-cols-1 gap-3 px-2">
+                                    {slide.suggestions?.map((sub, i) => (
+                                        <motion.button
+                                            key={sub}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: i * 0.1 }}
+                                            onClick={() => handleSuggestionAdd(sub, slide.direction as any)}
+                                            className="flex items-center justify-between p-5 bg-white shadow-soft rounded-3xl hover:bg-zinc-50 active:scale-[0.98] transition-all group"
+                                        >
+                                            <span className="font-bold text-lg text-zinc-700">{sub}</span>
+                                            <div className="bg-zinc-900 rounded-xl p-2 group-active:rotate-90 transition-transform">
+                                                <Plus className="w-4 h-4 text-white" />
+                                            </div>
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
                 </AnimatePresence>
             </div>
 
-            <div className="pb-8 space-y-4">
-                <div className="flex justify-center space-x-2">
+            <div className="pb-12 space-y-8">
+                <div className="flex justify-center space-x-3">
                     {slides.map((_, i) => (
                         <div
                             key={i}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${i === currentSlide ? 'w-8 bg-zinc-900 dark:bg-zinc-100' : 'w-2 bg-zinc-200 dark:bg-zinc-800'}`}
+                            className={`h-2 rounded-full transition-all duration-500 ease-out ${i === currentSlide ? 'w-10 bg-zinc-900' : 'w-2 bg-zinc-200'}`}
                         />
                     ))}
                 </div>
 
-                <button
-                    onClick={handleNext}
-                    className="w-full py-5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[24px] font-bold text-lg flex items-center justify-center space-x-2 active:scale-[0.98] transition-transform shadow-xl shadow-zinc-200 dark:shadow-none"
-                >
-                    <span>{currentSlide === slides.length - 1 ? 'Go!' : 'Next'}</span>
-                    <ChevronRight className="w-5 h-5" />
-                </button>
-
-                {currentSlide > 0 && (
+                <div className="px-2">
                     <button
-                        onClick={() => setCurrentSlide(currentSlide - 1)}
-                        className="w-full py-2 text-zinc-400 font-medium"
+                        onClick={handleNext}
+                        className="w-full py-6 bg-zinc-900 text-white rounded-[32px] font-black text-xl flex items-center justify-center space-x-3 active:scale-95 transition-all shadow-premium hover:opacity-90 active:bg-black"
                     >
-                        Back
+                        <span>{currentSlide === slides.length - 1 ? 'START ADVENTURE' : 'CONTINUE'}</span>
+                        <ChevronRight className="w-6 h-6 stroke-[3px]" />
                     </button>
-                )}
+
+                    {currentSlide > 0 ? (
+                        <button
+                            onClick={() => setCurrentSlide(currentSlide - 1)}
+                            className="w-full mt-4 py-2 text-zinc-400 font-bold uppercase tracking-widest text-xs tap-effect"
+                        >
+                            Go back
+                        </button>
+                    ) : (
+                        <div className="h-[40px]" />
+                    )}
+                </div>
             </div>
         </div>
     );

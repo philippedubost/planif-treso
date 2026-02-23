@@ -17,11 +17,12 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { MonthData } from '@/lib/financeEngine';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus } from 'lucide-react';
 
 export function CashflowGraph() {
     const projection = useFinanceStore((state) => state.getProjection());
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-    const [dragInfo, setDragInfo] = useState<{ month: string; type: 'income' | 'expense'; initialValue: number; currentValue: number } | null>(null);
 
     const formatMonth = (monthStr: string) => {
         return format(parseISO(`${monthStr}-01`), 'MMM', { locale: fr });
@@ -37,56 +38,68 @@ export function CashflowGraph() {
     };
 
     return (
-        <div className="w-full h-[400px] bg-white dark:bg-zinc-900 rounded-[32px] p-4 relative select-none touch-none">
+        <div className="w-full h-[400px] bg-white rounded-[40px] p-6 shadow-soft relative select-none touch-none overflow-hidden group">
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection}
-                    margin={{ top: 20, right: 20, bottom: 20, left: 0 }}
+                    margin={{ top: 20, right: 10, bottom: 20, left: -20 }}
                     onClick={(e: any) => e && e.activePayload && handleBarClick(e.activePayload[0].payload)}
                 >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <defs>
+                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.2} />
+                        </linearGradient>
+                        <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
                     <XAxis
                         dataKey="month"
                         tickFormatter={formatMonth}
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }}
                     />
                     <YAxis
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={formatCurrency}
-                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }}
                     />
                     <Tooltip
                         content={<CustomTooltip />}
-                        cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                        cursor={{ fill: '#f8fafc', radius: 20 }}
                     />
                     <Bar
                         dataKey="income"
-                        fill="#fbbf24"
-                        radius={[4, 4, 0, 0]}
-                        barSize={20}
+                        fill="url(#colorIncome)"
+                        radius={[10, 10, 0, 0]}
+                        barSize={24}
+                        animationDuration={1500}
                     >
                         {projection.map((entry, index) => (
                             <Cell
                                 key={`cell-income-${index}`}
-                                fill={entry.month === selectedMonth ? '#f59e0b' : '#fbbf24'}
-                                className="cursor-pointer"
+                                fill={entry.month === selectedMonth ? '#fbbf24' : 'url(#colorIncome)'}
+                                className="cursor-pointer transition-all duration-300"
                             />
                         ))}
                     </Bar>
                     <Bar
                         dataKey="expense"
-                        fill="#3b82f6"
-                        radius={[4, 4, 0, 0]}
-                        barSize={20}
+                        fill="url(#colorExpense)"
+                        radius={[10, 10, 0, 0]}
+                        barSize={24}
+                        animationDuration={1500}
                     >
                         {projection.map((entry, index) => (
                             <Cell
                                 key={`cell-expense-${index}`}
-                                fill={entry.month === selectedMonth ? '#2563eb' : '#3b82f6'}
-                                className="cursor-pointer"
+                                fill={entry.month === selectedMonth ? '#3b82f6' : 'url(#colorExpense)'}
+                                className="cursor-pointer transition-all duration-300"
                             />
                         ))}
                     </Bar>
@@ -94,25 +107,36 @@ export function CashflowGraph() {
                         type="monotone"
                         dataKey="balance"
                         stroke="#10b981"
-                        strokeWidth={3}
-                        dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
-                        activeDot={{ r: 6 }}
+                        strokeWidth={4}
+                        dot={{ r: 6, fill: '#10b981', strokeWidth: 3, stroke: '#fff' }}
+                        activeDot={{ r: 8, strokeWidth: 0 }}
+                        animationDuration={2000}
                     />
-                    <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1} />
+                    <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={2} strokeDasharray="3 3" />
                 </ComposedChart>
             </ResponsiveContainer>
 
-            {selectedMonth && (
-                <div className="absolute inset-x-4 bottom-4 flex justify-between items-center bg-zinc-100 dark:bg-zinc-800 p-3 rounded-2xl animate-in slide-in-from-bottom-4 duration-300">
-                    <span className="text-zinc-600 dark:text-zinc-400 font-medium">Month: {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: fr })}</span>
-                    <button
-                        onClick={() => setSelectedMonth(null)}
-                        className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            <AnimatePresence>
+                {selectedMonth && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="absolute inset-x-6 bottom-6 flex justify-between items-center glass p-4 rounded-3xl shadow-premium border-none"
                     >
-                        Close
-                    </button>
-                </div>
-            )}
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-black tracking-widest text-zinc-400">Selected Month</span>
+                            <span className="text-zinc-900 font-black italic">{format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: fr })}</span>
+                        </div>
+                        <button
+                            onClick={() => setSelectedMonth(null)}
+                            className="bg-zinc-900 text-white p-2 rounded-xl active:scale-90 transition-transform"
+                        >
+                            <Plus className="w-4 h-4 rotate-45" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -121,24 +145,28 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
-            <div className="bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-xl border border-zinc-100 dark:border-zinc-700 min-w-[150px]">
-                <p className="text-zinc-400 text-xs uppercase font-bold mb-2">{format(parseISO(`${label}-01`), 'MMMM yyyy', { locale: fr })}</p>
-                <div className="space-y-1">
-                    <div className="flex justify-between items-center text-emerald-500 font-medium">
-                        <span>Income</span>
-                        <span>+{data.income}€</span>
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-zinc-900/90 backdrop-blur-md p-5 rounded-3xl shadow-2xl border border-white/10 min-w-[180px]"
+            >
+                <p className="text-zinc-400 text-[10px] uppercase font-black tracking-tighter mb-4">{format(parseISO(`${label}-01`), 'MMMM yyyy', { locale: fr })}</p>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-zinc-400 text-xs font-bold">Income</span>
+                        <span className="text-amber-400 font-black tracking-tight">+{data.income}€</span>
                     </div>
-                    <div className="flex justify-between items-center text-rose-500 font-medium">
-                        <span>Expense</span>
-                        <span>-{data.expense}€</span>
+                    <div className="flex justify-between items-center">
+                        <span className="text-zinc-400 text-xs font-bold">Expense</span>
+                        <span className="text-blue-400 font-black tracking-tight">-{data.expense}€</span>
                     </div>
-                    <hr className="my-1 border-zinc-100 dark:border-zinc-700" />
-                    <div className="flex justify-between items-center text-zinc-900 dark:text-zinc-100 font-bold">
-                        <span>Balance</span>
-                        <span>{data.balance}€</span>
+                    <div className="h-[1px] bg-white/10 my-2" />
+                    <div className="flex justify-between items-center">
+                        <span className="text-white text-xs font-black italic">Balance</span>
+                        <span className="text-emerald-400 font-black text-lg tracking-tighter">{data.balance}€</span>
                     </div>
                 </div>
-            </div>
+            </motion.div>
         );
     }
     return null;

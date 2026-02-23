@@ -26,11 +26,11 @@ interface FinanceState {
 }
 
 const defaultCategories: Category[] = [
-    { id: 'cat-salary', label: 'Salary', direction: 'income', color: '#fbbf24' }, // warm
-    { id: 'cat-dividend', label: 'Dividends', direction: 'income', color: '#f59e0b' },
-    { id: 'cat-rent', label: 'Rent', direction: 'expense', color: '#3b82f6' }, // cool
-    { id: 'cat-food', label: 'Food', direction: 'expense', color: '#60a5fa' },
-    { id: 'cat-transport', label: 'Transport', direction: 'expense', color: '#93c5fd' },
+    { id: 'cat-salary', label: 'Salary', direction: 'income', color: '#fbbf24' }, // warm yellow
+    { id: 'cat-dividend', label: 'Dividends', direction: 'income', color: '#f59e0b' }, // dark yellow
+    { id: 'cat-rent', label: 'Rent', direction: 'expense', color: '#3b82f6' }, // blue
+    { id: 'cat-food', label: 'Food', direction: 'expense', color: '#60a5fa' }, // light blue
+    { id: 'cat-transport', label: 'Transport', direction: 'expense', color: '#93c5fd' }, // pale blue
 ];
 
 export const useFinanceStore = create<FinanceState>()(

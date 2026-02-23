@@ -3,6 +3,7 @@
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export function KPISection() {
     const projection = useFinanceStore((state) => state.getProjection());
@@ -42,20 +43,25 @@ export function KPISection() {
 
 function KPICard({ label, value, icon, status }: { label: string; value: string; icon: React.ReactNode; status?: 'risk' | 'safe' }) {
     return (
-        <div className={clsx(
-            "p-5 rounded-[24px] border transition-all duration-300",
-            status === 'risk' ? "bg-rose-50 border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30" : "bg-white border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
-        )}>
-            <div className="flex justify-between items-start mb-2">
-                <span className="text-zinc-500 dark:text-zinc-400 font-medium text-sm uppercase tracking-wider">{label}</span>
+        <motion.div
+            whileHover={{ y: -5, scale: 1.02 }}
+            className={clsx(
+                "p-6 rounded-3xl border shadow-soft transition-all duration-300 relative overflow-hidden group",
+                status === 'risk' ? "bg-rose-50/50 border-rose-100" : "bg-white border-white"
+            )}
+        >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 {icon}
             </div>
+            <div className="flex justify-between items-start mb-4">
+                <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest">{label}</span>
+            </div>
             <div className={clsx(
-                "text-2xl font-bold font-mono tracking-tight",
-                status === 'risk' ? "text-rose-600 dark:text-rose-400" : "text-zinc-900 dark:text-zinc-100"
+                "text-3xl font-black tracking-tighter leading-none",
+                status === 'risk' ? "text-rose-600" : "text-zinc-900"
             )}>
                 {value}
             </div>
-        </div>
+        </motion.div>
     );
 }

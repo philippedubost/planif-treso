@@ -3,56 +3,110 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 2.5rem;
 }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #0f172a;
+  /* Using a warm, soft material palette inspired by the mascot image */
+  --background: #fdfcf9;
+  /* Very soft cream */
+  --foreground: #2d3436;
+
+  --card: #ffffff;
+  --card-foreground: #2d3436;
+
+  --muted: #f1f2f6;
+  --muted-foreground: #a4b0be;
+
+  --accent: #ff7675;
+  /* A soft red/pink from the mascot */
+
+  --income: #fbbf24;
+  /* Warm yellow */
+  --expense: #3b82f6;
+  /* Modern blue */
+  --balance: #10b981;
+  /* Fresh emerald */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;
-    --foreground: #f8fafc;
+    --background: #1e272e;
+    --foreground: #f1f2f6;
+    --card: #2f3542;
+    --card-foreground: #f1f2f6;
+    --muted: #353b48;
+    --muted-foreground: #7f8c8d;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Utilities */
+/* Glassmorphism */
 .glass {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .dark .glass {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(47, 53, 66, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Scrollbar hide */
+/* Satisfying Shadows */
+.shadow-soft {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-premium {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.07);
+}
+
+/* Button & Interaction Effects */
+.btn-satisfying {
+  @apply transition-all duration-300 active:scale-95;
+}
+
+.tap-effect {
+  @apply active:opacity-70 transition-opacity;
+}
+
+/* Hide Scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* Animations */
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+/* Custom transitions */
+.transition-spring {
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.animate-slide-up {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+/* Hide number input spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  appearance: none;
+  -moz-appearance: textfield;
 }
