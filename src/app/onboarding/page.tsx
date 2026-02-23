@@ -24,24 +24,28 @@ const slides = [
         field: 'startingBalance',
     },
     {
-        id: 'income', // Changed from 'income-recurring'
-        title: 'Revenus Récurrents',
-        description: 'Ajoutez vos revenus mensuels prévus.',
+        id: 'income',
+        title: 'Revenus',
+        description: 'Ajoutez vos revenus prévus.',
         image: '/illustrations/mascot-income-recurring.png',
         type: 'suggestions',
-        suggestions: ['Salaire', 'Dividendes', 'Loyer perçu', 'Pension'], // Updated suggestions
-        direction: 'income',
-        // Removed recurrence: 'monthly'
+        sections: [
+            { label: 'Récurrent', suggestions: ['Salaire', 'Loyer perçu', 'Pension'], recurrence: 'monthly' as const },
+            { label: 'Ponctuel', suggestions: ['Cadeau', 'Vente', 'Remboursement'], recurrence: 'none' as const }
+        ],
+        direction: 'income' as const,
     },
     {
-        id: 'expense', // Changed from 'expense-recurring'
-        title: 'Dépenses Fixes',
+        id: 'expense',
+        title: 'Dépenses',
         description: 'Loyer, abonnements, factures...',
         image: '/illustrations/mascot-expense-recurring.png',
         type: 'suggestions',
-        suggestions: ['Loyer', 'Électricité', 'Internet', 'Netflix', 'Assurance'], // Updated suggestions
-        direction: 'expense',
-        // Removed recurrence: 'monthly'
+        sections: [
+            { label: 'Récurrent', suggestions: ['Loyer', 'Internet', 'Netflix', 'Assurance'], recurrence: 'monthly' as const },
+            { label: 'Ponctuel', suggestions: ['Courses', 'Loisirs', 'Imprévu'], recurrence: 'none' as const }
+        ],
+        direction: 'expense' as const,
     },
     {
         id: 'ready',
@@ -73,6 +77,12 @@ export default function OnboardingPage() {
         }
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleNext();
+        }
+    };
+
     const handleSkip = () => {
         if (currentSlide < slides.length - 1) {
             setCurrentSlide(currentSlide + 1);
@@ -83,15 +93,16 @@ export default function OnboardingPage() {
         }
     };
 
-    const handleSuggestionAdd = (label: string, direction: 'income' | 'expense') => {
+    const handleSuggestionAdd = (label: string, direction: 'income' | 'expense', recurrence: 'none' | 'monthly') => {
         const amount = parseFloat(inputValue) || 0;
         addTransaction({
             label,
             amount: amount,
             direction,
             categoryId: direction === 'income' ? 'cat-salary' : 'cat-rent',
-            recurrence: 'monthly',
+            recurrence,
             startMonth: format(new Date(), 'yyyy-MM'),
+            month: recurrence === 'none' ? format(new Date(), 'yyyy-MM') : undefined,
         });
         setInputValue('');
         setAddedCount(prev => prev + 1);
@@ -122,7 +133,7 @@ export default function OnboardingPage() {
                     >
                         <motion.div
                             layoutId="image-container"
-                            className="relative w-full aspect-square max-w-[240px] mx-auto mb-8 bg-white rounded-[48px] shadow-premium overflow-hidden flex items-center justify-center group"
+                            className="relative w-full aspect-square max-w-[200px] mx-auto mb-6 bg-white rounded-[40px] shadow-premium overflow-hidden flex items-center justify-center group"
                         >
                             <Image
                                 src={slide.image}
@@ -133,10 +144,10 @@ export default function OnboardingPage() {
                             />
                         </motion.div>
 
-                        <h1 className="text-4xl font-black mb-2 text-zinc-900 italic tracking-tighter leading-none">
+                        <h1 className="text-3xl font-black mb-1 text-zinc-900 italic tracking-tighter leading-none">
                             {slide.title}
                         </h1>
-                        <p className="text-zinc-500 font-medium leading-relaxed px-4 text-sm mb-8">
+                        <p className="text-zinc-500 font-medium leading-relaxed px-4 text-xs mb-6">
                             {slide.description}
                         </p>
 
@@ -145,43 +156,51 @@ export default function OnboardingPage() {
                                 <motion.div
                                     initial={{ scale: 0.9, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    className="space-y-6"
+                                    className="space-y-4"
                                 >
                                     <div className="relative">
                                         <input
                                             type="number"
                                             value={inputValue}
                                             onChange={(e) => setInputValue(e.target.value)}
+                                            onKeyDown={handleKeyDown}
                                             placeholder="0.00"
-                                            className="w-full p-8 text-5xl font-black text-center bg-white shadow-soft border-none rounded-[40px] selection:bg-zinc-100 outline-none focus:ring-4 focus:ring-zinc-900/5 transition-all text-zinc-900 placeholder:text-zinc-100"
+                                            className="w-full p-6 text-4xl font-black text-center bg-white shadow-soft border-none rounded-[32px] selection:bg-zinc-100 outline-none focus:ring-4 focus:ring-zinc-900/5 transition-all text-zinc-900 placeholder:text-zinc-100"
                                             autoFocus
                                         />
-                                        <span className="absolute right-8 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-200">€</span>
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-xl text-zinc-200">€</span>
                                     </div>
 
                                     {slide.type === 'suggestions' && (
                                         <div className="space-y-4">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300">Sélectionnez une catégorie pour ajouter</p>
-                                            <div className="flex flex-wrap justify-center gap-2 px-2">
-                                                {slide.suggestions?.map((sub, i) => (
-                                                    <motion.button
-                                                        key={sub}
-                                                        initial={{ opacity: 0, scale: 0.8 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        transition={{ delay: i * 0.05 }}
-                                                        onClick={() => handleSuggestionAdd(sub, slide.direction as any)}
-                                                        className="px-5 py-3 bg-white shadow-soft rounded-2xl hover:bg-zinc-50 active:scale-[0.98] transition-all group flex items-center space-x-2 border border-zinc-50"
-                                                    >
-                                                        <span className="font-bold text-sm text-zinc-700">{sub}</span>
-                                                        <Plus className="w-3 h-3 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
-                                                    </motion.button>
-                                                ))}
-                                            </div>
+                                            {slide.sections?.map((section, sIndex) => (
+                                                <div key={section.label} className="space-y-2">
+                                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 text-left px-4">
+                                                        {section.label}
+                                                    </p>
+                                                    <div className="flex flex-wrap justify-start gap-1.5 px-2">
+                                                        {section.suggestions.map((sub, i) => (
+                                                            <motion.button
+                                                                key={sub}
+                                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                transition={{ delay: (sIndex * 3 + i) * 0.05 }}
+                                                                onClick={() => handleSuggestionAdd(sub, slide.direction as any, section.recurrence)}
+                                                                className="px-4 py-2 bg-white shadow-soft rounded-xl hover:bg-zinc-50 active:scale-[0.98] transition-all group flex items-center space-x-2 border border-zinc-50"
+                                                            >
+                                                                <span className="font-bold text-[11px] text-zinc-700">{sub}</span>
+                                                                <Plus className="w-3 h-3 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                                                            </motion.button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+
                                             {addedCount > 0 && (
                                                 <motion.p
                                                     initial={{ opacity: 0, y: 5 }}
                                                     animate={{ opacity: 1, y: 0 }}
-                                                    className="text-emerald-500 font-black italic text-xs"
+                                                    className="text-emerald-500 font-black italic text-[10px]"
                                                 >
                                                     {addedCount} flux ajouté{addedCount > 1 ? 's' : ''} !
                                                 </motion.p>
@@ -195,7 +214,7 @@ export default function OnboardingPage() {
                 </AnimatePresence>
             </div>
 
-            <div className="pb-8 space-y-6">
+            <div className="py-6 space-y-4">
                 <div className="flex justify-center space-x-3">
                     {slides.map((_, i) => (
                         <div
