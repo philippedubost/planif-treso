@@ -19,6 +19,51 @@ import { SettingsModal } from '@/components/settings/SettingsModal';
 import { VersionHistoryModal } from '@/components/settings/VersionHistoryModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+
+// --- Delete Planification Modal Component ---
+const DeletePlanificationModal = ({ isOpen, onClose, onConfirm, planName }: any) => {
+    const { dictionary } = useTranslation();
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white rounded-[32px] p-6 w-full max-w-sm shadow-2xl"
+            >
+                <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+                        <Trash2 className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-xl font-black text-zinc-900">
+                        Supprimer la planification ?
+                    </h2>
+                    <p className="text-sm text-zinc-500 font-medium">
+                        Êtes-vous sûr de vouloir supprimer définitivement <strong>{planName}</strong> ? Cette action effacera tous les scénarios et transactions associés.
+                    </p>
+                    <div className="flex w-full space-x-3 pt-4 inline-flex">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 py-3 px-4 rounded-xl font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                        >
+                            {dictionary.common.cancel}
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
+                        >
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+// ------------------------------------------
+
 export const EditableMenuItem = ({ item, isSelected, onSelect, onEdit, onDelete }: any) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(item.name);
@@ -141,6 +186,7 @@ export default function DashboardPage() {
     // Data load tracking
     const [isLoading, setIsLoading] = useState(true);
     const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
+    const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
     const [isAddingPlanification, setIsAddingPlanification] = useState(false);
     const [newPlanificationName, setNewPlanificationName] = useState('');
 
@@ -331,12 +377,7 @@ export default function DashboardPage() {
                                                         await updatePlanification(id, { name: newName });
                                                     } : undefined}
                                                     onDelete={user && planifications.length > 1 ? async (id: string) => {
-                                                        if (confirm("Êtes-vous sûr de vouloir supprimer cette planification entière ?")) {
-                                                            await deletePlanification(id);
-                                                            if (currentPlanificationId === id) {
-                                                                setIsPlanificationMenuOpen(false);
-                                                            }
-                                                        }
+                                                        setDeletingPlanificationId(id);
                                                     } : undefined}
                                                 />
                                             ))}
@@ -722,6 +763,23 @@ export default function DashboardPage() {
                 isOpen={isVersionHistoryModalOpen}
                 onClose={() => setIsVersionHistoryModalOpen(false)}
             />
+            {/* Modal for Deleting Planification */}
+            <AnimatePresence>
+                {deletingPlanificationId && (
+                    <DeletePlanificationModal
+                        isOpen={!!deletingPlanificationId}
+                        onClose={() => setDeletingPlanificationId(null)}
+                        planName={planifications.find(p => p.id === deletingPlanificationId)?.name || 'cette planification'}
+                        onConfirm={async () => {
+                            await deletePlanification(deletingPlanificationId);
+                            if (currentPlanificationId === deletingPlanificationId) {
+                                setIsPlanificationMenuOpen(false);
+                            }
+                            setDeletingPlanificationId(null);
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

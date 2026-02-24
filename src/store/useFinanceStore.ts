@@ -20,6 +20,7 @@ export interface Planification {
     id: string;
     name: string;
     updatedAt?: string;
+    starting_balance?: number;
 }
 
 export interface ScenarioVersion {
@@ -433,7 +434,7 @@ export const useFinanceStore = create<FinanceState>()(
 
                 const { data, error } = await supabase
                     .from('planifications')
-                    .select('*')
+                    .select('id, name, created_at, updated_at, starting_balance')
                     .eq('user_id', user.id)
                     .order('updated_at', { ascending: false });
 
@@ -441,7 +442,8 @@ export const useFinanceStore = create<FinanceState>()(
                     const plans = data.map((p: any) => ({
                         id: p.id,
                         name: p.name,
-                        updatedAt: p.updated_at
+                        updatedAt: p.updated_at,
+                        starting_balance: p.starting_balance
                     }));
                     set({ planifications: plans });
 
@@ -510,7 +512,14 @@ export const useFinanceStore = create<FinanceState>()(
             },
 
             setCurrentPlanification: async (id) => {
-                set({ currentPlanificationId: id, currentScenarioId: null, transactions: [] });
+                const { planifications } = get();
+                const planif = planifications.find(p => p.id === id);
+                set({
+                    currentPlanificationId: id,
+                    currentScenarioId: null,
+                    transactions: [],
+                    startingBalance: planif?.starting_balance || 0
+                });
                 await get().fetchScenarios();
                 const scenarios = get().scenarios;
                 if (scenarios.length > 0) {
@@ -792,12 +801,13 @@ export const useFinanceStore = create<FinanceState>()(
             })),
 
             setStartingBalance: (balance) => {
-                const { user, currentScenarioId } = get();
+                const { user, currentPlanificationId, planifications } = get();
 
                 set({ startingBalance: balance });
+                set({ planifications: planifications.map(p => p.id === currentPlanificationId ? { ...p, starting_balance: balance } : p) });
 
-                if (user && currentScenarioId) {
-                    supabase.from('scenarios').update({ starting_balance: balance }).eq('id', currentScenarioId).then();
+                if (user && currentPlanificationId) {
+                    supabase.from('planifications').update({ starting_balance: balance }).eq('id', currentPlanificationId).then();
                 }
             },
             setStartingMonth: (month) => {
