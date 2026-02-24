@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthCallbackPage() {
     const router = useRouter();
+    const params = useParams();
 
     useEffect(() => {
         const handleCallback = async () => {
@@ -14,7 +15,8 @@ export default function AuthCallbackPage() {
             if (error) {
                 console.error('Auth callback error:', error.message);
             }
-            router.push('/dashboard');
+            const lang = params?.lang || 'fr';
+            router.push(`/${lang}/dashboard`);
         };
 
         handleCallback();

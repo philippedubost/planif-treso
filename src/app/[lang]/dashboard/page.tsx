@@ -388,7 +388,7 @@ export default function DashboardPage() {
                                                 />
                                             ))}
 
-                                            {user && (
+                                            {user ? (
                                                 <div className="pt-2 mt-2 border-t border-zinc-50">
                                                     {!isAddingPlanification ? (
                                                         <button
@@ -417,6 +417,21 @@ export default function DashboardPage() {
                                                             </button>
                                                         </div>
                                                     )}
+                                                </div>
+                                            ) : (
+                                                <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
+                                                    <p className="text-xs text-zinc-500 font-medium mb-3">
+                                                        {dictionary.auth.planificationPrompt}
+                                                    </p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsPlanificationMenuOpen(false);
+                                                            handleLogin();
+                                                        }}
+                                                        className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
+                                                    >
+                                                        {dictionary.auth.login}
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
@@ -478,7 +493,7 @@ export default function DashboardPage() {
                                                         />
                                                     ))}
 
-                                                    {user && (
+                                                    {user ? (
                                                         <div className="pt-2 mt-2 border-t border-zinc-50">
                                                             {!isAddingScenario ? (
                                                                 <button
@@ -507,6 +522,21 @@ export default function DashboardPage() {
                                                                     </button>
                                                                 </div>
                                                             )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
+                                                            <p className="text-xs text-zinc-500 font-medium mb-3">
+                                                                {dictionary.auth.scenarioPrompt}
+                                                            </p>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsScenarioMenuOpen(false);
+                                                                    handleLogin();
+                                                                }}
+                                                                className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
+                                                            >
+                                                                {dictionary.auth.login}
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>

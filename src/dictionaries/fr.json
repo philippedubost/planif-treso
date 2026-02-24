@@ -14,7 +14,9 @@
         "logout": "Déconnexion",
         "email": "Email",
         "password": "Mot de passe",
-        "guestMode": "Mode Invité"
+        "guestMode": "Mode Invité",
+        "planificationPrompt": "Connectez-vous pour créer et sauvegarder plusieurs planifications.",
+        "scenarioPrompt": "Connectez-vous pour simuler plusieurs scénarios en parallèle."
     },
     "dashboard": {
         "title": "Tableau de Bord",

@@ -14,7 +14,9 @@
         "logout": "Log out",
         "email": "Email",
         "password": "Password",
-        "guestMode": "Guest Mode"
+        "guestMode": "Guest Mode",
+        "planificationPrompt": "Log in to create and save multiple planifications.",
+        "scenarioPrompt": "Log in to simulate multiple scenarios in parallel."
     },
     "dashboard": {
         "title": "Dashboard",

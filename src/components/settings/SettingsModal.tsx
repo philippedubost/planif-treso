@@ -194,51 +194,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                 </div>
                             </div>
 
-                            {/* Scenarios Options */}
-                            <div className="space-y-4">
-                                <div className="flex items-center space-x-2">
-                                    <Layers className="w-4 h-4 text-zinc-400" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Scénarios</span>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {/* Show Scenario Badge toggle */}
-                                    <button
-                                        onClick={() => setShowScenarioBadge(!showScenarioBadge)}
-                                        className="w-full flex items-center justify-between px-5 py-4 rounded-3xl bg-zinc-900/5 hover:bg-zinc-900/10 transition-all border border-transparent active:scale-[0.98]"
-                                    >
-                                        <div className="flex items-center space-x-3">
-                                            <div className={clsx(
-                                                "w-8 h-8 rounded-xl flex items-center justify-center transition-colors",
-                                                showScenarioBadge ? "bg-emerald-500 text-white" : "bg-zinc-100 text-zinc-400"
-                                            )}>
-                                                {showScenarioBadge ? (
-                                                    <Eye className="w-4 h-4" />
-                                                ) : (
-                                                    <EyeOff className="w-4 h-4" />
-                                                )}
-                                            </div>
-                                            <div className="flex flex-col items-start">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 leading-none mb-1">
-                                                    Scénarios dans le header
-                                                </span>
-                                                <span className="text-[10px] text-zinc-400 font-medium">
-                                                    {showScenarioBadge ? "Affichés dans le header" : "Masqués dans le header"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className={clsx(
-                                            "w-10 h-6 rounded-full transition-all flex items-center px-1",
-                                            showScenarioBadge ? "bg-zinc-900" : "bg-zinc-200"
-                                        )}>
-                                            <div className={clsx(
-                                                "w-4 h-4 bg-white rounded-full shadow-sm transition-all transform",
-                                                showScenarioBadge ? "translate-x-4" : "translate-x-0"
-                                            )} />
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
 
                             {/* Currency */}
                             <div className="space-y-4">

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Mail, Loader2, X, Chrome } from 'lucide-react';
 import Image from 'next/image';
+import { useParams } from 'next/navigation';
 import { clsx } from 'clsx';
 
 interface AuthModalProps {
@@ -13,6 +14,9 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+    const params = useParams();
+    const lang = params?.lang || 'fr';
+
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSent, setIsSent] = useState(false);
@@ -28,7 +32,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
+                emailRedirectTo: `${window.location.origin}/${lang}/auth/callback`,
             },
         });
 
@@ -45,7 +49,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `${window.location.origin}/${lang}/auth/callback`,
             },
         });
         if (error) {
