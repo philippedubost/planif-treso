@@ -11,10 +11,11 @@ import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { Transaction } from '@/lib/financeEngine';
-import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 
 function useWindowSize() {
     const [windowSize, setWindowSize] = useState<{
@@ -47,7 +48,7 @@ export default function MobileDashboard7() {
         currency,
         transactions,
         user,
-        setTutorialStep
+        redoStack
     } = useFinanceStore();
     const projection = useProjection();
     const { width } = useWindowSize();
@@ -73,6 +74,7 @@ export default function MobileDashboard7() {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
+    const { dictionary } = useTranslation();
 
     const formatCurrency = (val: number, shrinkK = false) => {
         const sign = val < 0 ? '-' : '';
@@ -264,7 +266,7 @@ export default function MobileDashboard7() {
                                     "px-4 py-1.5 rounded-full text-xs font-black tracking-wide transition-all",
                                     activeView === 'graph' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400"
                                 )}>
-                                Graph
+                                {dictionary.mobile.graph}
                             </button>
                             <button
                                 onClick={() => setActiveView('matrix')}
@@ -272,7 +274,7 @@ export default function MobileDashboard7() {
                                     "px-4 py-1.5 rounded-full text-xs font-black tracking-wide transition-all",
                                     activeView === 'matrix' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400"
                                 )}>
-                                Détails
+                                {dictionary.mobile.details}
                             </button>
                         </div>
                     </div>
@@ -301,6 +303,8 @@ export default function MobileDashboard7() {
                             <Settings className="w-4 h-4 text-zinc-400" />
                         </button>
 
+                        <LanguageSwitcher />
+
                         {/* Profile Menu */}
                         <div className="relative">
                             <button
@@ -318,18 +322,11 @@ export default function MobileDashboard7() {
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                         className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
                                     >
-                                        <button
-                                            onClick={() => { setTutorialStep(1); setIsMenuOpen(false); }}
-                                            className="w-full flex items-center space-x-3 p-3 rounded-xl text-zinc-600 hover:bg-zinc-50 transition-colors"
-                                        >
-                                            <HelpCircle className="w-4 h-4" />
-                                            <span className="font-black italic text-sm">Tutoriel</span>
-                                        </button>
                                         <div className="h-px bg-zinc-50 my-1" />
                                         {user ? (
                                             <>
                                                 <div className="p-3 text-xs text-zinc-400 italic">
-                                                    {user.email || 'Connecté'}
+                                                    {user.email || dictionary.auth.guestMode}
                                                 </div>
                                                 <button
                                                     onClick={async () => {
@@ -338,7 +335,7 @@ export default function MobileDashboard7() {
                                                     className="w-full flex items-center space-x-3 p-3 rounded-xl text-zinc-400 hover:text-zinc-900 transition-colors"
                                                 >
                                                     <LogOut className="w-4 h-4" />
-                                                    <span className="font-black italic text-sm">Déconnexion</span>
+                                                    <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
                                                 </button>
                                             </>
                                         ) : (
@@ -349,7 +346,7 @@ export default function MobileDashboard7() {
                                                 <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center">
                                                     <Plus className="w-2 h-2 text-white" />
                                                 </div>
-                                                <span className="font-black italic text-sm">Se connecter</span>
+                                                <span className="font-black italic text-sm">{dictionary.auth.login}</span>
                                             </button>
                                         )}
                                     </motion.div>
@@ -371,7 +368,7 @@ export default function MobileDashboard7() {
                         }}
                     >
                         <div className="flex items-center justify-center mb-1 space-x-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Solde aujourd'hui</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900">{dictionary.kpi.todayBalance}</p>
                             <Edit2 className="w-3 h-3 text-zinc-400" />
                         </div>
                         {isEditingBalance ? (
@@ -397,7 +394,7 @@ export default function MobileDashboard7() {
                         )}
                     </div>
                     <div className="text-center rounded-[20px] border-2 border-zinc-200 py-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900 mb-1">Solde 12 mois</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900 mb-1">{dictionary.kpi['12mBalance']}</p>
                         <p className={clsx("text-xl font-black tracking-tighter tabular-nums", finalBalance12m < 0 ? "text-rose-500" : "text-zinc-900")}>
                             {formatCurrency(finalBalance12m)}
                         </p>
@@ -523,7 +520,7 @@ export default function MobileDashboard7() {
                             }}
                         >
                             <div className="px-4 mb-8">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-3">Mensuels</h3>
+                                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-3">{dictionary.mobile.monthly}</h3>
                                 {/* Pills Layout for Mensuels */}
                                 <div className="flex flex-wrap gap-2">
                                     {recurringTxs.map(tx => (
@@ -587,7 +584,7 @@ export default function MobileDashboard7() {
                             </div>
 
                             <div className="px-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-2">Ponctuels</h3>
+                                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-2">{dictionary.mobile.oneOff}</h3>
                                 <div className="space-y-0">
                                     {projection.map(p => {
                                         const d = parseISO(`${p.month}-01`);

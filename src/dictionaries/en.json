@@ -1,0 +1,87 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "add": "Add",
+        "close": "Close"
+    },
+    "auth": {
+        "login": "Login",
+        "logout": "Log out",
+        "email": "Email",
+        "password": "Password",
+        "guestMode": "Guest Mode"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "balance": "Balance",
+        "startingBalance": "Starting balance",
+        "income": "Income",
+        "expense": "Expenses"
+    },
+    "kpi": {
+        "currentBalance": "Current Balance",
+        "simulation": "Simulation +{months}m",
+        "lowPoint": "Low Point (Risk)",
+        "todayBalance": "Balance Today",
+        "12mBalance": "12m Balance"
+    },
+    "mobile": {
+        "graph": "Graph",
+        "details": "Details",
+        "monthly": "Monthly",
+        "oneOff": "One-offs"
+    },
+    "timeline": {
+        "monthly": "Monthly",
+        "oneOff": "One-offs",
+        "clickToAdd": "Click + to add",
+        "labelPlaceholder": "Title...",
+        "flowPlaceholder": "Flow...",
+        "addMonthlyIncome": "Add a monthly income",
+        "addMonthlyExpense": "Add a monthly expense",
+        "addOneOff": "Add a one-off transaction",
+        "months": {
+            "01": "Jan",
+            "02": "Feb",
+            "03": "Mar",
+            "04": "Apr",
+            "05": "May",
+            "06": "Jun",
+            "07": "Jul",
+            "08": "Aug",
+            "09": "Sep",
+            "10": "Oct",
+            "11": "Nov",
+            "12": "Dec"
+        }
+    },
+    "categories": {
+        "cat-salary": "Salary",
+        "cat-dividend": "Dividends",
+        "cat-rent": "Rent",
+        "cat-food": "Groceries",
+        "cat-transport": "Transport",
+        "cat-other": "Other"
+    },
+    "metadata": {
+        "title": "Planif.app - Anticipate the future of your bank account!",
+        "description": "A simple tool to anticipate your personal or business cash flow."
+    },
+    "scenarios": {
+        "defaultName": "Main scenario",
+        "restoredName": "Restored on",
+        "autoSave": "Auto save"
+    },
+    "settings": {
+        "title": "Settings",
+        "currency": "Currency",
+        "textSize": "Text size",
+        "projection": "Projection (months)",
+        "language": "Language"
+    }
+}

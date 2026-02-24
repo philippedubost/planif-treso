@@ -5,6 +5,16 @@ import { format } from 'date-fns';
 import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import fr from '@/dictionaries/fr.json';
+import en from '@/dictionaries/en.json';
+
+const getStoreDict = () => {
+    if (typeof document !== 'undefined') {
+        const lang = document.documentElement.lang;
+        return lang === 'en' ? en : fr;
+    }
+    return fr;
+};
 
 export interface Planification {
     id: string;
@@ -58,7 +68,6 @@ interface FinanceState {
     scenarios: Scenario[];
     currentScenarioId: string | null;
     showScenarioBadge: boolean;
-    tutorialStep: number;
     projectionMonths: number;
 
     // Actions
@@ -111,7 +120,6 @@ interface FinanceState {
     deleteScenario: (id: string) => Promise<void>;
     setShowScenarioBadge: (show: boolean) => void;
     setProjectionMonths: (months: number) => void;
-    setTutorialStep: (step: number) => void;
 }
 
 export function useProjection(horizonMonths?: number) {
@@ -134,6 +142,17 @@ const defaultCategories: Category[] = [
     { id: 'cat-food', label: 'Alimentation', direction: 'expense', color: '#fb7185' }, // rose-400
     { id: 'cat-transport', label: 'Transport', direction: 'expense', color: '#fda4af' }, // rose-300
 ];
+
+const getTranslatedCategories = (): Category[] => {
+    const dict = getStoreDict();
+    return [
+        { id: 'cat-salary', label: dict.categories["cat-salary"], direction: 'income', color: '#10b981' },
+        { id: 'cat-dividend', label: dict.categories["cat-dividend"], direction: 'income', color: '#34d399' },
+        { id: 'cat-rent', label: dict.categories["cat-rent"], direction: 'expense', color: '#f43f5e' },
+        { id: 'cat-food', label: dict.categories["cat-food"], direction: 'expense', color: '#fb7185' },
+        { id: 'cat-transport', label: dict.categories["cat-transport"], direction: 'expense', color: '#fda4af' },
+    ];
+};
 
 let globalSyncChannel: any = null;
 
@@ -165,7 +184,7 @@ export const useFinanceStore = create<FinanceState>()(
     persist(
         (set, get) => ({
             transactions: [],
-            categories: defaultCategories,
+            categories: getTranslatedCategories(),
             startingBalance: 0,
             startingMonth: format(new Date(), 'yyyy-MM'),
             context: 'perso',
@@ -178,7 +197,6 @@ export const useFinanceStore = create<FinanceState>()(
             currentScenarioId: null,
             showScenarioBadge: false,
             projectionMonths: 12,
-            tutorialStep: 0,
 
             // History / Autosave initials
             lastAutosaveDate: Date.now(),
@@ -186,8 +204,6 @@ export const useFinanceStore = create<FinanceState>()(
             scenarioVersions: [],
             undoStack: [],
             redoStack: [],
-
-            setTutorialStep: (step: number) => set({ tutorialStep: step }),
 
             initAuth: async () => {
                 // Get initial session
@@ -223,7 +239,7 @@ export const useFinanceStore = create<FinanceState>()(
                 const { lastAutosaveDate, hasModificationsSinceSave, currentScenarioId } = get();
                 // Check if we need to auto save (1 hour = 3600000ms)
                 if (hasModificationsSinceSave && currentScenarioId && Date.now() - lastAutosaveDate > 3600000) {
-                    get().createScenarioVersion("Sauvegarde automatique");
+                    get().createScenarioVersion(getStoreDict().scenarios.autoSave);
                 }
             },
 
@@ -274,7 +290,7 @@ export const useFinanceStore = create<FinanceState>()(
                 if (!user) return;
 
                 const baseName = version.data.scenario.name;
-                const newName = `${baseName} (Restauré le ${new Date().toLocaleDateString()})`;
+                const newName = `${baseName} (${getStoreDict().scenarios.restoredName} ${new Date().toLocaleDateString()})`;
 
                 const newScenarioId = await get().addScenario(newName);
 
@@ -286,8 +302,13 @@ export const useFinanceStore = create<FinanceState>()(
                     await supabase.from('transactions').delete().eq('scenario_id', newScenarioId);
 
                     const restoredTxs = version.data.transactions.map((tx: any) => ({
-                        ...tx,
                         id: crypto.randomUUID(), // always new IDs to prevent overlap
+                        label: tx.label,
+                        amount: tx.amount,
+                        month: tx.month,
+                        recurrence: tx.recurrence,
+                        direction: tx.direction,
+                        category_id: tx.categoryId,
                         user_id: user.id,
                         planification_id: currentPlanificationId,
                         scenario_id: newScenarioId
@@ -393,7 +414,16 @@ export const useFinanceStore = create<FinanceState>()(
                 const { data: remoteData, error } = await query;
 
                 if (!error && remoteData) {
-                    set({ transactions: remoteData });
+                    const mappedTxs = remoteData.map((d: any) => ({
+                        id: d.id,
+                        label: d.label,
+                        amount: d.amount,
+                        month: d.month,
+                        recurrence: d.recurrence,
+                        direction: d.direction,
+                        categoryId: d.category_id
+                    }));
+                    set({ transactions: mappedTxs });
                 }
             },
 
@@ -437,7 +467,7 @@ export const useFinanceStore = create<FinanceState>()(
                     set({ currentPlanificationId: data.id, currentScenarioId: null, transactions: [] });
 
                     // Create a default scenario for it
-                    const newScenarioId = await get().addScenario('Scénario par défaut');
+                    const newScenarioId = await get().addScenario(getStoreDict().scenarios.defaultName);
                     if (newScenarioId) {
                         get().setCurrentScenario(newScenarioId);
                     } else {
@@ -510,7 +540,7 @@ export const useFinanceStore = create<FinanceState>()(
                     // Check if we are scoped to a planification and it has 0 scenarios
                     if (currentPlanificationId && data.length === 0) {
                         // Create a default scenario
-                        const newScenarioId = await get().addScenario('Scénario principal');
+                        const newScenarioId = await get().addScenario(getStoreDict().scenarios.defaultName);
                         if (newScenarioId) return; // addScenario will re-trigger fetchScenarios
                     }
 
@@ -551,8 +581,13 @@ export const useFinanceStore = create<FinanceState>()(
                     // Copy transactions
                     if (transactions.length > 0) {
                         const newTxs = transactions.map(tx => ({
-                            ...tx,
                             id: crypto.randomUUID(),
+                            label: tx.label,
+                            amount: tx.amount,
+                            month: tx.month,
+                            recurrence: tx.recurrence,
+                            direction: tx.direction,
+                            category_id: tx.categoryId,
                             user_id: user.id,
                             planification_id: currentPlanificationId,
                             scenario_id: sData.id
@@ -640,6 +675,19 @@ export const useFinanceStore = create<FinanceState>()(
 
 
                 if (user) {
+                    const dbTx = {
+                        id: newId,
+                        label: t.label,
+                        amount: t.amount,
+                        month: t.month,
+                        recurrence: t.recurrence,
+                        direction: t.direction,
+                        category_id: t.categoryId,
+                        user_id: user.id,
+                        planification_id: currentPlanificationId,
+                        scenario_id: currentScenarioId
+                    };
+
                     // Log to history
                     await supabase.from('history').insert({
                         user_id: user.id,
@@ -648,16 +696,10 @@ export const useFinanceStore = create<FinanceState>()(
                         change_type: 'create',
                         table_name: 'transactions',
                         row_id: newId,
-                        after_data: newTx
+                        after_data: dbTx
                     });
 
-                    await supabase.from('transactions').insert({
-                        ...t,
-                        id: newId,
-                        user_id: user.id,
-                        planification_id: currentPlanificationId,
-                        scenario_id: currentScenarioId
-                    });
+                    await supabase.from('transactions').insert(dbTx);
                 }
                 return true;
             },
@@ -680,6 +722,14 @@ export const useFinanceStore = create<FinanceState>()(
                 }
 
                 if (user && oldTx) {
+                    const dbUpdates: any = {};
+                    if (updates.label !== undefined) dbUpdates.label = updates.label;
+                    if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+                    if (updates.month !== undefined) dbUpdates.month = updates.month;
+                    if (updates.recurrence !== undefined) dbUpdates.recurrence = updates.recurrence;
+                    if (updates.direction !== undefined) dbUpdates.direction = updates.direction;
+                    if (updates.categoryId !== undefined) dbUpdates.category_id = updates.categoryId;
+
                     // Log to history
                     await supabase.from('history').insert({
                         user_id: user.id,
@@ -689,10 +739,10 @@ export const useFinanceStore = create<FinanceState>()(
                         table_name: 'transactions',
                         row_id: id,
                         before_data: oldTx,
-                        after_data: { ...oldTx, ...updates }
+                        after_data: { ...oldTx, ...dbUpdates }
                     });
 
-                    await supabase.from('transactions').update(updates).eq('id', id);
+                    await supabase.from('transactions').update(dbUpdates).eq('id', id);
                 }
             },
 
@@ -742,8 +792,10 @@ export const useFinanceStore = create<FinanceState>()(
             })),
 
             setStartingBalance: (balance) => {
-                set({ startingBalance: balance });
                 const { user, currentScenarioId } = get();
+
+                set({ startingBalance: balance });
+
                 if (user && currentScenarioId) {
                     supabase.from('scenarios').update({ starting_balance: balance }).eq('id', currentScenarioId).then();
                 }

@@ -7,7 +7,6 @@ import { KPISection } from '@/components/kpi/KPISection';
 import { CashflowGraph } from '@/components/graph/CashflowGraph';
 import { TransactionList } from '@/components/lists/TransactionList';
 import { TimelineView } from '@/components/timeline/TimelineView';
-import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Settings, Plus, LogIn, LogOut, User as UserIcon, Share2, Check, Layers, Trash2, Home, ChevronRight, Pencil, Undo2, Redo2, History, HelpCircle } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -18,6 +17,8 @@ import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { VersionHistoryModal } from '@/components/settings/VersionHistoryModal';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 export const EditableMenuItem = ({ item, isSelected, onSelect, onEdit, onDelete }: any) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(item.name);
@@ -132,10 +133,13 @@ export default function DashboardPage() {
         undo,
         redo,
         undoStack,
-        redoStack,
-        setTutorialStep
+        redoStack
     } = useFinanceStore();
 
+    const { dictionary, locale } = useTranslation();
+
+    // Data load tracking
+    const [isLoading, setIsLoading] = useState(true);
     const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
     const [isAddingPlanification, setIsAddingPlanification] = useState(false);
     const [newPlanificationName, setNewPlanificationName] = useState('');
@@ -189,7 +193,7 @@ export default function DashboardPage() {
                 const decoded = JSON.parse(decodeURIComponent(atob(sharedData)));
                 loadProject(decoded);
                 // Clear the URL parameter after loading
-                router.replace('/dashboard');
+                router.replace(`/${locale}/dashboard`);
             } catch (e) {
                 console.error("Failed to load shared data", e);
             }
@@ -203,7 +207,7 @@ export default function DashboardPage() {
                 const isMobile = window.innerWidth < 768;
                 const isPortrait = window.innerHeight > window.innerWidth;
                 if (isMobile && isPortrait) {
-                    router.replace('/mobile');
+                    router.replace(`/${locale}/mobile`);
                 }
             };
 
@@ -263,7 +267,7 @@ export default function DashboardPage() {
 
     const handleReset = async () => {
         await resetSimulation();
-        router.push('/assistant');
+        router.push(`/${locale}/assistant`);
     };
 
     const COLUMN_WIDTH = 96; // w-24
@@ -345,7 +349,7 @@ export default function DashboardPage() {
                                                             className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
                                                         >
                                                             <Plus className="w-4 h-4" />
-                                                            <span>Nouvelle planification</span>
+                                                            <span>{dictionary.common.add} Planification</span>
                                                         </button>
                                                     ) : (
                                                         <div className="flex items-center space-x-2 p-1">
@@ -435,7 +439,7 @@ export default function DashboardPage() {
                                                                     className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
                                                                 >
                                                                     <Plus className="w-4 h-4" />
-                                                                    <span>Nouveau scénario</span>
+                                                                    <span>{dictionary.common.add} Scénario</span>
                                                                 </button>
                                                             ) : (
                                                                 <div className="flex items-center space-x-2 p-1">
@@ -541,6 +545,9 @@ export default function DashboardPage() {
                         <Settings className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
                     </button>
 
+                    {/* Language Switcher */}
+                    <LanguageSwitcher />
+
                     <div className="h-4 md:h-6 w-px bg-zinc-100" />
 
                     {/* Profile Menu */}
@@ -549,7 +556,7 @@ export default function DashboardPage() {
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                             className="px-3 py-1.5 md:px-4 md:py-2 bg-zinc-900 text-white rounded-xl md:rounded-2xl flex items-center space-x-2 md:space-x-3 shadow-premium hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-95"
                         >
-                            <span className="font-black italic text-xs md:text-sm tracking-tight">{user?.email?.split('@')[0] || 'Invité'}</span>
+                            <span className="font-black italic text-xs md:text-sm tracking-tight">{user?.email?.split('@')[0] || dictionary.auth.guestMode}</span>
                             <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-white/20 flex items-center justify-center">
                                 <ChevronDown className={clsx("w-2.5 h-2.5 md:w-3 md:h-3 transition-transform", isMenuOpen && "rotate-180")} />
                             </div>
@@ -564,18 +571,11 @@ export default function DashboardPage() {
                                     className="absolute right-0 mt-2 w-56 bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-3 z-[60]"
                                 >
                                     <button
-                                        onClick={() => { setTutorialStep(1); setIsMenuOpen(false); }}
-                                        className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-zinc-50 transition-colors"
-                                    >
-                                        <HelpCircle className="w-4 h-4" />
-                                        <span className="font-black italic text-sm">Revoir le tutoriel</span>
-                                    </button>
-                                    <button
                                         onClick={() => { setIsResetModalOpen(true); setIsMenuOpen(false); }}
                                         className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-zinc-50 transition-colors"
                                     >
                                         <Plus className="w-4 h-4" />
-                                        <span className="font-black italic text-sm">Nouvelle simulation</span>
+                                        <span className="font-black italic text-sm">{dictionary.common.delete} Data</span>
                                     </button>
                                     <div className="h-px bg-zinc-50 my-2" />
                                     {user ? (
@@ -584,7 +584,7 @@ export default function DashboardPage() {
                                             className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-400 hover:text-zinc-900 transition-colors"
                                         >
                                             <LogOut className="w-4 h-4" />
-                                            <span className="font-black italic text-sm">Déconnexion</span>
+                                            <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
                                         </button>
                                     ) : (
                                         <button
@@ -594,7 +594,7 @@ export default function DashboardPage() {
                                             <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center">
                                                 <Plus className="w-2 h-2 text-white" />
                                             </div>
-                                            <span className="font-black italic text-sm">Se connecter</span>
+                                            <span className="font-black italic text-sm">{dictionary.auth.login}</span>
                                         </button>
                                     )}
                                 </motion.div>
@@ -642,7 +642,7 @@ export default function DashboardPage() {
                                     className="flex items-center space-x-2 px-5 md:px-6 py-3 md:py-2.5 bg-white rounded-2xl shadow-soft border border-zinc-100 group transition-all active:scale-95 hover:bg-zinc-50"
                                 >
                                     <span className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                        {showDetails ? (typeof window !== 'undefined' && window.innerWidth < 768 ? "Masquer" : "Masquer les détails") : "Voir les recettes et dépenses"}
+                                        {showDetails ? (typeof window !== 'undefined' && window.innerWidth < 768 ? "Hide" : "Hide details") : dictionary.dashboard.title}
                                     </span>
                                     <motion.div
                                         animate={{ rotate: showDetails ? 180 : 0 }}
@@ -688,22 +688,22 @@ export default function DashboardPage() {
                             <div className="w-16 h-16 md:w-20 md:h-20 bg-rose-50 rounded-[24px] md:rounded-[32px] flex items-center justify-center mx-auto mb-6">
                                 <Plus className="w-8 h-8 md:w-10 md:h-10 text-rose-500 rotate-45" />
                             </div>
-                            <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Tout effacer ?</h3>
+                            <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Reset data?</h3>
                             <p className="text-zinc-400 text-xs md:text-sm font-medium leading-relaxed mb-8">
-                                Cette action supprimera définitivement toutes vos recettes et dépenses et réinitialisera votre simulation.
+                                Are you sure you want to reset all your simulations?
                             </p>
                             <div className="space-y-3">
                                 <button
                                     onClick={handleReset}
                                     className="w-full py-4 md:py-5 bg-rose-500 text-white rounded-[20px] md:rounded-[24px] font-black italic shadow-premium active:scale-95 transition-all text-sm md:text-base"
                                 >
-                                    Oui, réinitialiser
+                                    {dictionary.common.delete}
                                 </button>
                                 <button
                                     onClick={() => setIsResetModalOpen(false)}
                                     className="w-full py-3 md:py-4 bg-zinc-50 text-zinc-400 rounded-[20px] md:rounded-[24px] font-black italic active:scale-95 transition-all text-[10px] md:text-xs uppercase tracking-widest"
                                 >
-                                    Annuler
+                                    {dictionary.common.cancel}
                                 </button>
                             </div>
                         </motion.div>

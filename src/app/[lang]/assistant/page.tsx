@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { format, addMonths, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { clsx } from 'clsx';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
 
 type Row = {
     label: string;
@@ -25,6 +26,7 @@ export default function AssistantPage() {
     const [expenseRows, setExpenseRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const router = useRouter();
+    const { dictionary, locale } = useTranslation();
 
     const currencies = [
         { label: 'EUR', symbol: '€', code: 'EUR' },
@@ -69,7 +71,7 @@ export default function AssistantPage() {
             }
         }
 
-        router.push('/dashboard');
+        router.push(`/${locale}/dashboard`);
     };
 
     const next = () => setStep(s => s + 1);
@@ -92,7 +94,7 @@ export default function AssistantPage() {
     return (
         <div className="min-h-screen bg-transparent flex flex-col p-6 max-w-md mx-auto relative z-10 font-sans">
             <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push(`/${locale}/dashboard`)}
                 className="absolute top-6 right-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 hover:text-zinc-900 transition-colors z-20"
             >
                 Passer

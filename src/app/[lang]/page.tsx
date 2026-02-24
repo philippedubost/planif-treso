@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 
 export default function Home() {
   const router = useRouter();
-  const setTutorialStep = useFinanceStore((state) => state.setTutorialStep);
+  const params = useParams();
 
   useEffect(() => {
-    // Start tutorial and redirect
-    setTutorialStep(1);
-    router.push('/dashboard');
-  }, [router, setTutorialStep]);
+    // Redirect to dashboard without auto-starting the tutorial
+    const lang = params?.lang || 'fr';
+    router.push(`/${lang}/dashboard`);
+  }, [router, params]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-zinc-50">

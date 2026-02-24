@@ -5,10 +5,12 @@ import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
 
 export function KPISection() {
     const projection = useProjection();
-    const { startingBalance, setStartingBalance, currency, projectionMonths, tutorialStep } = useFinanceStore();
+    const { startingBalance, setStartingBalance, currency, projectionMonths } = useFinanceStore();
+    const { dictionary, locale } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
     const [inputValue, setInputValue] = useState(startingBalance.toString());
 
@@ -27,7 +29,7 @@ export function KPISection() {
     const formatCurrency = (val: number) => {
         const sign = val < 0 ? '-' : '';
         const absVal = Math.abs(val);
-        const formatted = new Intl.NumberFormat('fr-FR', {
+        const formatted = new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(absVal);
@@ -48,17 +50,14 @@ export function KPISection() {
         <div className="grid grid-cols-3 gap-2 md:gap-3 mb-6">
             <motion.div
                 whileHover={{ y: -2, scale: 1.01 }}
-                className={clsx(
-                    "p-3 md:p-4 rounded-2xl md:rounded-3xl border bg-white shadow-soft transition-all duration-300 relative overflow-hidden group cursor-pointer min-h-[100px] flex flex-col justify-between",
-                    tutorialStep === 1 ? "z-[101] ring-4 ring-zinc-900 pointer-events-auto border-transparent shadow-[0_0_50px_rgba(0,0,0,0.3)]" : "border-white"
-                )}
+                className="p-3 md:p-4 rounded-2xl md:rounded-3xl border border-white bg-white shadow-soft transition-all duration-300 relative overflow-hidden group cursor-pointer min-h-[100px] flex flex-col justify-between"
                 onClick={() => !isEditing && setIsEditing(true)}
             >
                 <div className="absolute top-0 right-0 p-2 md:p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Wallet className="text-zinc-400 w-3 h-3 md:w-4 md:h-4" />
                 </div>
                 <div className="flex justify-between items-start">
-                    <span className="text-zinc-400 font-bold text-[7px] md:text-[9px] uppercase tracking-widest leading-tight">Solde Actuel</span>
+                    <span className="text-zinc-400 font-bold text-[7px] md:text-[9px] uppercase tracking-widest leading-tight">{dictionary.kpi.currentBalance}</span>
                 </div>
                 {isEditing ? (
                     <div className="flex items-center">
@@ -79,12 +78,12 @@ export function KPISection() {
                 )}
             </motion.div>
             <KPICard
-                label={`Simulation +${projectionMonths}m`}
+                label={dictionary.kpi.simulation.replace('{months}', projectionMonths.toString())}
                 value={formatCurrency(targetBalance)}
                 icon={<TrendingUp className="text-emerald-500 w-3 h-3 md:w-4 md:h-4" />}
             />
             <KPICard
-                label="Point Bas (Risque)"
+                label={dictionary.kpi.lowPoint}
                 value={formatCurrency(minBalance)}
                 status={isRisk ? 'risk' : 'safe'}
                 icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500 w-3 h-3 md:w-4 md:h-4" : "text-zinc-200 w-3 h-3 md:w-4 md:h-4"} />}

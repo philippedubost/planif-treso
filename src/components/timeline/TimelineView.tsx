@@ -8,10 +8,12 @@ import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
 import { Transaction } from '@/lib/financeEngine';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
 
 export function TimelineView() {
-    const { transactions, addTransaction, startingMonth, projectionMonths, tutorialStep } = useFinanceStore();
+    const { transactions, addTransaction, startingMonth, projectionMonths } = useFinanceStore();
     const projection = useProjection();
+    const { dictionary } = useTranslation();
 
     const months = Array.from({ length: projectionMonths }).map((_, i) => {
         const date = addMonths(parseISO(`${startingMonth}-01`), i);
@@ -46,72 +48,50 @@ export function TimelineView() {
                 {/* Section: Recurring Income */}
                 <div className="flex mt-6 mb-2 items-center">
                     <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[11px] uppercase tracking-[0.2em] text-zinc-900">
-                        Mensuel
+                        {dictionary.timeline.monthly}
                     </div>
                 </div>
                 <SectionLabel
-                    label="Recettes"
+                    label={dictionary.dashboard.income}
                     color="text-emerald-500"
                     onAdd={() => handleAdd('income')}
                     className="mt-2 mb-2"
                 />
-                <div className={clsx(
-                    "transition-all duration-300 rounded-3xl",
-                    tutorialStep === 2 && "z-[101] relative ring-4 ring-zinc-900 pointer-events-auto bg-white/50 p-2 shadow-[0_0_50px_rgba(0,0,0,0.3)]"
-                )}>
+                <div className="transition-all duration-300 rounded-3xl">
                     {recurringIncome.map(tx => (
-                        <TimelineRow key={tx.id} transaction={tx} months={months} color="emerald" maxAmount={maxAmount} />
+                        <TimelineRow key={tx.id} transaction={tx} months={months} color="emerald" maxAmount={maxAmount} dictionary={dictionary} />
                     ))}
-                    {recurringIncome.length === 0 && tutorialStep === 2 && (
-                        <div className="text-center py-4 text-zinc-400 text-xs font-bold italic">
-                            Clique sur + pour ajouter
-                        </div>
-                    )}
                 </div>
 
                 <SectionLabel
-                    label="Dépenses"
+                    label={dictionary.dashboard.expense}
                     color="text-rose-500"
                     onAdd={() => handleAdd('expense')}
                     className="mt-4 mb-2"
                 />
-                <div className={clsx(
-                    "transition-all duration-300 rounded-3xl",
-                    tutorialStep === 3 && "z-[101] relative ring-4 ring-zinc-900 pointer-events-auto bg-white/50 p-2 shadow-[0_0_50px_rgba(0,0,0,0.3)]"
-                )}>
+                <div className="transition-all duration-300 rounded-3xl">
                     {recurringExpense.map(tx => (
-                        <TimelineRow key={tx.id} transaction={tx} months={months} color="rose" maxAmount={maxAmount} />
+                        <TimelineRow key={tx.id} transaction={tx} months={months} color="rose" maxAmount={maxAmount} dictionary={dictionary} />
                     ))}
-                    {recurringExpense.length === 0 && tutorialStep === 3 && (
-                        <div className="text-center py-4 text-zinc-400 text-xs font-bold italic">
-                            Clique sur + pour ajouter
-                        </div>
-                    )}
                 </div>
 
                 {/* Section: Mixed One-off */}
                 <div className="flex mt-8 mb-4 items-center">
                     <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[11px] uppercase tracking-[0.2em] text-zinc-900">
-                        Ponctuel
+                        {dictionary.timeline.oneOff}
                     </div>
                 </div>
-                <div className={clsx(
-                    "flex relative transition-all duration-300 rounded-3xl",
-                    tutorialStep === 4 && "z-[101] ring-4 ring-zinc-900 pointer-events-auto bg-white/50 p-2 shadow-[0_0_50px_rgba(0,0,0,0.3)]"
-                )}>
+                <div className="flex relative transition-all duration-300 rounded-3xl">
                     <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20" />
                     <div className="flex flex-1">
                         {months.map(m => (
                             <div key={m} className="flex-1 min-w-[96px] flex flex-col items-center justify-start py-4 space-y-2 border-l border-zinc-100 border-dashed min-h-[140px]">
                                 {oneOffTransactions.filter(t => t.month === m).map(t => (
-                                    <Pill key={t.id} transaction={t} color={t.direction === 'income' ? 'emerald' : 'rose'} months={months} />
+                                    <Pill key={t.id} transaction={t} color={t.direction === 'income' ? 'emerald' : 'rose'} months={months} dictionary={dictionary} />
                                 ))}
                                 <button
                                     onClick={() => handleAdd('expense', m)}
-                                    className={clsx(
-                                        "w-16 h-10 rounded-xl border-2 border-dashed transition-all flex items-center justify-center group/add",
-                                        tutorialStep === 4 ? "border-zinc-400 bg-white hover:border-zinc-900 hover:bg-zinc-100 animate-pulse" : "border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50"
-                                    )}
+                                    className="w-16 h-10 rounded-xl border-2 border-dashed border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all flex items-center justify-center group/add"
                                 >
                                     <Plus className="w-4 h-4 text-zinc-400 group-hover/add:text-zinc-600" />
                                 </button>
@@ -142,7 +122,7 @@ function SectionLabel({ label, color, onAdd, className }: { label: string, color
     );
 }
 
-function TimelineRow({ transaction, months, color, maxAmount }: { transaction: any, months: string[], color: 'emerald' | 'rose', maxAmount: number }) {
+function TimelineRow({ transaction, months, color, maxAmount, dictionary }: { transaction: any, months: string[], color: 'emerald' | 'rose', maxAmount: number, dictionary: any }) {
     const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
     const [isHovered, setIsHovered] = useState(false);
 
@@ -189,7 +169,7 @@ function TimelineRow({ transaction, months, color, maxAmount }: { transaction: a
                         "bg-transparent font-black italic text-[11px] outline-none w-full border-none p-0 focus:bg-zinc-50 focus:px-1 rounded transition-colors mb-0.5",
                         color === 'emerald' ? "text-emerald-500" : "text-rose-500"
                     )}
-                    placeholder="Titre..."
+                    placeholder={dictionary.timeline.labelPlaceholder}
                     value={localLabel}
                     autoFocus={transaction.label === ''}
                     onChange={e => setLocalLabel(e.target.value)}
@@ -257,7 +237,7 @@ function TimelineRow({ transaction, months, color, maxAmount }: { transaction: a
     );
 }
 
-function Pill({ transaction, color, months }: { transaction: any, color: 'emerald' | 'rose', months: string[] }) {
+function Pill({ transaction, color, months, dictionary }: { transaction: any, color: 'emerald' | 'rose', months: string[], dictionary: any }) {
     const { updateTransaction, deleteTransaction, addTransaction, currency } = useFinanceStore();
     const [isHovered, setIsHovered] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
@@ -357,7 +337,7 @@ function Pill({ transaction, color, months }: { transaction: any, color: 'emeral
             <input
                 className="bg-transparent text-[9px] font-black italic uppercase leading-none mb-1 text-zinc-400 text-center w-full outline-none border-none p-0"
                 value={localLabel}
-                placeholder="Flux..."
+                placeholder={dictionary.timeline.flowPlaceholder}
                 autoFocus={transaction.label === ''}
                 onChange={e => setLocalLabel(e.target.value)}
                 onBlur={handleLabelCommit}

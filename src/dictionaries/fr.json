@@ -1,0 +1,88 @@
+{
+    "common": {
+        "loading": "Chargement...",
+        "error": "Une erreur est survenue",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "edit": "Modifier",
+        "add": "Ajouter",
+        "close": "Fermer"
+    },
+    "auth": {
+        "login": "Se connecter",
+        "logout": "Déconnexion",
+        "email": "Email",
+        "password": "Mot de passe",
+        "guestMode": "Mode Invité"
+    },
+    "dashboard": {
+        "title": "Tableau de Bord",
+        "balance": "Solde",
+        "startingBalance": "Solde initial",
+        "income": "Recettes",
+        "expense": "Dépenses",
+        "incomeExpenseTitle": "Recettes et dépenses"
+    },
+    "kpi": {
+        "currentBalance": "Solde Actuel",
+        "simulation": "Simulation +{months}m",
+        "lowPoint": "Point Bas (Risque)",
+        "todayBalance": "Solde aujourd'hui",
+        "12mBalance": "Solde 12 mois"
+    },
+    "mobile": {
+        "graph": "Graph",
+        "details": "Détails",
+        "monthly": "Mensuels",
+        "oneOff": "Ponctuels"
+    },
+    "timeline": {
+        "monthly": "Mensuel",
+        "oneOff": "Ponctuel",
+        "clickToAdd": "Clique sur + pour ajouter",
+        "labelPlaceholder": "Titre...",
+        "flowPlaceholder": "Flux...",
+        "addMonthlyIncome": "Ajouter une recette mensuelle",
+        "addMonthlyExpense": "Ajouter une dépense mensuelle",
+        "addOneOff": "Ajouter une opération ponctuelle",
+        "months": {
+            "01": "Jan",
+            "02": "Fév",
+            "03": "Mar",
+            "04": "Avr",
+            "05": "Mai",
+            "06": "Juin",
+            "07": "Juil",
+            "08": "Aoû",
+            "09": "Sep",
+            "10": "Oct",
+            "11": "Nov",
+            "12": "Déc"
+        }
+    },
+    "categories": {
+        "cat-salary": "Salaire",
+        "cat-dividend": "Dividendes",
+        "cat-rent": "Loyer",
+        "cat-food": "Alimentation",
+        "cat-transport": "Transport",
+        "catOther": "Autre"
+    },
+    "metadata": {
+        "title": "Planif.app - Anticipe le futur de ton compte bancaire !",
+        "description": "Un outil simple pour anticiper ta trésorerie personnelle ou professionnelle."
+    },
+    "scenarios": {
+        "defaultName": "Scénario principal",
+        "restoredName": "Restauré le",
+        "autoSave": "Sauvegarde automatique"
+    },
+    "settings": {
+        "title": "Paramètres",
+        "currency": "Devise",
+        "textSize": "Taille du texte",
+        "projection": "Projection (mois)",
+        "language": "Langue"
+    }
+}
