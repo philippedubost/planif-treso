@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Transaction, Category, MonthData, calculateProjection } from '@/lib/financeEngine';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
@@ -184,9 +184,13 @@ const cleanupRealtimeSync = () => {
 export const useFinanceStore = create<FinanceState>()(
     persist(
         (set, get) => ({
-            transactions: [],
+            transactions: [
+                { id: crypto.randomUUID(), label: 'Salaire', amount: 1000, month: format(new Date(), 'yyyy-MM'), recurrence: 'monthly', direction: 'income', categoryId: 'cat-salary' },
+                { id: crypto.randomUUID(), label: 'Loyer', amount: -800, month: format(new Date(), 'yyyy-MM'), recurrence: 'monthly', direction: 'expense', categoryId: 'cat-rent' },
+                { id: crypto.randomUUID(), label: 'Cadeau', amount: 150, month: format(addMonths(new Date(), 3), 'yyyy-MM'), recurrence: 'none', direction: 'income', categoryId: 'cat-dividend' }
+            ],
             categories: getTranslatedCategories(),
-            startingBalance: 0,
+            startingBalance: 1000,
             startingMonth: format(new Date(), 'yyyy-MM'),
             context: 'perso',
             user: null,

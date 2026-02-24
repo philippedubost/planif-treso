@@ -16,6 +16,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+import { useRouter, useParams } from 'next/navigation';
 
 function useWindowSize() {
     const [windowSize, setWindowSize] = useState<{
@@ -51,7 +52,16 @@ export default function MobileDashboard7() {
         redoStack
     } = useFinanceStore();
     const projection = useProjection();
-    const { width } = useWindowSize();
+    const { width, height } = useWindowSize();
+    const router = useRouter();
+    const params = useParams();
+
+    useEffect(() => {
+        if (width && height && width > height) {
+            const lang = params?.lang || 'fr';
+            router.push(`/${lang}/dashboard`);
+        }
+    }, [width, height, router, params]);
 
     const [activeView, setActiveView] = useState<'graph' | 'matrix'>('graph');
 
@@ -424,11 +434,14 @@ export default function MobileDashboard7() {
                             <div className="relative">
                                 {/* Axis Track Markers Above the Graph */}
                                 <div className="flex justify-center mb-2" style={{ marginLeft: labelWidth }}>
-                                    <div className="relative w-full" style={{ maxWidth: graphWidth }}>
-                                        <div className="absolute left-0 text-sm font-black text-zinc-900 -translate-x-1/2">
+                                    <div className="relative w-full h-5" style={{ maxWidth: graphWidth }}>
+                                        <div className="absolute left-0 text-xs font-black text-zinc-400 -translate-x-1/2">
                                             {formatCurrency(axisMin, true)}
                                         </div>
-                                        <div className="absolute right-0 text-sm font-black text-zinc-900 translate-x-1/2">
+                                        <div className="absolute left-[50%] text-xs font-black text-zinc-400 -translate-x-1/2">
+                                            0
+                                        </div>
+                                        <div className="absolute right-0 text-xs font-black text-zinc-400 translate-x-1/2">
                                             {formatCurrency(axisMax, true)}
                                         </div>
                                     </div>
