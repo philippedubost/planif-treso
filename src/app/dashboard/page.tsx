@@ -1,46 +1,241 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { format, parseISO, addMonths } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { KPISection } from '@/components/kpi/KPISection';
 import { CashflowGraph } from '@/components/graph/CashflowGraph';
 import { TransactionList } from '@/components/lists/TransactionList';
 import { TimelineView } from '@/components/timeline/TimelineView';
+import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Settings, Plus, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { ChevronUp, ChevronDown, Settings, Plus, LogIn, LogOut, User as UserIcon, Share2, Check, Layers, Trash2, Home, ChevronRight, Pencil, Undo2, Redo2, History, HelpCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
-import { TransactionEditor } from '@/components/lists/TransactionEditor';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { SettingsModal } from '@/components/settings/SettingsModal';
+import { VersionHistoryModal } from '@/components/settings/VersionHistoryModal';
+export const EditableMenuItem = ({ item, isSelected, onSelect, onEdit, onDelete }: any) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState(item.name);
+
+    if (isEditing) {
+        return (
+            <div className="w-full flex items-center justify-between px-2 py-2 rounded-xl bg-white text-zinc-900 border border-zinc-200">
+                <input
+                    autoFocus
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            if (editName.trim()) onEdit(item.id, editName.trim());
+                            setIsEditing(false);
+                        } else if (e.key === 'Escape') {
+                            setIsEditing(false);
+                            setEditName(item.name);
+                        }
+                    }}
+                    onBlur={() => {
+                        if (editName.trim()) onEdit(item.id, editName.trim());
+                        setIsEditing(false);
+                    }}
+                    className="flex-1 bg-transparent text-sm font-bold focus:outline-none"
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative group flex items-center w-full">
+            <button
+                onClick={() => onSelect(item.id)}
+                className={clsx(
+                    "flex-1 flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all text-left",
+                    (onEdit || onDelete) ? "pr-14" : "pr-4",
+                    isSelected
+                        ? "bg-zinc-900 text-white"
+                        : "bg-white text-zinc-600 hover:bg-zinc-50"
+                )}
+            >
+                <div className="flex flex-col items-start truncate w-full">
+                    <span className="truncate w-full" style={{ paddingRight: isSelected ? '16px' : '0' }}>{item.name}</span>
+                    {item.subtitle && <span className="text-[8px] uppercase tracking-wider opacity-60 font-black mt-0.5">{item.subtitle}</span>}
+                </div>
+                {isSelected && <Check className="absolute right-4 w-4 h-4 text-emerald-400" />}
+            </button>
+            <div className="absolute right-2 flex items-center space-x-1 opacity-0 group-[.group:hover]:opacity-100 transition-opacity z-10 pointer-events-none group-[.group:hover]:pointer-events-auto">
+                {onEdit && (
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsEditing(true);
+                        }}
+                        className="p-1 text-zinc-400 hover:text-zinc-900 bg-white rounded-md hover:bg-zinc-100 shadow-sm border border-zinc-100"
+                    >
+                        <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onDelete(item.id);
+                        }}
+                        className="p-1 text-rose-500 hover:text-rose-600 bg-white rounded-md hover:bg-rose-50 shadow-sm border border-zinc-100"
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export default function DashboardPage() {
     const [showDetails, setShowDetails] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isShared, setIsShared] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const { initAuth, user, resetSimulation, transactions, currency, setCurrency } = useFinanceStore();
+    const {
+        initAuth,
+        user,
+        transactions,
+        currency,
+        textSize,
+        resetSimulation,
+        startingBalance,
+        startingMonth,
+        context,
+        loadProject,
+        planifications,
+        currentPlanificationId,
+        addPlanification,
+        updatePlanification,
+        setCurrentPlanification,
+        deletePlanification,
+        currentScenarioId,
+        scenarios,
+        showScenarioBadge,
+        projectionMonths,
+        addScenario,
+        updateScenario,
+        setCurrentScenario,
+        deleteScenario,
+        undo,
+        redo,
+        undoStack,
+        redoStack,
+        setTutorialStep
+    } = useFinanceStore();
+
+    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
+    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
+    const [newPlanificationName, setNewPlanificationName] = useState('');
+
+    const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false);
+
+    const [isScenarioMenuOpen, setIsScenarioMenuOpen] = useState(false);
+    const [isAddingScenario, setIsAddingScenario] = useState(false);
+    const [newScenarioName, setNewScenarioName] = useState('');
+
+    const handleAddPlanification = async () => {
+        if (!newPlanificationName.trim()) return;
+        const id = await addPlanification(newPlanificationName);
+        if (id) {
+            setCurrentPlanification(id);
+            setNewPlanificationName('');
+            setIsAddingPlanification(false);
+            setIsPlanificationMenuOpen(false);
+        }
+    };
+
+    const handleAddScenario = async () => {
+        if (!newScenarioName.trim()) return;
+        const id = await addScenario(newScenarioName);
+        if (id) {
+            setCurrentScenario(id);
+            setNewScenarioName('');
+            setIsAddingScenario(false);
+            setIsScenarioMenuOpen(false);
+        }
+    };
+
+    const months = Array.from({ length: projectionMonths }).map((_, i) => {
+        const date = addMonths(parseISO(`${startingMonth}-01`), i);
+        return format(date, 'yyyy-MM');
+    });
+
+    const currentPlanification = planifications.find(p => p.id === currentPlanificationId);
+    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    const isScenarioVisible = showScenarioBadge && (user || scenarios.length > 0);
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         initAuth();
-    }, [initAuth]);
 
-    const currencies = [
-        { label: 'Euro', symbol: '€' },
-        { label: 'Dollar', symbol: '$' },
-        { label: 'Livre', symbol: '£' },
-        { label: 'Franc', symbol: 'CHF' },
-        { label: 'CAD', symbol: 'CA$' }
-    ];
-
-    const handleLogin = async () => {
-        const email = window.prompt("Entrez votre email pour vous connecter :");
-        if (email) {
-            await supabase.auth.signInWithOtp({ email });
-            alert("Lien magique envoyé ! Vérifiez vos emails.");
+        // Handle shared data from URL
+        const sharedData = searchParams.get('data');
+        if (sharedData) {
+            try {
+                const decoded = JSON.parse(decodeURIComponent(atob(sharedData)));
+                loadProject(decoded);
+                // Clear the URL parameter after loading
+                router.replace('/dashboard');
+            } catch (e) {
+                console.error("Failed to load shared data", e);
+            }
         }
+    }, [initAuth, searchParams, loadProject, router]);
+
+    // Keybindings pour Undo/Redo
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    if (redoStack.length > 0) redo();
+                } else {
+                    e.preventDefault();
+                    if (undoStack.length > 0) undo();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [undo, redo, undoStack.length, redoStack.length]);
+
+    const handleShare = () => {
+        const state = {
+            transactions,
+            startingBalance,
+            startingMonth,
+            currency,
+            context,
+            textSize,
+            projectionMonths
+        };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+        const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+
+        navigator.clipboard.writeText(url).then(() => {
+            setIsShared(true);
+            setTimeout(() => setIsShared(false), 2000);
+        });
+    };
+
+    const handleLogin = () => {
+        setIsAuthModalOpen(true);
+        setIsMenuOpen(false);
     };
 
     const handleLogout = async () => {
@@ -49,76 +244,285 @@ export default function DashboardPage() {
 
     const handleReset = async () => {
         await resetSimulation();
-        router.push('/onboarding');
+        router.push('/assistant');
     };
 
     const COLUMN_WIDTH = 96; // w-24
     const LABEL_WIDTH = 128; // w-32
-    const TOTAL_WIDTH = LABEL_WIDTH + (24 * COLUMN_WIDTH);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const TOTAL_WIDTH = LABEL_WIDTH + (projectionMonths * COLUMN_WIDTH);
 
     return (
-        <div className="min-h-screen bg-zinc-50/50 flex flex-col overflow-hidden relative font-sans">
+        <div className={clsx(
+            "min-h-screen bg-zinc-50/50 flex flex-col overflow-hidden relative font-sans transition-all duration-500 origin-top",
+            textSize === 'small' && "scale-[0.98]",
+            textSize === 'large' && "scale-[1.02]"
+        )}>
             {/* Premium Header */}
             <header className="fixed top-0 left-0 right-0 h-16 md:h-20 bg-white/80 backdrop-blur-xl z-50 border-b border-zinc-100 px-4 md:px-8 flex items-center justify-between">
                 <div className="flex items-center space-x-3 md:space-x-6">
                     <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-900 rounded-xl md:rounded-2xl flex items-center justify-center">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-900 rounded-xl md:rounded-2xl flex items-center justify-center shadow-premium">
                             <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white rounded-lg flex items-center justify-center">
-                                <div className="w-0.5 h-0.5 md:w-1 md:h-1 bg-white rounded-full" />
+                                <div className="w-1.5 h-1.5 bg-white rounded-full" />
                             </div>
                         </div>
-                        <span className="font-black italic text-lg md:text-xl tracking-tighter text-zinc-900">PLANIF.</span>
+                        <span className="font-black italic text-lg md:text-xl tracking-tighter text-zinc-900 line-clamp-1">PLANIF.app</span>
+                    </div>
+
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                        {/* Planification Switcher (Breadcrumb Step 1) */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsPlanificationMenuOpen(!isPlanificationMenuOpen)}
+                                className={clsx(
+                                    "hidden md:flex items-center rounded-2xl px-4 py-2 border transition-all active:scale-95 space-x-3",
+                                    isPlanificationMenuOpen ? "bg-zinc-100 border-zinc-200" : "bg-zinc-50 border-zinc-100 hover:bg-zinc-100 hover:border-zinc-200"
+                                )}
+                            >
+                                <Home className="w-4 h-4 text-zinc-400" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 truncate max-w-[120px]">
+                                    {currentPlanification?.name || 'Home'}
+                                </span>
+                            </button>
+
+                            <AnimatePresence>
+                                {isPlanificationMenuOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute left-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                    >
+                                        <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
+                                            {planifications.map((p) => (
+                                                <EditableMenuItem
+                                                    key={p.id}
+                                                    item={p}
+                                                    isSelected={currentPlanificationId === p.id}
+                                                    onSelect={(id: string) => {
+                                                        setCurrentPlanification(id);
+                                                        setIsPlanificationMenuOpen(false);
+                                                    }}
+                                                    onEdit={user ? async (id: string, newName: string) => {
+                                                        await updatePlanification(id, { name: newName });
+                                                    } : undefined}
+                                                    onDelete={user && planifications.length > 1 ? async (id: string) => {
+                                                        if (confirm("Êtes-vous sûr de vouloir supprimer cette planification entière ?")) {
+                                                            await deletePlanification(id);
+                                                            if (currentPlanificationId === id) {
+                                                                setIsPlanificationMenuOpen(false);
+                                                            }
+                                                        }
+                                                    } : undefined}
+                                                />
+                                            ))}
+
+                                            {user && (
+                                                <div className="pt-2 mt-2 border-t border-zinc-50">
+                                                    {!isAddingPlanification ? (
+                                                        <button
+                                                            onClick={() => setIsAddingPlanification(true)}
+                                                            className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
+                                                        >
+                                                            <Plus className="w-4 h-4" />
+                                                            <span>Nouvelle planification</span>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center space-x-2 p-1">
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={newPlanificationName}
+                                                                onChange={(e) => setNewPlanificationName(e.target.value)}
+                                                                placeholder="Nom..."
+                                                                className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
+                                                                onKeyDown={(e) => e.key === 'Enter' && handleAddPlanification()}
+                                                            />
+                                                            <button
+                                                                onClick={handleAddPlanification}
+                                                                className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
+                                                            >
+                                                                <Check className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {isScenarioVisible && (
+                            <>
+                                <ChevronRight className="hidden md:block w-4 h-4 text-zinc-300" />
+
+                                {/* Scenario Switcher (Breadcrumb Step 2) */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsScenarioMenuOpen(!isScenarioMenuOpen)}
+                                        className={clsx(
+                                            "hidden md:flex items-center rounded-2xl px-4 py-2 border transition-all active:scale-95 space-x-3",
+                                            isScenarioMenuOpen ? "bg-zinc-100 border-zinc-200" : "bg-zinc-50 border-zinc-100 hover:bg-zinc-100 hover:border-zinc-200"
+                                        )}
+                                    >
+                                        <Layers className="w-4 h-4 text-zinc-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 truncate max-w-[120px]">
+                                            {currentScenario?.name || 'Principal'}
+                                        </span>
+                                    </button>
+
+                                    <AnimatePresence>
+                                        {isScenarioMenuOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                className="absolute left-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                            >
+                                                <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
+                                                    <EditableMenuItem
+                                                        item={{ id: null, name: 'Principal', subtitle: 'Scénario de base' }}
+                                                        isSelected={currentScenarioId === null}
+                                                        onSelect={() => {
+                                                            setCurrentScenario(null);
+                                                            setIsScenarioMenuOpen(false);
+                                                        }}
+                                                    />
+
+                                                    {scenarios.map((s) => (
+                                                        <EditableMenuItem
+                                                            key={s.id}
+                                                            item={s}
+                                                            isSelected={currentScenarioId === s.id}
+                                                            onSelect={(id: string) => {
+                                                                setCurrentScenario(id);
+                                                                setIsScenarioMenuOpen(false);
+                                                            }}
+                                                            onEdit={user ? async (id: string, newName: string) => {
+                                                                await updateScenario(id, { name: newName });
+                                                            } : undefined}
+                                                            onDelete={user ? (id: string) => deleteScenario(id) : undefined}
+                                                        />
+                                                    ))}
+
+                                                    {user && (
+                                                        <div className="pt-2 mt-2 border-t border-zinc-50">
+                                                            {!isAddingScenario ? (
+                                                                <button
+                                                                    onClick={() => setIsAddingScenario(true)}
+                                                                    className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
+                                                                >
+                                                                    <Plus className="w-4 h-4" />
+                                                                    <span>Nouveau scénario</span>
+                                                                </button>
+                                                            ) : (
+                                                                <div className="flex items-center space-x-2 p-1">
+                                                                    <input
+                                                                        autoFocus
+                                                                        type="text"
+                                                                        value={newScenarioName}
+                                                                        onChange={(e) => setNewScenarioName(e.target.value)}
+                                                                        placeholder="Nom..."
+                                                                        className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
+                                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddScenario()}
+                                                                    />
+                                                                    <button
+                                                                        onClick={handleAddScenario}
+                                                                        className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
+                                                                    >
+                                                                        <Check className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="hidden md:block h-4 w-px bg-zinc-200" />
 
                     <div className="flex items-center space-x-3">
-                        {!user && (
-                            <div className="px-2 py-1 md:px-3 md:py-1.5 bg-zinc-50 border border-zinc-100 rounded-lg md:rounded-xl flex items-center space-x-1 md:space-x-2">
-                                <span className="text-[8px] md:text-[9px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
-                                <span className="text-[6px] md:text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">GUEST</span>
-                            </div>
-                        )}
                     </div>
                 </div>
 
                 <div className="flex items-center space-x-2 md:space-x-4">
-                    {/* Settings / Currency */}
-                    <div className="relative">
+                    {/* Undo / Redo controls */}
+                    <div className="hidden md:flex items-center bg-zinc-50 border border-zinc-100 rounded-2xl p-1 space-x-1 mr-2">
                         <button
-                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                            className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center space-x-1 md:space-x-2 shadow-soft hover:shadow-premium transition-all active:scale-95"
+                            onClick={() => undo()}
+                            disabled={undoStack.length === 0}
+                            className={clsx(
+                                "p-2 rounded-xl transition-all flex items-center justify-center",
+                                undoStack.length === 0
+                                    ? "text-zinc-300 cursor-not-allowed"
+                                    : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 active:scale-95"
+                            )}
+                            title="Annuler (Ctrl+Z)"
                         >
-                            <span className="font-black italic text-xs md:text-sm text-zinc-900">{currency}</span>
-                            <ChevronDown className={clsx("w-2.5 h-2.5 md:w-3 md:h-3 text-zinc-400 transition-transform", isSettingsOpen && "rotate-180")} />
+                            <Undo2 className="w-4 h-4" />
                         </button>
+                        <div className="w-px h-4 bg-zinc-200" />
+                        <button
+                            onClick={() => redo()}
+                            disabled={redoStack.length === 0}
+                            className={clsx(
+                                "p-2 rounded-xl transition-all flex items-center justify-center",
+                                redoStack.length === 0
+                                    ? "text-zinc-300 cursor-not-allowed"
+                                    : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 active:scale-95"
+                            )}
+                            title="Rétablir (Ctrl+Shift+Z)"
+                        >
+                            <Redo2 className="w-4 h-4" />
+                        </button>
+                    </div>
 
+                    {/* Share Button */}
+                    <button
+                        onClick={handleShare}
+                        className={clsx(
+                            "w-10 h-10 md:w-12 md:h-12 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center justify-center shadow-soft hover:shadow-premium transition-all active:scale-95 group relative",
+                            isShared && "border-emerald-500 bg-emerald-50"
+                        )}
+                        title="Partager mon dashboard"
+                    >
+                        {isShared ? (
+                            <Check className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                            <Share2 className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
+                        )}
                         <AnimatePresence>
-                            {isSettingsOpen && (
+                            {isShared && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute right-0 mt-2 w-48 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-zinc-900 text-white text-[9px] font-black italic uppercase tracking-widest rounded-lg pointer-events-none"
                                 >
-                                    <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest p-3">Devise</p>
-                                    {currencies.map((c) => (
-                                        <button
-                                            key={c.symbol}
-                                            onClick={() => { setCurrency(c.symbol); setIsSettingsOpen(false); }}
-                                            className={clsx(
-                                                "w-full flex items-center justify-between p-3 rounded-xl transition-colors",
-                                                currency === c.symbol ? "bg-zinc-900 text-white" : "hover:bg-zinc-50 text-zinc-900"
-                                            )}
-                                        >
-                                            <span className="font-black italic text-sm">{c.label}</span>
-                                            <span className="font-bold opacity-50">{c.symbol}</span>
-                                        </button>
-                                    ))}
+                                    Copié !
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                    </div>
+                    </button>
+
+                    {/* Settings Gear Button */}
+                    <button
+                        onClick={() => setIsSettingsModalOpen(true)}
+                        className="w-10 h-10 md:w-12 md:h-12 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center justify-center shadow-soft hover:shadow-premium transition-all active:scale-95 group"
+                    >
+                        <Settings className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
+                    </button>
+
+                    <div className="h-4 md:h-6 w-px bg-zinc-100" />
 
                     {/* Profile Menu */}
                     <div className="relative">
@@ -141,10 +545,17 @@ export default function DashboardPage() {
                                     className="absolute right-0 mt-2 w-56 bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-3 z-[60]"
                                 >
                                     <button
-                                        onClick={() => setIsResetModalOpen(true)}
-                                        className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                                        onClick={() => { setTutorialStep(1); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-zinc-50 transition-colors"
                                     >
-                                        <LogIn className="w-4 h-4" />
+                                        <HelpCircle className="w-4 h-4" />
+                                        <span className="font-black italic text-sm">Revoir le tutoriel</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsResetModalOpen(true); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-zinc-50 transition-colors"
+                                    >
+                                        <Plus className="w-4 h-4" />
                                         <span className="font-black italic text-sm">Nouvelle simulation</span>
                                     </button>
                                     <div className="h-px bg-zinc-50 my-2" />
@@ -183,10 +594,23 @@ export default function DashboardPage() {
                         ref={scrollContainerRef}
                         className="overflow-x-auto no-scrollbar pb-8 -mx-4 md:-mx-6 px-4 md:px-6"
                     >
-                        <div style={{ width: `${TOTAL_WIDTH}px` }} className="space-y-4">
+                        <div style={{ minWidth: `${TOTAL_WIDTH}px`, width: '100%' }} className="space-y-4">
+                            {/* Unique Months Axis shared by Graph and Timeline */}
+                            <div className="flex border-b border-zinc-200 pb-3 pt-2">
+                                <div className="w-32 flex-shrink-0 sticky left-0 bg-zinc-50/90 backdrop-blur-md z-20 px-4 font-black text-[10px] uppercase tracking-widest text-zinc-400 flex items-end justify-start">
+                                    Mois
+                                </div>
+                                <div className="flex flex-1">
+                                    {months.map((m) => (
+                                        <div key={m} className="flex-1 min-w-[96px] text-center font-black italic text-xs text-zinc-400 capitalize">
+                                            {format(parseISO(`${m}-01`), 'MMM yy', { locale: fr })}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="relative">
                                 <CashflowGraph
-                                    width={TOTAL_WIDTH}
                                     height={showDetails ? 240 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 320 : 480)}
                                     leftPadding={LABEL_WIDTH}
                                 />
@@ -247,7 +671,7 @@ export default function DashboardPage() {
                             </div>
                             <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Tout effacer ?</h3>
                             <p className="text-zinc-400 text-xs md:text-sm font-medium leading-relaxed mb-8">
-                                Cette action supprimera définitivement tous vos flux et réinitialisera votre simulation.
+                                Cette action supprimera définitivement toutes vos recettes et dépenses et réinitialisera votre simulation.
                             </p>
                             <div className="space-y-3">
                                 <button
@@ -267,6 +691,18 @@ export default function DashboardPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+            />
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+            />
+            <VersionHistoryModal
+                isOpen={isVersionHistoryModalOpen}
+                onClose={() => setIsVersionHistoryModalOpen(false)}
+            />
         </div>
     );
 }

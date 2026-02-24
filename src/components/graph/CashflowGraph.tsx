@@ -19,9 +19,10 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
+import { clsx } from 'clsx';
 
 export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?: number, height?: number, leftPadding?: number }) {
-    const projection = useProjection(24);
+    const projection = useProjection();
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
     const formatMonth = (monthStr: string) => {
@@ -37,15 +38,28 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
         setSelectedMonth(data.month);
     };
 
+    // Calculate key balance points for Y-Axis
+    const startBal = projection[0].balance;
+    const minBal = projection.reduce((min, p) => p.balance < min ? p.balance : min, projection[0].balance);
+    const maxBal = projection.reduce((max, p) => p.balance > max ? p.balance : max, projection[0].balance);
+
+    // Range for threshold calculation (e.g., 10% of range)
+    const range = Math.max(Math.abs(maxBal - minBal), 100);
+    const threshold = range * 0.15;
+
+    const yTicks = [startBal];
+    if (Math.abs(minBal - startBal) > threshold) yTicks.push(minBal);
+    if (Math.abs(maxBal - startBal) > threshold && Math.abs(maxBal - minBal) > threshold) yTicks.push(maxBal);
+
     return (
         <div
-            className="bg-white/70 backdrop-blur-sm rounded-[32px] md:rounded-[40px] p-4 md:p-6 shadow-soft relative select-none touch-none overflow-visible group border border-white"
-            style={{ width: width ? `${width}px` : '100%', height: height ? `${height}px` : (window.innerWidth < 768 ? '320px' : '480px') }}
+            className="bg-white/70 backdrop-blur-sm rounded-[32px] md:rounded-[40px] py-4 md:py-6 px-0 shadow-soft relative select-none touch-none overflow-visible group border border-white w-full"
+            style={{ height: height ? `${height}px` : (window.innerWidth < 768 ? '320px' : '480px') }}
         >
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                    data={projection}
-                    margin={{ top: 20, right: 0, bottom: 20, left: leftPadding }}
+                    data={projection.map(p => ({ ...p, expenseRaw: p.expense, expense: -p.expense }))}
+                    margin={{ top: 20, right: 0, bottom: 0, left: leftPadding ? leftPadding - 60 : 0 }}
                     onClick={(e: any) => e && e.activePayload && handleBarClick(e.activePayload[0].payload)}
                 >
                     <defs>
@@ -61,17 +75,22 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                     <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
                     <XAxis
                         dataKey="month"
-                        tickFormatter={formatMonth}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 700 }}
-                        interval={0}
-                    />
-                    <YAxis
                         axisLine={false}
                         tickLine={false}
                         tick={false}
-                        width={0}
+                        interval={0}
+                        height={1}
+                        padding={{ left: 0, right: 0 }}
+                    />
+                    <YAxis
+                        orientation="left"
+                        axisLine={false}
+                        tickLine={false}
+                        ticks={yTicks}
+                        tickFormatter={(val) => `${new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(val)}€`}
+                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 800 }}
+                        width={60}
+                        domain={['auto', 'auto']}
                     />
                     <Tooltip
                         content={<CustomTooltip />}
@@ -117,6 +136,7 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                         animationDuration={2000}
                     />
                     <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={2} strokeDasharray="3 3" />
+
                 </ComposedChart>
             </ResponsiveContainer>
 
@@ -145,6 +165,7 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
     );
 }
 
+
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
@@ -160,7 +181,7 @@ const CustomTooltip = ({ active, payload }: any) => {
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-zinc-400">Dépenses</span>
-                        <span className="text-sm font-black text-rose-500">-{data.expense}€</span>
+                        <span className="text-sm font-black text-rose-500">-{Math.abs(data.expense)}€</span>
                     </div>
                     <div className="pt-2 border-t border-zinc-100 flex justify-between items-center">
                         <span className="text-xs font-bold text-zinc-900">Solde Projeté</span>

@@ -26,7 +26,7 @@ export function TransactionList() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
                     <input
                         type="text"
-                        placeholder="Rechercher un flux..."
+                        placeholder="Rechercher une recette ou dépense..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-12 pr-6 py-4 bg-zinc-50 border-none rounded-2xl focus:ring-4 focus:ring-zinc-900/5 transition-all text-sm font-bold text-zinc-900 placeholder:text-zinc-300"
@@ -35,7 +35,7 @@ export function TransactionList() {
                 {!useFinanceStore.getState().user && (
                     <div className="px-4 py-2 bg-zinc-50 border border-zinc-100 rounded-xl flex flex-col items-center justify-center">
                         <span className="text-[10px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
-                        <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">FLUX</span>
+                        <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">Opérations</span>
                     </div>
                 )}
             </div>
@@ -113,7 +113,7 @@ export function TransactionList() {
                 onClose={() => {
                     setEditingTransaction(null);
                 }}
-                title="Modifier le flux"
+                title="Modifier l'opération"
             >
                 <TransactionEditor
                     onClose={() => {

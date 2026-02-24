@@ -41,7 +41,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
             if (success) {
                 onClose();
             } else {
-                alert("Limite atteinte ! Connectez-vous pour ajouter plus de 8 flux et partager avec vos proches.");
+                alert("Limite atteinte ! Connectez-vous pour ajouter plus de 8 recettes/dépenses et partager avec vos proches.");
             }
         }
     };
@@ -140,7 +140,7 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                     onClick={handleSave}
                     className="w-full py-6 bg-zinc-900 text-white rounded-[40px] font-black text-xl italic tracking-tight shadow-premium active:scale-95 transition-all flex items-center justify-center space-x-3"
                 >
-                    <span>{initialData ? 'Mettre à jour' : 'Ajouter le flux'}</span>
+                    <span>{initialData ? 'Mettre à jour' : (direction === 'income' ? 'Ajouter la recette' : 'Ajouter la dépense')}</span>
                     <Plus className={clsx("w-6 h-6 stroke-[3px]", initialData && "hidden")} />
                 </button>
             </div>
