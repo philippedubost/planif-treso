@@ -5,6 +5,7 @@ import { Settings, X, ChevronDown, Trash2, Type, Layers, Plus, EyeOff, Eye, Chec
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -73,9 +74,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     >
                         {/* Header */}
                         <div className="p-6 md:p-8 border-b border-zinc-50 flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-premium">
-                                    <Settings className="w-5 h-5 text-white" />
+                            <div className="flex flex-col items-center space-y-4 md:space-y-6 w-full text-center py-4">
+                                <div className="w-24 h-24 md:w-32 md:h-32 relative">
+                                    <Image
+                                        src="/illustrations/mascot-balance-day.png"
+                                        alt="Mascotte réglages"
+                                        fill
+                                        className="object-contain filter drop-shadow-xl"
+                                    />
                                 </div>
                                 <h2 className="text-xl font-black italic tracking-tighter text-zinc-900 uppercase">Réglages</h2>
                             </div>

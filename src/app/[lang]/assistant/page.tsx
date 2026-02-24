@@ -104,7 +104,7 @@ export default function AssistantPage() {
                     {step === 0 && (
                         <motion.div key="step0" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full space-y-8 md:space-y-12">
                             <div className="relative w-40 h-40 md:w-72 md:h-72 mx-auto flex items-center justify-center group">
-                                <Image src="/illustrations/mascot-onboarding-start.webp" alt="Welcome" fill className="object-contain group-hover:scale-110 transition-transform duration-700" />
+                                <Image src="/illustrations/mascot-onboarding-start.png" alt="Welcome" fill className="object-contain group-hover:scale-110 transition-transform duration-700" />
                             </div>
 
                             <div className="space-y-4">
@@ -200,7 +200,7 @@ export default function AssistantPage() {
                     {step === 1 && (
                         <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full space-y-10">
                             <div className="relative w-40 h-40 md:w-56 md:h-56 mx-auto flex items-center justify-center">
-                                <Image src="/illustrations/mascot-balance-day.webp" alt="Balance" fill className="object-contain" />
+                                <Image src="/illustrations/mascot-balance-day.png" alt="Balance" fill className="object-contain" />
                             </div>
                             <div className="space-y-3">
                                 <h1 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">Solde Actuel</h1>

@@ -19,6 +19,7 @@ import { SettingsModal } from '@/components/settings/SettingsModal';
 import { VersionHistoryModal } from '@/components/settings/VersionHistoryModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+import Image from 'next/image';
 
 // --- Delete Planification Modal Component ---
 const DeletePlanificationModal = ({ isOpen, onClose, onConfirm, planName }: any) => {
@@ -34,8 +35,13 @@ const DeletePlanificationModal = ({ isOpen, onClose, onConfirm, planName }: any)
                 className="bg-white rounded-[32px] p-6 w-full max-w-sm shadow-2xl"
             >
                 <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
-                        <Trash2 className="w-8 h-8" />
+                    <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-2">
+                        <Image
+                            src="/illustrations/mascot-expense-oneoff.png"
+                            alt="Mascotte suppression"
+                            fill
+                            className="object-contain filter drop-shadow-xl"
+                        />
                     </div>
                     <h2 className="text-xl font-black text-zinc-900">
                         Supprimer la planification ?
@@ -726,8 +732,13 @@ export default function DashboardPage() {
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                             className="bg-white w-full max-w-sm rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden p-6 md:p-8 text-center"
                         >
-                            <div className="w-16 h-16 md:w-20 md:h-20 bg-rose-50 rounded-[24px] md:rounded-[32px] flex items-center justify-center mx-auto mb-6">
-                                <Plus className="w-8 h-8 md:w-10 md:h-10 text-rose-500 rotate-45" />
+                            <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-6">
+                                <Image
+                                    src="/illustrations/mascot-expense-recurring.png"
+                                    alt="Mascotte réinitialisation"
+                                    fill
+                                    className="object-contain filter drop-shadow-xl"
+                                />
                             </div>
                             <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Reset data?</h3>
                             <p className="text-zinc-400 text-xs md:text-sm font-medium leading-relaxed mb-8">

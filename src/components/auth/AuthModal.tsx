@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Mail, Loader2, X, Chrome } from 'lucide-react';
+import Image from 'next/image';
 import { clsx } from 'clsx';
 
 interface AuthModalProps {
@@ -81,10 +82,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                         <div className="p-8 md:p-12">
                             <div className="text-center mb-10">
-                                <div className="w-16 h-16 bg-zinc-900 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-premium">
-                                    <div className="w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                    </div>
+                                <div className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-6 relative">
+                                    <img
+                                        src="/illustrations/mascot-onboarding-start.png"
+                                        alt="Mascotte bienvenue"
+                                        className="w-full h-full object-contain filter drop-shadow-xl"
+                                    />
                                 </div>
                                 <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-none mb-2">Bienvenue sur PLANIF.app</h2>
                                 <p className="text-zinc-400 text-sm font-medium">Connectez-vous pour sauvegarder vos simulations.</p>
@@ -96,8 +99,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="text-center space-y-6"
                                 >
-                                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto">
-                                        <Mail className="w-8 h-8 text-emerald-500" />
+                                    <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-4">
+                                        <img
+                                            src="/illustrations/mascot-success-ready.png"
+                                            alt="Mascotte email envoyé"
+                                            className="w-full h-full object-contain filter drop-shadow-xl"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <p className="font-black italic text-zinc-900 uppercase tracking-tight">Vérifiez vos emails !</p>

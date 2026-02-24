@@ -4,6 +4,7 @@ import { X, History, RotateCcw, Box } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Image from 'next/image';
 
 interface VersionHistoryModalProps {
     isOpen: boolean;
@@ -46,22 +47,26 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({ isOpen
                         className="relative w-full max-w-lg bg-white rounded-3xl shadow-premium overflow-hidden"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-zinc-100">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center">
-                                    <History className="w-5 h-5 text-zinc-900" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-black text-zinc-900 tracking-tight">Historique du scénario</h2>
-                                    <p className="text-sm font-medium text-zinc-500">Gérer et restaurer les versions sauvegardées</p>
-                                </div>
-                            </div>
+                        <div className="flex flex-col items-center text-center p-6 border-b border-zinc-100 relative">
                             <button
                                 onClick={onClose}
-                                className="w-10 h-10 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 flex items-center justify-center transition-colors border border-transparent hover:border-zinc-200"
+                                className="absolute top-6 right-6 w-10 h-10 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 flex items-center justify-center transition-colors border border-transparent hover:border-zinc-200"
                             >
                                 <X className="w-5 h-5" />
                             </button>
+
+                            <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-4">
+                                <Image
+                                    src="/illustrations/mascot-graph-overview.png"
+                                    alt="Mascotte historique"
+                                    fill
+                                    className="object-contain filter drop-shadow-xl"
+                                />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black italic text-zinc-900 tracking-tight">Historique du scénario</h2>
+                                <p className="text-sm font-medium text-zinc-500">Gérer et restaurer les versions sauvegardées</p>
+                            </div>
                         </div>
 
                         {/* Content */}
