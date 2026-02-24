@@ -135,6 +135,32 @@ const defaultCategories: Category[] = [
     { id: 'cat-transport', label: 'Transport', direction: 'expense', color: '#fda4af' }, // rose-300
 ];
 
+let globalSyncChannel: any = null;
+
+const setupRealtimeSync = (get: any, userId: string) => {
+    if (globalSyncChannel) {
+        supabase.removeChannel(globalSyncChannel);
+    }
+    globalSyncChannel = supabase.channel(`sync-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` }, () => {
+            get().fetchTransactions();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'scenarios', filter: `user_id=eq.${userId}` }, () => {
+            get().fetchScenarios();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'planifications', filter: `user_id=eq.${userId}` }, () => {
+            get().fetchPlanifications();
+        })
+        .subscribe();
+};
+
+const cleanupRealtimeSync = () => {
+    if (globalSyncChannel) {
+        supabase.removeChannel(globalSyncChannel);
+        globalSyncChannel = null;
+    }
+};
+
 export const useFinanceStore = create<FinanceState>()(
     persist(
         (set, get) => ({
@@ -171,6 +197,9 @@ export const useFinanceStore = create<FinanceState>()(
                     await get().fetchPlanifications();
                     await get().fetchScenarios();
                     await get().fetchTransactions();
+                    setupRealtimeSync(get, session.user.id);
+                } else {
+                    cleanupRealtimeSync();
                 }
 
                 // Listen for changes
@@ -182,6 +211,9 @@ export const useFinanceStore = create<FinanceState>()(
                             await get().fetchPlanifications();
                             await get().fetchScenarios();
                             await get().fetchTransactions();
+                            setupRealtimeSync(get, session.user.id);
+                        } else {
+                            cleanupRealtimeSync();
                         }
                     }
                 });

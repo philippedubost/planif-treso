@@ -196,6 +196,25 @@ export default function DashboardPage() {
         }
     }, [initAuth, searchParams, loadProject, router]);
 
+    // Redirect to mobile dashboard if viewed in portrait mode on a mobile device
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const checkMobile = () => {
+                const isMobile = window.innerWidth < 768;
+                const isPortrait = window.innerHeight > window.innerWidth;
+                if (isMobile && isPortrait) {
+                    router.replace('/mobile');
+                }
+            };
+
+            checkMobile();
+
+            // Re-check on orientation change or resize
+            window.addEventListener('resize', checkMobile);
+            return () => window.removeEventListener('resize', checkMobile);
+        }
+    }, [router]);
+
     // Keybindings pour Undo/Redo
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
