@@ -45,34 +45,27 @@ export function TimelineView() {
     return (
         <div className="w-full flex flex-col space-y-4 select-none mb-32">
             <div className="inline-flex flex-col min-w-full">
-                {/* Section: Recurring Income */}
-                <div className="flex mt-6 mb-2 items-center">
-                    <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[11px] uppercase tracking-[0.2em] text-zinc-900">
+                {/* Section: Recurring Combined */}
+                <div className="flex mt-6 mb-2 items-start relative">
+                    <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[11px] uppercase tracking-[0.2em] text-zinc-900 pt-2 border-r border-zinc-100 border-dashed min-h-[40px]">
                         {dictionary.timeline.monthly}
                     </div>
-                </div>
-                <SectionLabel
-                    label={dictionary.dashboard.income}
-                    color="text-emerald-500"
-                    onAdd={() => handleAdd('income')}
-                    className="mt-2 mb-2"
-                />
-                <div className="transition-all duration-300 rounded-3xl">
-                    {recurringIncome.map(tx => (
-                        <TimelineRow key={tx.id} transaction={tx} months={months} color="emerald" maxAmount={maxAmount} dictionary={dictionary} />
-                    ))}
-                </div>
-
-                <SectionLabel
-                    label={dictionary.dashboard.expense}
-                    color="text-rose-500"
-                    onAdd={() => handleAdd('expense')}
-                    className="mt-4 mb-2"
-                />
-                <div className="transition-all duration-300 rounded-3xl">
-                    {recurringExpense.map(tx => (
-                        <TimelineRow key={tx.id} transaction={tx} months={months} color="rose" maxAmount={maxAmount} dictionary={dictionary} />
-                    ))}
+                    <div className="flex-1 flex flex-wrap gap-2 px-4 py-1">
+                        {transactions.filter(t => t.recurrence !== 'none').length === 0 && (
+                            <div className="text-zinc-400 text-xs italic py-2">
+                                {dictionary.timeline.emptyIncome}
+                            </div>
+                        )}
+                        {transactions.filter(t => t.recurrence !== 'none').map(tx => (
+                            <RecurringPill key={tx.id} transaction={tx} dictionary={dictionary} />
+                        ))}
+                        <button
+                            onClick={() => handleAdd('expense')}
+                            className="h-[38px] px-3 rounded-lg border-2 border-dashed border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all flex items-center justify-center group/add"
+                        >
+                            <Plus className="w-4 h-4 text-zinc-400 group-hover/add:text-zinc-600" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Section: Mixed One-off */}
@@ -83,6 +76,11 @@ export function TimelineView() {
                 </div>
                 <div className="flex relative transition-all duration-300 rounded-3xl">
                     <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20" />
+                    {oneOffTransactions.length === 0 && (
+                        <div className="absolute left-[140px] top-4 text-zinc-400 text-xs italic z-10 pointer-events-none">
+                            {dictionary.timeline.emptyOneOff}
+                        </div>
+                    )}
                     <div className="flex flex-1">
                         {months.map(m => (
                             <div key={m} className="flex-1 min-w-[96px] flex flex-col items-center justify-start py-4 space-y-2 border-l border-zinc-100 border-dashed min-h-[140px]">
@@ -104,35 +102,19 @@ export function TimelineView() {
     );
 }
 
-function SectionLabel({ label, color, onAdd, className }: { label: string, color: string, onAdd?: () => void, className?: string }) {
-    return (
-        <div className={clsx("flex items-center", className || "mt-6 mb-2")}>
-            <div className={clsx("w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 font-black text-[9px] uppercase tracking-[0.2em] flex items-center space-x-2", color)}>
-                <span>{label}</span>
-                {onAdd && (
-                    <button
-                        onClick={onAdd}
-                        className="p-1 bg-zinc-50 rounded-md hover:bg-zinc-100 transition-colors"
-                    >
-                        <Plus className="w-3 h-3 text-zinc-400" />
-                    </button>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function TimelineRow({ transaction, months, color, maxAmount, dictionary }: { transaction: any, months: string[], color: 'emerald' | 'rose', maxAmount: number, dictionary: any }) {
+function RecurringPill({ transaction, dictionary }: { transaction: any, dictionary: any }) {
     const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
     const [isHovered, setIsHovered] = useState(false);
 
+    // logic similar to Pill
+    const displayAmount = transaction.direction === 'expense' ? -transaction.amount : transaction.amount;
     const [localLabel, setLocalLabel] = useState(transaction.label);
-    const [localAmount, setLocalAmount] = useState(transaction.amount === 0 ? '' : transaction.amount.toString());
+    const [localAmount, setLocalAmount] = useState(transaction.amount === 0 ? '' : displayAmount.toString());
 
     useEffect(() => {
         setLocalLabel(transaction.label);
-        setLocalAmount(transaction.amount === 0 ? '' : transaction.amount.toString());
-    }, [transaction.label, transaction.amount]);
+        setLocalAmount(transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString());
+    }, [transaction.label, transaction.amount, transaction.direction]);
 
     const handleLabelCommit = () => {
         if (localLabel !== transaction.label) {
@@ -142,32 +124,33 @@ function TimelineRow({ transaction, months, color, maxAmount, dictionary }: { tr
 
     const handleAmountCommit = () => {
         const val = parseFloat(localAmount) || 0;
-        const finalVal = Math.abs(val);
-        if (finalVal !== transaction.amount) {
-            updateTransaction(transaction.id, { amount: finalVal });
-            setLocalAmount(finalVal === 0 ? '' : finalVal.toString());
+        const newAmount = Math.abs(val);
+        const newDirection = val < 0 ? 'expense' : 'income';
+
+        if (newAmount !== transaction.amount || newDirection !== transaction.direction) {
+            updateTransaction(transaction.id, { amount: newAmount, direction: newDirection });
+            setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
         } else {
-            setLocalAmount(finalVal === 0 ? '' : finalVal.toString());
+            setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
         }
     };
 
-    const thickness = Math.min(2, Math.max(0.5, Math.sqrt(transaction.amount / 500)));
-    const opacity = Math.min(0.5, Math.max(0.1, Math.sqrt(transaction.amount / 1500)));
-
-    // Calculate dot size (min 4px, max 24px)
-    const dotSize = 4 + (Math.sqrt(transaction.amount / maxAmount) * 20);
+    const isIncome = transaction.direction === 'income';
 
     return (
         <div
-            className="flex group/row"
+            className={clsx(
+                "pl-3 pr-2 py-1.5 rounded-lg border-2 flex items-center shadow-sm relative group/pill transition-all",
+                isIncome ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"
+            )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <div className="w-32 flex-shrink-0 sticky left-0 bg-white/80 backdrop-blur-md z-20 px-4 py-1.5 flex flex-col justify-center border-r border-zinc-50 border-dashed relative">
+            <div className="flex items-center space-x-2">
                 <input
                     className={clsx(
-                        "bg-transparent font-black italic text-[11px] outline-none w-full border-none p-0 focus:bg-zinc-50 focus:px-1 rounded transition-colors mb-0.5",
-                        color === 'emerald' ? "text-emerald-500" : "text-rose-500"
+                        "bg-transparent font-black italic text-sm outline-none border-none p-0 cursor-text w-[100px] truncate",
+                        isIncome ? "text-emerald-600 placeholder-emerald-600/50" : "text-rose-600 placeholder-rose-600/50"
                     )}
                     placeholder={dictionary.timeline.labelPlaceholder}
                     value={localLabel}
@@ -177,62 +160,31 @@ function TimelineRow({ transaction, months, color, maxAmount, dictionary }: { tr
                     onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                 />
 
-                <div className="flex items-center space-x-1">
-                    <span className="text-[10px] font-bold text-zinc-300 pointer-events-none">
-                        {transaction.direction === 'expense' ? '-' : '+'}
-                    </span>
+                <div className="flex items-center opacity-75">
                     <input
                         type="number"
-                        className="bg-transparent font-black text-xs outline-none w-20 border-none p-0 focus:bg-zinc-50 focus:px-1 rounded transition-colors text-zinc-900"
+                        className={clsx(
+                            "bg-transparent font-black text-xs outline-none border-none p-0 cursor-text w-12 text-right",
+                            isIncome ? "text-emerald-600" : "text-rose-600"
+                        )}
                         value={localAmount}
                         placeholder="0"
                         onChange={e => setLocalAmount(e.target.value)}
                         onBlur={handleAmountCommit}
                         onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                     />
-                    <span className="text-[10px] font-bold text-zinc-300 pointer-events-none">{currency}</span>
+                    <span className={clsx("text-xs font-black", isIncome ? "text-emerald-600" : "text-rose-600")}>{currency}/m</span>
                 </div>
-
-                {isHovered && (
-                    <button
-                        onClick={() => deleteTransaction(transaction.id)}
-                        className="absolute -left-2 top-1/2 -translate-y-1/2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-premium z-30 transition-all scale-100 hover:scale-110"
-                    >
-                        <X className="w-3 h-3 stroke-[3px]" />
-                    </button>
-                )}
             </div>
 
-            <div className="flex flex-1 relative items-center">
-                <div
-                    className={clsx(
-                        "absolute z-0",
-                        color === 'emerald' ? "bg-emerald-400" : "bg-rose-300"
-                    )}
-                    style={{
-                        opacity,
-                        height: `${thickness}px`,
-                        left: `calc(50% / ${months.length})`,
-                        right: `calc(50% / ${months.length})`,
-                        backgroundImage: `linear-gradient(to right, currentColor 50%, transparent 50%)`,
-                        backgroundSize: '8px 100%'
-                    }}
-                />
-                {months.map(m => (
-                    <div key={m} className="flex-1 min-w-[96px] h-10 flex items-center justify-center relative">
-                        <div
-                            className={clsx(
-                                "rounded-full z-10 shadow-sm border border-white transition-all",
-                                color === 'emerald' ? "bg-emerald-400" : "bg-rose-500"
-                            )}
-                            style={{
-                                width: `${dotSize}px`,
-                                height: `${dotSize}px`
-                            }}
-                        />
-                    </div>
-                ))}
-            </div>
+            {isHovered && (
+                <button
+                    onClick={() => deleteTransaction(transaction.id)}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg z-30 transition-all hover:scale-110"
+                >
+                    <X className="w-3 h-3 stroke-[3px]" />
+                </button>
+            )}
         </div>
     );
 }

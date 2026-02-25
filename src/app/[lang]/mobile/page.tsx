@@ -4,19 +4,143 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronRight, ChevronLeft, Plus, Settings, Share2, Check, ChevronDown, LogOut, HelpCircle, Edit2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Plus, Settings, Share2, Check, ChevronDown, LogOut, HelpCircle, Edit2, AlertTriangle, Info, Copy, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { Transaction } from '@/lib/financeEngine';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil, Home } from 'lucide-react';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
-import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
+
+const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, planName, dictionary }: any) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white rounded-[32px] p-6 w-full max-w-sm shadow-2xl z-10"
+            >
+                <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-2">
+                        <Image
+                            src="/illustrations/mascot-expense-oneoff.png"
+                            alt="Mascotte suppression"
+                            fill
+                            className="object-contain filter drop-shadow-xl"
+                        />
+                    </div>
+                    <h2 className="text-xl font-black text-zinc-900">
+                        Supprimer la planification ?
+                    </h2>
+                    <p className="text-sm text-zinc-500 font-medium">
+                        Êtes-vous sûr de vouloir supprimer définitivement <strong>{planName}</strong> ? Cette action effacera tous les scénarios et transactions associés.
+                    </p>
+                    <div className="flex w-full space-x-3 pt-4 inline-flex">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 py-3 px-4 rounded-xl font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                        >
+                            {dictionary.common.cancel}
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
+                        >
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
+export const EditableMenuItem = ({ item, isSelected, onSelect, onEdit, onDelete }: any) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState(item.name);
+
+    if (isEditing) {
+        return (
+            <div className="w-full flex items-center justify-between px-2 py-2 rounded-xl bg-white text-zinc-900 border border-zinc-200">
+                <input
+                    autoFocus
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            if (editName.trim()) onEdit(item.id, editName.trim());
+                            setIsEditing(false);
+                        } else if (e.key === 'Escape') {
+                            setIsEditing(false);
+                            setEditName(item.name);
+                        }
+                    }}
+                    onBlur={() => {
+                        if (editName.trim()) onEdit(item.id, editName.trim());
+                        setIsEditing(false);
+                    }}
+                    className="flex-1 bg-transparent text-sm font-bold focus:outline-none"
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative group flex items-center w-full">
+            <button
+                onClick={() => onSelect(item.id)}
+                className={clsx(
+                    "flex-1 flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all text-left",
+                    (onEdit || onDelete) ? "pr-14" : "pr-4",
+                    isSelected
+                        ? "bg-zinc-900 text-white"
+                        : "bg-white text-zinc-600 hover:bg-zinc-50"
+                )}
+            >
+                <div className="flex flex-col items-start truncate w-full">
+                    <span className="truncate w-full" style={{ paddingRight: isSelected ? '16px' : '0' }}>{item.name}</span>
+                    {item.subtitle && <span className="text-[8px] uppercase tracking-wider opacity-60 font-black mt-0.5">{item.subtitle}</span>}
+                </div>
+                {isSelected && <Check className="absolute right-4 w-4 h-4 text-emerald-400" />}
+            </button>
+            <div className="absolute right-2 flex items-center space-x-1 opacity-100 transition-opacity z-10 pointer-events-auto">
+                {onEdit && (
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsEditing(true);
+                        }}
+                        className="p-1 text-zinc-400 hover:text-zinc-900 bg-white rounded-md hover:bg-zinc-100 shadow-sm border border-zinc-100"
+                    >
+                        <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onDelete(item.id);
+                        }}
+                        className="p-1 text-rose-500 hover:text-rose-600 bg-white rounded-md hover:bg-rose-50 shadow-sm border border-zinc-100"
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
 
 function useWindowSize() {
     const [windowSize, setWindowSize] = useState<{
@@ -48,6 +172,12 @@ export default function MobileDashboard7() {
         setStartingBalance,
         currency,
         transactions,
+        planifications,
+        currentPlanificationId,
+        addPlanification,
+        updatePlanification,
+        setCurrentPlanification,
+        deletePlanification,
         user,
         redoStack
     } = useFinanceStore();
@@ -64,9 +194,43 @@ export default function MobileDashboard7() {
     }, [width, height, router, params]);
 
     const [activeView, setActiveView] = useState<'graph' | 'matrix'>('graph');
+    const [selectedGraphPoint, setSelectedGraphPoint] = useState<{ month: string, type: 'balance' | 'income' | 'expense', value: number, x: number, y: number } | null>(null);
 
     const [isEditingBalance, setIsEditingBalance] = useState(false);
-    const [tempBalance, setTempBalance] = useState(startingBalance.toString());
+    const [tempBalance, setTempBalance] = useState('');
+    const mainRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (mainRef.current) {
+            mainRef.current.scrollTo({ top: 0, behavior: 'instant' });
+        }
+    }, [activeView]);
+
+    const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
+    const matrixTips = useMemo(() => [
+        <>Pensez aux sorties souvent oubliées : <span className="font-medium opacity-80">Impôts, Assurances, Abonnements...</span></>,
+        <>Les dépenses annuelles ou trimestrielles peuvent être <span className="font-medium opacity-80">mensualisées pour éviter les surprises.</span></>,
+        <>Un extra prévu pour les vacances ou Noël ? <span className="font-medium opacity-80">Ajoutez-le dès aujourd'hui en ponctuel !</span></>,
+        <>N'oubliez pas d'inclure votre <span className="font-medium opacity-80">épargne de précaution chaque mois.</span></>,
+        <>Les petits plaisirs (café, resto) finissent par compter ! <span className="font-medium opacity-80">Prévoyez un budget "sorties" mensuel.</span></>,
+        <>Anticipez vos frais de santé : <span className="font-medium opacity-80">Mutuelle, lunettes, soins médicaux divers...</span></>,
+        <>Prévoyez une enveloppe pour les imprévus : <span className="font-medium opacity-80">Panne de voiture, remplacement d'électroménager...</span></>,
+        <>Avez-vous pensé aux frais liés à la rentrée ? <span className="font-medium opacity-80">Fournitures, inscriptions scolaires ou sportives...</span></>,
+        <>Vos abonnements numériques s'accumulent : <span className="font-medium opacity-80">Faites régulièrement le point (streaming, apps...).</span></>,
+        <>L'entretien de la maison a un coût : <span className="font-medium opacity-80">Chauffage, petites réparations, jardinage...</span></>
+    ], []);
+
+    // Tips rotation
+    useEffect(() => {
+        if (activeView === 'matrix') {
+            setCurrentTipIndex(Math.floor(Math.random() * matrixTips.length));
+            const interval = setInterval(() => {
+                setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length);
+            }, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [activeView, matrixTips]);
 
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -78,13 +242,58 @@ export default function MobileDashboard7() {
     const [draggingTxId, setDraggingTxId] = useState<string | null>(null);
     const [hoveredMonth, setHoveredMonth] = useState<string | null>(null);
     const [isHoveringTrash, setIsHoveringTrash] = useState(false);
+    const [isHoveringDuplicate, setIsHoveringDuplicate] = useState(false);
+    const [txToDelete, setTxToDelete] = useState<string | null>(null);
 
     // Header state
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
+
+    const [isGraphTipDismissed, setIsGraphTipDismissed] = useState(false);
+    const [isMatrixTipDismissed, setIsMatrixTipDismissed] = useState(false);
+
+    const [isHeaderCompact, setIsHeaderCompact] = useState(false);
+    const prevScrollY = useRef(0);
+
+    const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+        const currentScrollY = e.currentTarget.scrollTop;
+        if (currentScrollY > prevScrollY.current && currentScrollY > 50) {
+            setIsHeaderCompact(true);
+        } else if (currentScrollY < prevScrollY.current) {
+            setIsHeaderCompact(false);
+        }
+        prevScrollY.current = currentScrollY;
+    };
+
+    // Planification state
+    const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
+    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
+    const [newPlanificationName, setNewPlanificationName] = useState('');
+
     const { dictionary } = useTranslation();
+
+    const currentPlanification = useMemo(() => {
+        return planifications.find(p => p.id === currentPlanificationId);
+    }, [planifications, currentPlanificationId]);
+
+    const handleLogin = () => {
+        setIsAuthModalOpen(true);
+    };
+
+    const handleAddPlanification = async () => {
+        if (!newPlanificationName.trim()) return;
+        const id = await addPlanification(newPlanificationName.trim());
+        if (id) {
+            setCurrentPlanification(id);
+            setNewPlanificationName('');
+            setIsAddingPlanification(false);
+            setIsPlanificationMenuOpen(false);
+        }
+    };
 
     const formatCurrency = (val: number, shrinkK = false) => {
         const sign = val < 0 ? '-' : '';
@@ -124,7 +333,7 @@ export default function MobileDashboard7() {
     };
 
     // --- Drag n Drop Logic ---
-    const { updateTransaction, deleteTransaction } = useFinanceStore();
+    const { updateTransaction, deleteTransaction, addTransaction } = useFinanceStore();
 
     const handleDragStart = (txId: string) => {
         setDraggingTxId(txId);
@@ -134,6 +343,7 @@ export default function MobileDashboard7() {
         setDraggingTxId(null);
         setHoveredMonth(null);
         setIsHoveringTrash(false);
+        setIsHoveringDuplicate(false);
 
         // Simple DOM element overlap detection since we are scrolling and standard HTML5 Dnd is tricky on mobile
         // Look for the element under the pointer
@@ -144,7 +354,15 @@ export default function MobileDashboard7() {
         // Check if it's the trash
         const isTrash = dropTarget.closest('[data-droptarget="trash"]');
         if (isTrash) {
-            await deleteTransaction(tx.id);
+            setTxToDelete(tx.id);
+            return;
+        }
+
+        // Check if it's the duplicate
+        const isDuplicate = dropTarget.closest('[data-droptarget="duplicate"]');
+        if (isDuplicate) {
+            const { id, ...txWithoutId } = tx;
+            await addTransaction(txWithoutId);
             return;
         }
 
@@ -193,13 +411,23 @@ export default function MobileDashboard7() {
     const axisMin = -maxBal;
     const axisMax = maxBal;
 
+    const { minBalPoint, maxBalPoint } = useMemo(() => {
+        if (projection.length === 0) return { minBalPoint: null, maxBalPoint: null };
+        return projection.reduce((acc, curr) => {
+            return {
+                minBalPoint: curr.balance < acc.minBalPoint.balance ? curr : acc.minBalPoint,
+                maxBalPoint: curr.balance > acc.maxBalPoint.balance ? curr : acc.maxBalPoint
+            };
+        }, { minBalPoint: projection[0], maxBalPoint: projection[0] });
+    }, [projection]);
+
     // Points for the continuous line graph (Balance evolution)
     const linePath = useMemo(() => {
         if (projection.length === 0) return '';
 
         let pts = [];
         let x0 = midX + ((startingBalance / maxBal) * (graphWidth / 2));
-        pts.push({ x: x0, y: 0 });
+        pts.push({ x: x0, y: rowHeight / 2 });
 
         projection.forEach((p, i) => {
             const y = (i * rowHeight) + (rowHeight / 2);
@@ -252,12 +480,31 @@ export default function MobileDashboard7() {
 
     const finalBalance12m = projection[projection.length - 1]?.balance || startingBalance;
 
+    // Runway calculation
+    const negativeMonthIndex = projection.findIndex(p => p.balance < 0);
+    let runwayMessage = "";
+    let runwayColor = "bg-emerald-50 text-emerald-800 border-emerald-200";
+
+    if (negativeMonthIndex !== -1) {
+        if (negativeMonthIndex === 0) {
+            runwayMessage = `Alerte : ton compte passe sous zéro dès ${format(parseISO(`${projection[0].month}-01`), 'MMM yyyy', { locale: fr })}`;
+            runwayColor = "bg-rose-50 text-rose-800 border-rose-200";
+        } else if (negativeMonthIndex <= 3) {
+            runwayMessage = `Attention : ton compte passe sous zéro en ${format(parseISO(`${projection[negativeMonthIndex].month}-01`), 'MMM yyyy', { locale: fr })}`;
+            runwayColor = "bg-orange-50 text-orange-800 border-orange-200";
+        } else {
+            runwayMessage = `À ce rythme, ton compte passe sous zéro en ${format(parseISO(`${projection[negativeMonthIndex].month}-01`), 'MMM yyyy', { locale: fr })}`;
+            runwayColor = "bg-amber-50 text-amber-800 border-amber-200";
+        }
+    } else {
+        runwayMessage = "Tout va bien, ton compte reste positif sur cette période.";
+    }
+
     const handleShare = () => {
-        // Just a dummy local share since we don't have all state here, 
-        // normally we'd copy the encoded state as in dashboard
         const url = `${window.location.origin}${window.location.pathname}`;
         navigator.clipboard.writeText(url).then(() => {
             setIsShared(true);
+            setIsShareModalOpen(true);
             setTimeout(() => setIsShared(false), 2000);
         });
     };
@@ -265,7 +512,7 @@ export default function MobileDashboard7() {
     return (
         <div className="min-h-screen bg-zinc-50 font-sans flex flex-col relative overflow-hidden">
             {/* Header Sticky (Shared) */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 px-4 py-4 md:py-6 shadow-sm">
+            <header className={clsx("fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 px-4 py-4 md:py-6 shadow-sm transition-transform duration-300", isHeaderCompact && "-translate-y-full")}>
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex-1 flex justify-start items-center space-x-2">
                         {/* View Toggle */}
@@ -290,36 +537,14 @@ export default function MobileDashboard7() {
                     </div>
 
                     <div className="flex-1 flex justify-end items-center space-x-2">
-                        {/* Share Button */}
-                        <button
-                            onClick={handleShare}
-                            className={clsx(
-                                "w-10 h-10 bg-white border border-zinc-100 rounded-full flex items-center justify-center shadow-soft active:scale-95 relative",
-                                isShared && "border-emerald-500 bg-emerald-50"
-                            )}
-                        >
-                            {isShared ? (
-                                <Check className="w-4 h-4 text-emerald-500" />
-                            ) : (
-                                <Share2 className="w-4 h-4 text-zinc-400" />
-                            )}
-                        </button>
-
-                        {/* Settings Button */}
-                        <button
-                            onClick={() => setIsSettingsModalOpen(true)}
-                            className="w-10 h-10 bg-white border border-zinc-100 rounded-full flex items-center justify-center shadow-soft active:scale-95"
-                        >
-                            <Settings className="w-4 h-4 text-zinc-400" />
-                        </button>
-
-                        <LanguageSwitcher />
-
                         {/* Profile Menu */}
                         <div className="relative">
                             <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="px-3 py-1.5 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-premium active:scale-95 h-10"
+                                onClick={() => {
+                                    setIsMenuOpen(!isMenuOpen);
+                                    if (!isMenuOpen) setIsPlanificationMenuOpen(false);
+                                }}
+                                className="px-3 py-1.5 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 rounded-full flex items-center justify-center active:scale-95 h-10 transition-colors"
                             >
                                 <ChevronDown className={clsx("w-4 h-4 transition-transform", isMenuOpen && "rotate-180")} />
                             </button>
@@ -332,33 +557,164 @@ export default function MobileDashboard7() {
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                         className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
                                     >
-                                        <div className="h-px bg-zinc-50 my-1" />
+                                        <div className="p-1">
+                                            <button
+                                                onClick={() => {
+                                                    setIsMenuOpen(false);
+                                                    handleShare();
+                                                }}
+                                                className="w-full flex items-center justify-between p-2 rounded-xl text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"
+                                            >
+                                                <div className="flex items-center space-x-3">
+                                                    <Share2 className="w-4 h-4 text-zinc-400" />
+                                                    <span className="font-bold text-sm">Partager</span>
+                                                </div>
+                                                {isShared && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    setIsMenuOpen(false);
+                                                    setIsSettingsModalOpen(true);
+                                                }}
+                                                className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"
+                                            >
+                                                <Settings className="w-4 h-4 text-zinc-400" />
+                                                <span className="font-bold text-sm">Paramètres</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="h-px bg-zinc-100 my-1 mx-2" />
+
                                         {user ? (
                                             <>
-                                                <div className="p-3 text-xs text-zinc-400 italic">
-                                                    {user.email || dictionary.auth.guestMode}
+                                                <div className="px-3 py-2 text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+                                                    {user.email || 'Mode invité'}
                                                 </div>
-                                                <button
-                                                    onClick={async () => {
-                                                        await supabase.auth.signOut();
-                                                    }}
-                                                    className="w-full flex items-center space-x-3 p-3 rounded-xl text-zinc-400 hover:text-zinc-900 transition-colors"
-                                                >
-                                                    <LogOut className="w-4 h-4" />
-                                                    <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
-                                                </button>
+                                                <div className="p-1">
+                                                    <button
+                                                        onClick={async () => {
+                                                            await supabase.auth.signOut();
+                                                        }}
+                                                        className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                    >
+                                                        <LogOut className="w-4 h-4" />
+                                                        <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
+                                                    </button>
+                                                </div>
                                             </>
                                         ) : (
-                                            <button
-                                                onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                                                className="w-full flex items-center space-x-3 p-3 rounded-xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-                                            >
-                                                <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center">
-                                                    <Plus className="w-2 h-2 text-white" />
-                                                </div>
-                                                <span className="font-black italic text-sm">{dictionary.auth.login}</span>
-                                            </button>
+                                            <div className="p-1">
+                                                <button
+                                                    onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
+                                                    className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                                                >
+                                                    <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
+                                                        <Plus className="w-3 h-3 text-white" />
+                                                    </div>
+                                                    <div className="flex flex-col items-start pr-2">
+                                                        <span className="font-black italic text-sm leading-tight">Sauvegarder</span>
+                                                        <span className="text-[10px] font-medium text-zinc-500 leading-tight">mon profil</span>
+                                                    </div>
+                                                </button>
+                                            </div>
                                         )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* App Logo / Planification Menu */}
+                        <div className="relative">
+                            <button
+                                onClick={() => {
+                                    setIsPlanificationMenuOpen(!isPlanificationMenuOpen);
+                                    if (!isPlanificationMenuOpen) setIsMenuOpen(false);
+                                }}
+                                className={clsx(
+                                    "w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-premium active:scale-95 transition-all select-none",
+                                    isPlanificationMenuOpen && "scale-95 ring-2 ring-zinc-900 ring-offset-2"
+                                )}
+                            >
+                                <div className="w-5 h-5 border-2 border-white rounded-lg flex items-center justify-center">
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                </div>
+                            </button>
+
+                            <AnimatePresence>
+                                {isPlanificationMenuOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute right-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                    >
+                                        <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
+                                            {planifications.map((p) => (
+                                                <EditableMenuItem
+                                                    key={p.id}
+                                                    item={p}
+                                                    isSelected={currentPlanificationId === p.id}
+                                                    onSelect={(id: string) => {
+                                                        setCurrentPlanification(id);
+                                                        setIsPlanificationMenuOpen(false);
+                                                    }}
+                                                    onEdit={user ? async (id: string, newName: string) => {
+                                                        await updatePlanification(id, { name: newName });
+                                                    } : undefined}
+                                                    onDelete={user && planifications.length > 1 ? async (id: string) => {
+                                                        setDeletingPlanificationId(id);
+                                                    } : undefined}
+                                                />
+                                            ))}
+
+                                            {user ? (
+                                                <div className="pt-2 mt-2 border-t border-zinc-50">
+                                                    {!isAddingPlanification ? (
+                                                        <button
+                                                            onClick={() => setIsAddingPlanification(true)}
+                                                            className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
+                                                        >
+                                                            <Plus className="w-4 h-4" />
+                                                            <span>{dictionary.common.add} Planification</span>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center space-x-2 p-1">
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={newPlanificationName}
+                                                                onChange={(e) => setNewPlanificationName(e.target.value)}
+                                                                placeholder="Nom..."
+                                                                className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
+                                                                onKeyDown={(e) => e.key === 'Enter' && handleAddPlanification()}
+                                                            />
+                                                            <button
+                                                                onClick={handleAddPlanification}
+                                                                className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
+                                                            >
+                                                                <Check className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
+                                                    <p className="text-xs text-zinc-500 font-medium mb-3">
+                                                        {dictionary.auth.planificationPrompt}
+                                                    </p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsPlanificationMenuOpen(false);
+                                                            handleLogin();
+                                                        }}
+                                                        className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
+                                                    >
+                                                        {dictionary.auth.login}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -366,10 +722,31 @@ export default function MobileDashboard7() {
                     </div>
                 </div>
 
+                {/* Interpretation Block & Runway Indicator */}
+                {!isGraphTipDismissed && activeView === 'graph' && (
+                    <div className="max-w-sm mx-auto mb-3">
+                        <div className={clsx("rounded-xl p-2.5 border-2 flex items-center space-x-3 transition-colors", runwayColor)}>
+                            <div className="shrink-0">
+                                {negativeMonthIndex !== -1 && negativeMonthIndex === 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                            </div>
+                            <p className="text-[11px] font-bold leading-tight flex-1">
+                                {runwayMessage}
+                            </p>
+                            <button
+                                onClick={() => setIsGraphTipDismissed(true)}
+                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 hover:bg-white/80 active:scale-95 transition-all"
+                                title="Fermer"
+                            >
+                                <X className="w-4 h-4 opacity-50" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Scorecards */}
-                <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+                <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
                     <div
-                        className="text-center rounded-[20px] border-2 border-zinc-200 py-3 relative cursor-pointer active:scale-95 transition-transform"
+                        className="text-center rounded-[14px] border-2 border-zinc-200 py-1.5 px-2 relative cursor-pointer active:scale-95 transition-transform bg-white/50"
                         onClick={() => {
                             if (!isEditingBalance) {
                                 setIsEditingBalance(true);
@@ -377,9 +754,9 @@ export default function MobileDashboard7() {
                             }
                         }}
                     >
-                        <div className="flex items-center justify-center mb-1 space-x-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900">{dictionary.kpi.todayBalance}</p>
-                            <Edit2 className="w-3 h-3 text-zinc-400" />
+                        <div className="flex items-center justify-center mb-0.5 space-x-1">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">{dictionary.kpi.todayBalance}</p>
+                            <Edit2 className="w-2.5 h-2.5 text-zinc-400" />
                         </div>
                         {isEditingBalance ? (
                             <input
@@ -397,23 +774,70 @@ export default function MobileDashboard7() {
                                         setIsEditingBalance(false);
                                     }
                                 }}
-                                className="w-full text-center text-xl font-black tracking-tighter text-zinc-900 tabular-nums bg-transparent border-none p-0 focus:ring-0"
+                                className="w-full text-center text-sm font-black tracking-tighter text-zinc-900 tabular-nums bg-transparent border-none p-0 focus:ring-0"
                             />
                         ) : (
-                            <p className="text-xl font-black tracking-tighter text-zinc-900 tabular-nums">{formatCurrency(startingBalance)}</p>
+                            <p className="text-sm font-black tracking-tighter text-zinc-900 tabular-nums">{formatCurrency(startingBalance)}</p>
                         )}
                     </div>
-                    <div className="text-center rounded-[20px] border-2 border-zinc-200 py-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-900 mb-1">{dictionary.kpi['12mBalance']}</p>
-                        <p className={clsx("text-xl font-black tracking-tighter tabular-nums", finalBalance12m < 0 ? "text-rose-500" : "text-zinc-900")}>
+                    <div className="text-center rounded-[14px] border-2 border-zinc-200 py-1.5 px-2 bg-white/50">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900 mb-0.5">{dictionary.kpi['12mBalance']}</p>
+                        <p className={clsx("text-sm font-black tracking-tighter tabular-nums", finalBalance12m < 0 ? "text-rose-500" : "text-zinc-900")}>
                             {formatCurrency(finalBalance12m)}
                         </p>
                     </div>
                 </div>
+
+                {/* Tip Card (Only in matrix view) */}
+                {!isMatrixTipDismissed && activeView === 'matrix' && (
+                    <div className="max-w-sm mx-auto mt-3">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentTipIndex}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                transition={{ duration: 0.3 }}
+                                className="rounded-xl p-2.5 border-2 flex items-center space-x-3 transition-colors bg-amber-50 text-amber-800 border-amber-200"
+                            >
+                                <div className="shrink-0 flex items-center justify-center">
+                                    <span className="text-sm">💡</span>
+                                </div>
+                                <p className="text-[11px] font-bold leading-tight flex-1">
+                                    {matrixTips[currentTipIndex]}
+                                </p>
+                                <div className="flex space-x-1 shrink-0">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length);
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
+                                        title="Astuce suivante"
+                                    >
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsMatrixTipDismissed(true);
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
+                                        title="Fermer"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                )}
+
+                {/* Selection Bubble previously here, removed */}
             </header>
 
             {/* Main Content Area */}
-            <main className="flex-1 mt-[200px] pb-32 overflow-y-auto no-scrollbar relative w-full pt-4">
+            <main onScroll={handleScroll} ref={mainRef} className={clsx("flex-1 pb-32 overflow-y-auto no-scrollbar relative w-full pt-4", activeView === 'graph' ? "mt-[190px]" : "mt-[210px]")}>
                 <AnimatePresence mode="wait" initial={false}>
                     {activeView === 'graph' && (
                         <motion.div
@@ -431,7 +855,7 @@ export default function MobileDashboard7() {
                                 if (swipe < -100) setActiveView('matrix');
                             }}
                         >
-                            <div className="relative">
+                            <div className="relative mt-2.5" onClick={() => setSelectedGraphPoint(null)}>
                                 {/* Axis Track Markers Above the Graph */}
                                 <div className="flex justify-center mb-2" style={{ marginLeft: labelWidth }}>
                                     <div className="relative w-full h-5" style={{ maxWidth: graphWidth }}>
@@ -451,14 +875,19 @@ export default function MobileDashboard7() {
                                 <div className="absolute top-8 right-0 bottom-0 pointer-events-none z-10" style={{ width: graphWidth, height: projection.length * rowHeight }}>
                                     <svg width="100%" height="100%" className="overflow-visible">
                                         {/* Center Axis */}
-                                        <line x1={midX} y1="0" x2={midX} y2="100%" stroke="#18181b" strokeWidth="1" strokeDasharray="2 4" />
+                                        <line x1={midX} y1="0" x2={midX} y2="100%" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4 4" />
+
+                                        {minBalPoint && <line x1={midX + ((minBalPoint.balance / maxBal) * (graphWidth / 2))} y1="0" x2={midX + ((minBalPoint.balance / maxBal) * (graphWidth / 2))} y2="100%" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />}
+                                        {maxBalPoint && <line x1={midX + ((maxBalPoint.balance / maxBal) * (graphWidth / 2))} y1="0" x2={midX + ((maxBalPoint.balance / maxBal) * (graphWidth / 2))} y2="100%" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />}
 
                                         {/* Balance Line connecting points */}
                                         <path
                                             d={linePath}
                                             fill="none"
                                             stroke="#18181b"
-                                            strokeWidth="2.5"
+                                            strokeWidth="4"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
                                         />
 
                                         {/* Balance Points */}
@@ -466,13 +895,58 @@ export default function MobileDashboard7() {
                                             const y = (i * rowHeight) + (rowHeight / 2);
                                             const x = midX + ((p.balance / maxBal) * (graphWidth / 2));
                                             return (
-                                                <circle key={`pt-${i}`} cx={x} cy={y} r="6" fill="#18181b" />
+                                                <g
+                                                    key={`pt-${i}`}
+                                                    className="pointer-events-auto cursor-pointer"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedGraphPoint({ month: p.month, type: 'balance', value: p.balance, x, y });
+                                                    }}
+                                                >
+                                                    <circle cx={x} cy={y} r="15" fill="transparent" />
+                                                    <circle cx={x} cy={y} r="7" fill={p.balance < 0 ? "#f43f5e" : "#10b981"} stroke="#ffffff" strokeWidth="2" />
+                                                </g>
                                             )
                                         })}
                                         {/* Start point */}
-                                        <circle cx={midX + ((startingBalance / maxBal) * (graphWidth / 2))} cy="0" r="6" fill="#18181b" />
+                                        <g
+                                            className="pointer-events-auto cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const x = midX + ((startingBalance / maxBal) * (graphWidth / 2));
+                                                // @ts-ignore
+                                                setSelectedGraphPoint({ month: projection[0]?.month || '', type: 'balance', value: startingBalance, x, y: rowHeight / 2 });
+                                            }}
+                                        >
+                                            <circle cx={midX + ((startingBalance / maxBal) * (graphWidth / 2))} cy={rowHeight / 2} r="15" fill="transparent" />
+                                            <circle cx={midX + ((startingBalance / maxBal) * (graphWidth / 2))} cy={rowHeight / 2} r="7" fill={startingBalance < 0 ? "#f43f5e" : "#10b981"} stroke="#ffffff" strokeWidth="2" />
+                                        </g>
                                     </svg>
                                 </div>
+
+                                {/* Graph Tooltip Overlay */}
+                                <AnimatePresence>
+                                    {selectedGraphPoint && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                            className="absolute z-50 bg-zinc-900 text-white px-3 py-1.5 rounded-xl shadow-xl pointer-events-none flex items-center space-x-1.5 whitespace-nowrap border border-zinc-700/50"
+                                            style={{
+                                                right: graphWidth - selectedGraphPoint.x,
+                                                top: selectedGraphPoint.y + 32 - 45,
+                                                transform: 'translateX(50%)'
+                                            }}
+                                        >
+                                            <div className={clsx(
+                                                "w-2 h-2 rounded-full",
+                                                selectedGraphPoint.type === 'balance' ? (selectedGraphPoint.value < 0 ? 'bg-rose-500' : 'bg-emerald-500') :
+                                                    selectedGraphPoint.type === 'income' ? 'bg-emerald-300' : 'bg-rose-300'
+                                            )} />
+                                            <span className="font-black text-xs">{formatCurrencyDetailed(selectedGraphPoint.value)}</span>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Rows */}
                                 <div className="space-y-0 mt-8" style={{ paddingRight: 0 }}>
@@ -496,14 +970,28 @@ export default function MobileDashboard7() {
                                                     {/* Expense Bar (Left) */}
                                                     <div className="absolute right-[50%] flex justify-end items-center pr-1 h-full">
                                                         {p.expense > 0 && (
-                                                            <div className="h-4 bg-rose-300 rounded-l-md" style={{ width: expenseW }} />
+                                                            <div
+                                                                className="h-4 bg-rose-300 rounded-l-md pointer-events-auto cursor-pointer"
+                                                                style={{ width: expenseW }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedGraphPoint({ month: p.month, type: 'expense', value: -p.expense, x: midX - expenseW / 2, y: (i * rowHeight) + rowHeight / 2 });
+                                                                }}
+                                                            />
                                                         )}
                                                     </div>
 
                                                     {/* Income Bar (Right) */}
                                                     <div className="absolute left-[50%] flex justify-start items-center pl-1 h-full">
                                                         {p.income > 0 && (
-                                                            <div className="h-4 bg-emerald-300 rounded-r-md" style={{ width: incomeW }} />
+                                                            <div
+                                                                className="h-4 bg-emerald-300 rounded-r-md pointer-events-auto cursor-pointer"
+                                                                style={{ width: incomeW }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedGraphPoint({ month: p.month, type: 'income', value: p.income, x: midX + incomeW / 2, y: (i * rowHeight) + rowHeight / 2 });
+                                                                }}
+                                                            />
                                                         )}
                                                     </div>
                                                 </div>
@@ -512,6 +1000,7 @@ export default function MobileDashboard7() {
                                     })}
                                 </div>
                             </div>
+
                         </motion.div>
                     )}
 
@@ -532,10 +1021,15 @@ export default function MobileDashboard7() {
                                 if (swipe > 100) setActiveView('graph');
                             }}
                         >
-                            <div className="px-4 mb-8">
+                            <div className="px-4 mb-4">
                                 <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-3">{dictionary.mobile.monthly}</h3>
                                 {/* Pills Layout for Mensuels */}
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-2 relative">
+                                    {recurringTxs.length === 0 && (
+                                        <div className="text-zinc-400 text-[10px] italic py-3 px-1 w-full text-left">
+                                            {dictionary.timeline.emptyIncome}
+                                        </div>
+                                    )}
                                     {recurringTxs.map(tx => (
                                         <motion.button
                                             key={tx.id}
@@ -569,9 +1063,7 @@ export default function MobileDashboard7() {
                                                 if (el) {
                                                     const trash = el.closest('[data-droptarget="trash"]');
                                                     if (trash) {
-                                                        if (confirm("Êtes-vous sûr de vouloir supprimer cette transaction mensuelle ?")) {
-                                                            deleteTransaction(tx.id);
-                                                        }
+                                                        setTxToDelete(tx.id);
                                                         return;
                                                     }
                                                 }
@@ -598,6 +1090,11 @@ export default function MobileDashboard7() {
 
                             <div className="px-4">
                                 <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-2">{dictionary.mobile.oneOff}</h3>
+                                {transactions.filter(t => t.recurrence === 'none').length === 0 && (
+                                    <div className="text-zinc-400 text-[10px] italic pt-1 pb-3 px-1 w-full text-left">
+                                        {dictionary.timeline.emptyOneOff}
+                                    </div>
+                                )}
                                 <div className="space-y-0">
                                     {projection.map(p => {
                                         const d = parseISO(`${p.month}-01`);
@@ -656,6 +1153,10 @@ export default function MobileDashboard7() {
                                                                     const trash = el.closest('[data-droptarget="trash"]');
                                                                     if (trash && !isHoveringTrash) setIsHoveringTrash(true);
                                                                     else if (!trash && isHoveringTrash) setIsHoveringTrash(false);
+
+                                                                    const duplicate = el.closest('[data-droptarget="duplicate"]');
+                                                                    if (duplicate && !isHoveringDuplicate) setIsHoveringDuplicate(true);
+                                                                    else if (!duplicate && isHoveringDuplicate) setIsHoveringDuplicate(false);
                                                                 }
                                                             }}
                                                             onDragEnd={(e, info) => handleDragEnd(e, info, tx)}
@@ -682,31 +1183,84 @@ export default function MobileDashboard7() {
                                     })}
                                 </div>
                             </div>
-                            {/* Floating Trash Zone (visible only when dragging) */}
+                            {/* Floating Trash and Duplicate Zones (visible only when dragging) */}
                             <AnimatePresence>
                                 {draggingTxId && (
                                     <motion.div
                                         initial={{ y: -100, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
                                         exit={{ y: -100, opacity: 0 }}
-                                        className="fixed top-28 left-0 right-0 z-50 flex justify-center pointer-events-none"
+                                        className="fixed top-28 left-4 right-4 z-50 flex justify-between pointer-events-none"
                                     >
                                         <div
                                             data-droptarget="trash"
                                             className={clsx(
-                                                "w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all pointer-events-auto",
-                                                isHoveringTrash ? "bg-rose-500 border-rose-600 scale-110 shadow-xl" : "bg-white border-rose-200 shadow-md"
+                                                "w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all pointer-events-auto shadow-md",
+                                                isHoveringTrash ? "bg-rose-500 border-rose-600 scale-110 shadow-xl" : "bg-white border-rose-200"
                                             )}
                                         >
-                                            <Trash2 className={clsx("w-8 h-8", isHoveringTrash ? "text-white" : "text-rose-400")} />
+                                            <Trash2 className={clsx("w-6 h-6", isHoveringTrash ? "text-white" : "text-rose-400")} />
+                                        </div>
+
+                                        <div
+                                            data-droptarget="duplicate"
+                                            className={clsx(
+                                                "w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all pointer-events-auto shadow-md",
+                                                isHoveringDuplicate ? "bg-emerald-500 border-emerald-600 scale-110 shadow-xl" : "bg-white border-emerald-200"
+                                            )}
+                                        >
+                                            <Copy className={clsx("w-6 h-6", isHoveringDuplicate ? "text-white" : "text-emerald-400")} />
                                         </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+
                         </motion.div>
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Fixed Bottom CTAs */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent z-40 pointer-events-none flex justify-center">
+                <AnimatePresence mode="wait">
+                    {activeView === 'graph' && (
+                        <motion.div
+                            key="cta-graph"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full max-w-sm pointer-events-auto"
+                        >
+                            <button
+                                onClick={() => setActiveView('matrix')}
+                                className="w-full py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between active:scale-95 transition-all text-[15px]"
+                            >
+                                <span>Éditer les entrées/sorties</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </motion.div>
+                    )}
+                    {activeView === 'matrix' && (
+                        <motion.div
+                            key="cta-matrix"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full max-w-sm pointer-events-auto"
+                        >
+                            <button
+                                onClick={() => setActiveView('graph')}
+                                className="w-full py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between active:scale-95 transition-all text-[15px]"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                                <span>Voir le graph</span>
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
 
             {/* Editor Bottom Sheet */}
             <BottomSheet isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)}>
@@ -717,6 +1271,49 @@ export default function MobileDashboard7() {
                     />
                 )}
             </BottomSheet>
+
+            {/* Custom Delete Confirmation Modal */}
+            <AnimatePresence>
+                {txToDelete && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-6 shadow-2xl"
+                        >
+                            <div>
+                                <h3 className="text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Supprimer la transaction ?</h3>
+                                <p className="text-sm font-medium text-zinc-500">Cette action est irréversible. Confirmez-vous ?</p>
+                            </div>
+                            <div className="flex space-x-3">
+                                <button
+                                    onClick={() => setTxToDelete(null)}
+                                    className="flex-1 py-3 rounded-2xl font-bold text-sm text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (txToDelete) {
+                                            await deleteTransaction(txToDelete);
+                                            setTxToDelete(null);
+                                        }
+                                    }}
+                                    className="flex-1 py-3 rounded-2xl font-bold text-sm text-white bg-rose-500 hover:bg-rose-600 shadow-premium transition-colors"
+                                >
+                                    Supprimer
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Settings Modal */}
             <SettingsModal
@@ -729,6 +1326,53 @@ export default function MobileDashboard7() {
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
             />
-        </div>
+
+            {/* Delete Planification Modal */}
+            <ConfirmDeleteModal
+                isOpen={!!deletingPlanificationId}
+                onClose={() => setDeletingPlanificationId(null)}
+                onConfirm={async () => {
+                    if (deletingPlanificationId) {
+                        await deletePlanification(deletingPlanificationId);
+                        setDeletingPlanificationId(null);
+                    }
+                }}
+                planName={planifications.find(p => p.id === deletingPlanificationId)?.name || 'Cette planification'}
+                dictionary={dictionary}
+            />
+
+            {/* Share Success Modal */}
+            <AnimatePresence>
+                {isShareModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-2 text-emerald-500">
+                                <Share2 className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-black italic tracking-tighter text-zinc-900 text-center">Lien de partage copié !</h3>
+                            <p className="text-sm font-medium text-zinc-500 text-center">
+                                Votre configuration actuelle a été copiée. Vous pouvez envoyer ce lien à un ami, ou le garder pour recharger votre Dashboard plus tard.
+                            </p>
+                            <button
+                                onClick={() => setIsShareModalOpen(false)}
+                                className="w-full py-3 rounded-2xl font-bold text-sm text-white bg-zinc-900 hover:bg-zinc-800 transition-colors shadow-premium mt-4"
+                            >
+                                Fermer
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div >
     );
 }
