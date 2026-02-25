@@ -18,7 +18,6 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { VersionHistoryModal } from '@/components/settings/VersionHistoryModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
-import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import Image from 'next/image';
 
 // --- Delete Planification Modal Component ---
@@ -621,9 +620,6 @@ export default function DashboardPage() {
                     >
                         <Settings className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
                     </button>
-
-                    {/* Language Switcher */}
-                    <LanguageSwitcher />
 
                     <div className="h-4 md:h-6 w-px bg-zinc-100" />
 

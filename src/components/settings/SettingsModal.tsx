@@ -1,11 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, X, ChevronDown, Trash2, Type, Layers, Plus, EyeOff, Eye, Check } from 'lucide-react';
+import { Settings, X, ChevronDown, Trash2, Type, Layers, Plus, EyeOff, Eye, Check, Globe } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -33,6 +35,23 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
     const [isTextSizeOpen, setIsTextSizeOpen] = useState(false);
     const [isProjectionOpen, setIsProjectionOpen] = useState(false);
+
+    const router = useRouter();
+    const pathname = usePathname();
+    const { locale } = useTranslation();
+    const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+
+    const switchLanguage = (newLocale: string) => {
+        if (newLocale === locale) return;
+        const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
+        setIsLanguageOpen(false);
+        router.push(newPath);
+    };
+
+    const languages = [
+        { code: 'fr', label: 'Français', flag: '🇫🇷' },
+        { code: 'en', label: 'English', flag: '🇬🇧' }
+    ];
 
     const currencies = [
         { label: 'Euro', symbol: '€', code: 'EUR' },
@@ -97,6 +116,54 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                             {/* General Options Dropdowns */}
                             <div className="space-y-4">
+
+                                {/* Language Dropdown */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center space-x-2 px-2">
+                                        <Globe className="w-4 h-4 text-zinc-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Langue</span>
+                                    </div>
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setIsLanguageOpen(!isLanguageOpen)}
+                                            className="w-full h-12 px-4 bg-zinc-50 border-2 border-transparent hover:border-zinc-100 rounded-2xl flex items-center justify-between font-bold text-zinc-900 transition-all group"
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <span className="text-xl">{languages.find(l => l.code === locale)?.flag || '🇫🇷'}</span>
+                                                <span>{languages.find(l => l.code === locale)?.label || 'Français'}</span>
+                                            </div>
+                                            <ChevronDown className={clsx("w-4 h-4 text-zinc-300 transition-transform duration-500", isLanguageOpen && "rotate-180")} />
+                                        </button>
+                                        <AnimatePresence>
+                                            {isLanguageOpen && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 10 }}
+                                                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-zinc-50 p-2 z-50 overflow-hidden"
+                                                >
+                                                    <div className="max-h-48 overflow-y-auto no-scrollbar">
+                                                        {languages.map((l) => (
+                                                            <button
+                                                                key={l.code}
+                                                                onClick={() => switchLanguage(l.code)}
+                                                                className={clsx(
+                                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all",
+                                                                    locale === l.code ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center space-x-3">
+                                                                    <span className="text-xl">{l.flag}</span>
+                                                                    <span>{l.label}</span>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
 
                                 {/* Text Size Dropdown */}
                                 <div className="space-y-2">

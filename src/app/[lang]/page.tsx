@@ -8,11 +8,23 @@ export default function Home() {
   const router = useRouter();
   const params = useParams();
 
+  const { hasCompletedOnboarding, setHasCompletedOnboarding, transactions, planifications, user } = useFinanceStore();
+
   useEffect(() => {
-    // Redirect to dashboard without auto-starting the tutorial
+    // Redirect to Dashboard or Onboarding depending on state.
+    // To respect existing users, if they have not explicitly completed onboarding
+    // but they already have transactions or planifications, we flag them as completed to bypass.
     const lang = params?.lang || 'fr';
-    router.push(`/${lang}/dashboard`);
-  }, [router, params]);
+
+    if (hasCompletedOnboarding) {
+      router.push(`/${lang}/dashboard`);
+    } else if (transactions.length > 5 || planifications.length > 0) {
+      setHasCompletedOnboarding(true);
+      router.push(`/${lang}/dashboard`);
+    } else {
+      router.push(`/${lang}/onboarding`);
+    }
+  }, [router, params, hasCompletedOnboarding, setHasCompletedOnboarding, transactions.length, planifications.length]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-zinc-50">

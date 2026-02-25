@@ -19,35 +19,35 @@
         "scenarioPrompt": "Connectez-vous pour simuler plusieurs scénarios en parallèle."
     },
     "dashboard": {
-        "title": "Tableau de Bord",
+        "title": "Simulateur",
         "balance": "Solde",
-        "startingBalance": "Solde initial",
-        "income": "Recettes",
-        "expense": "Dépenses",
-        "incomeExpenseTitle": "Recettes et dépenses"
+        "startingBalance": "Solde aujourd'hui",
+        "income": "Entrées chaque mois",
+        "expense": "Sorties chaque mois",
+        "incomeExpenseTitle": "Entrées et sorties"
     },
     "kpi": {
-        "currentBalance": "Solde Actuel",
-        "simulation": "Simulation +{months}m",
-        "lowPoint": "Point Bas (Risque)",
-        "todayBalance": "Solde aujourd'hui",
-        "12mBalance": "Solde 12 mois"
+        "currentBalance": "Aujourd'hui",
+        "simulation": "Dans {months} mois",
+        "lowPoint": "Mois le plus difficile",
+        "todayBalance": "Aujourd'hui",
+        "12mBalance": "Dans 1 an"
     },
     "mobile": {
-        "graph": "Graph",
-        "details": "Détails",
-        "monthly": "Mensuels",
-        "oneOff": "Ponctuels"
+        "graph": "📈 Graph",
+        "details": "📝 Data",
+        "monthly": "Chaque mois",
+        "oneOff": "Extras"
     },
     "timeline": {
-        "monthly": "Mensuel",
-        "oneOff": "Ponctuel",
-        "clickToAdd": "Clique sur + pour ajouter",
-        "labelPlaceholder": "Titre...",
-        "flowPlaceholder": "Flux...",
-        "addMonthlyIncome": "Ajouter une recette mensuelle",
-        "addMonthlyExpense": "Ajouter une dépense mensuelle",
-        "addOneOff": "Ajouter une opération ponctuelle",
+        "monthly": "Chaque mois",
+        "oneOff": "Extras",
+        "clickToAdd": "Clique sur + pour démarrer",
+        "labelPlaceholder": "Nommer cet élément...",
+        "flowPlaceholder": "Montant...",
+        "addMonthlyIncome": "Ajouter une entrée chaque mois",
+        "addMonthlyExpense": "Ajouter une sortie chaque mois",
+        "addOneOff": "Ajouter un extra (positif ou négatif)",
         "months": {
             "01": "Jan",
             "02": "Fév",
@@ -61,7 +61,13 @@
             "10": "Oct",
             "11": "Nov",
             "12": "Déc"
-        }
+        },
+        "emptyIncome": "Ajoute ce qui rentre chaque mois pour démarrer",
+        "emptyExpense": "Ajoute tes sorties fixes pour voir ta base",
+        "emptyOneOff": "Ajoute un extra futur pour tester son impact",
+        "hintIncome": "Ex. : Salaire, Pension, Bourses, Allocations...",
+        "hintExpense": "Les gens oublient souvent : impôts, assurances, abonnements...",
+        "hintOneOff": "Ex. : Vacances, Cadeaux, Réparations, Primes..."
     },
     "categories": {
         "cat-salary": "Salaire",

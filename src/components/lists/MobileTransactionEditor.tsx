@@ -5,6 +5,7 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { TransactionDirection, Recurrence } from '@/lib/financeEngine';
 import { clsx } from 'clsx';
 import { Plus } from 'lucide-react';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
 
 interface MobileTransactionEditorProps {
     onClose: () => void;
@@ -13,6 +14,7 @@ interface MobileTransactionEditorProps {
 
 export function MobileTransactionEditor({ onClose, initialData }: MobileTransactionEditorProps) {
     const { addTransaction, updateTransaction, categories } = useFinanceStore();
+    const { dictionary } = useTranslation();
 
     const [label, setLabel] = useState(initialData?.label || '');
     // If we have an initial amount and it's an expense, we want to show it as negative so the user understands
@@ -67,10 +69,9 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
     return (
         <div className="flex flex-col space-y-6 p-6 md:p-10 bg-white min-h-[400px]">
             <div className="text-center mb-4">
-                <h2 className="text-xl font-black italic text-zinc-900">Nouvelle Opération</h2>
-                <p className="text-xs font-bold text-zinc-400 mt-1">
-                    {recurrence === 'none' ? 'Évènement Ponctuel' : 'Charge Récurrente'}
-                </p>
+                <h2 className="text-xl font-black italic text-zinc-900">
+                    {recurrence === 'none' ? 'Évènement Ponctuel' : 'Entrée ou Sortie tous les mois'}
+                </h2>
                 <p className="text-[10px] text-zinc-300 italic mt-2">Pensez à mettre un (-) pour une dépense.</p>
             </div>
 
@@ -78,11 +79,41 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
                 <div className="space-y-1">
                     <input
                         type="text"
-                        placeholder="Libellé (ex: Loyer, Salaire...)"
+                        placeholder="Nom (ex: Loyer, Salaire...)"
                         value={label}
                         onChange={(e) => setLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSave();
+                            }
+                        }}
                         className="w-full p-4 bg-zinc-50 border-none rounded-2xl font-black text-zinc-900 italic tracking-tight focus:ring-4 focus:ring-zinc-100 transition-all text-lg"
                     />
+                    <p className="text-[10px] text-zinc-400 italic px-2 mt-2 text-center">
+                        {recurrence === 'none'
+                            ? dictionary.timeline.hintOneOff
+                            : (amountInput.startsWith('-') ? dictionary.timeline.hintExpense : dictionary.timeline.hintIncome)}
+                    </p>
+
+                    {/* Presets */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                        {recurrence === 'none' ? (
+                            <>
+                                <button onClick={() => { setLabel('Vente'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Vente</button>
+                                <button onClick={() => { setLabel('Cadeau'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Cadeau</button>
+                                <button onClick={() => { setLabel('Shopping'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Shopping</button>
+                                <button onClick={() => { setLabel('Restaurant'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Restaurant</button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => { setLabel('Salaire'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Salaire</button>
+                                <button onClick={() => { setLabel('Aides'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Aides</button>
+                                <button onClick={() => { setLabel('Loyer'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Loyer</button>
+                                <button onClick={() => { setLabel('Abonnements'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Abonnements</button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 <div className="space-y-1 relative">
@@ -91,12 +122,18 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
                         placeholder="-50 ou 150"
                         value={amountInput}
                         onChange={(e) => setAmountInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSave();
+                            }
+                        }}
                         className={clsx(
-                            "w-full p-6 bg-zinc-50 border-none rounded-2xl font-black tracking-tighter focus:ring-4 focus:ring-zinc-100 transition-all text-4xl pr-16 text-center",
+                            "w-full p-6 bg-zinc-50 border-none rounded-2xl font-black tracking-tighter focus:ring-4 focus:ring-zinc-100 transition-all text-3xl md:text-4xl pr-20 md:pr-16 text-center",
                             amountInput.startsWith('-') ? "text-rose-500" : (parseFloat(amountInput) > 0 ? "text-emerald-500" : "text-zinc-900")
                         )}
                     />
-                    <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-300">
+                    <span className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 font-black text-xl md:text-2xl text-zinc-300 pointer-events-none">
                         {recurrence === 'monthly' ? '€ / mois' : '€'}
                     </span>
                 </div>

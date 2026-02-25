@@ -6,6 +6,8 @@ import { clsx } from 'clsx';
 import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export function KPISection() {
     const projection = useProjection();
@@ -22,9 +24,14 @@ export function KPISection() {
 
     const currentBalance = projection[0].balance;
     const targetBalance = projection[projection.length - 1].balance;
-    const balances = projection.map(p => p.balance);
-    const minBalance = Math.min(...balances);
+
+    // Find the month with the lowest balance
+    const minPoint = projection.reduce((min, p) => p.balance < min.balance ? p : min, projection[0]);
+    const minBalance = minPoint.balance;
     const isRisk = minBalance < 0;
+
+    const minMonthDate = parseISO(`${minPoint.month}-01`);
+    const formattedMinMonth = format(minMonthDate, 'MMM yyyy', { locale: locale === 'fr' ? fr : undefined });
 
     const formatCurrency = (val: number) => {
         const sign = val < 0 ? '-' : '';
@@ -83,7 +90,7 @@ export function KPISection() {
                 icon={<TrendingUp className="text-emerald-500 w-3 h-3 md:w-4 md:h-4" />}
             />
             <KPICard
-                label={dictionary.kpi.lowPoint}
+                label={`${dictionary.kpi.lowPoint} (${formattedMinMonth})`}
                 value={formatCurrency(minBalance)}
                 status={isRisk ? 'risk' : 'safe'}
                 icon={<AlertTriangle className={minBalance < 0 ? "text-rose-500 w-3 h-3 md:w-4 md:h-4" : "text-zinc-200 w-3 h-3 md:w-4 md:h-4"} />}

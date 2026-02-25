@@ -19,34 +19,35 @@
         "scenarioPrompt": "Log in to simulate multiple scenarios in parallel."
     },
     "dashboard": {
-        "title": "Dashboard",
+        "title": "Simulator",
         "balance": "Balance",
-        "startingBalance": "Starting balance",
-        "income": "Income",
-        "expense": "Expenses"
+        "startingBalance": "Balance today",
+        "income": "Monthly Incomes",
+        "expense": "Monthly Expenses",
+        "incomeExpenseTitle": "Incomes and Expenses"
     },
     "kpi": {
-        "currentBalance": "Current Balance",
-        "simulation": "Simulation +{months}m",
-        "lowPoint": "Low Point (Risk)",
-        "todayBalance": "Balance Today",
-        "12mBalance": "12m Balance"
+        "currentBalance": "Today",
+        "simulation": "In {months} months",
+        "lowPoint": "Hardest month",
+        "todayBalance": "Today",
+        "12mBalance": "In 1 year"
     },
     "mobile": {
-        "graph": "Graph",
-        "details": "Details",
+        "graph": "📈 Graph",
+        "details": "📝 Data",
         "monthly": "Monthly",
-        "oneOff": "One-offs"
+        "oneOff": "Extras"
     },
     "timeline": {
         "monthly": "Monthly",
-        "oneOff": "One-offs",
-        "clickToAdd": "Click + to add",
-        "labelPlaceholder": "Title...",
-        "flowPlaceholder": "Flow...",
+        "oneOff": "Extras",
+        "clickToAdd": "Click + to start",
+        "labelPlaceholder": "Name this item...",
+        "flowPlaceholder": "Amount...",
         "addMonthlyIncome": "Add a monthly income",
         "addMonthlyExpense": "Add a monthly expense",
-        "addOneOff": "Add a one-off transaction",
+        "addOneOff": "Add an extra (positive or negative)",
         "months": {
             "01": "Jan",
             "02": "Feb",
@@ -60,7 +61,13 @@
             "10": "Oct",
             "11": "Nov",
             "12": "Dec"
-        }
+        },
+        "emptyIncome": "Add what comes in every month to start",
+        "emptyExpense": "Add your fixed costs to see your baseline",
+        "emptyOneOff": "Add a future extra to test its impact",
+        "hintIncome": "E.g. Salary, Benefits, Allowances...",
+        "hintExpense": "People often forget: taxes, insurance, subscriptions...",
+        "hintOneOff": "E.g. Vacations, Gifts, Repairs, Bonuses..."
     },
     "categories": {
         "cat-salary": "Salary",

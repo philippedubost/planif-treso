@@ -62,6 +62,7 @@ interface FinanceState {
     user: User | null;
     currency: string;
     textSize: 'small' | 'medium' | 'large';
+    hasCompletedOnboarding: boolean;
 
     // Planification & Scenario & History State
     planifications: Planification[];
@@ -89,6 +90,7 @@ interface FinanceState {
     setCurrency: (currency: string) => void;
     setTextSize: (size: 'small' | 'medium' | 'large') => void;
     loadProject: (data: any) => void;
+    setHasCompletedOnboarding: (completed: boolean) => void;
 
     // Autosave State
     lastAutosaveDate: number;
@@ -196,6 +198,7 @@ export const useFinanceStore = create<FinanceState>()(
             user: null,
             currency: '€',
             textSize: 'medium',
+            hasCompletedOnboarding: false,
             planifications: [],
             currentPlanificationId: null,
             scenarios: [],
@@ -666,6 +669,8 @@ export const useFinanceStore = create<FinanceState>()(
             setShowScenarioBadge: (show) => set({ showScenarioBadge: show }),
 
             setContext: (context) => set({ context }),
+
+            setHasCompletedOnboarding: (completed) => set({ hasCompletedOnboarding: completed }),
 
             addTransaction: async (t: any, skipHistory = false) => {
                 const { user, currentScenarioId, currentPlanificationId } = get();

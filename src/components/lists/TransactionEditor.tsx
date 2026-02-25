@@ -6,6 +6,7 @@ import { TransactionDirection, Recurrence } from '@/lib/financeEngine';
 import { clsx } from 'clsx';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslation } from '@/components/i18n/TranslationProvider';
 
 interface TransactionEditorProps {
     onClose: () => void;
@@ -14,6 +15,7 @@ interface TransactionEditorProps {
 
 export function TransactionEditor({ onClose, initialData }: TransactionEditorProps) {
     const { addTransaction, updateTransaction, categories } = useFinanceStore();
+    const { dictionary } = useTranslation();
 
     const [label, setLabel] = useState(initialData?.label || '');
     const [amount, setAmount] = useState(initialData?.amount?.toString() || '');
@@ -79,6 +81,11 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                         onChange={(e) => setLabel(e.target.value)}
                         className="w-full p-6 bg-zinc-50 border-none rounded-[32px] font-black text-zinc-900 italic tracking-tight focus:ring-4 focus:ring-zinc-100 transition-all text-xl"
                     />
+                    <p className="text-[10px] text-zinc-400 italic ml-4 mt-2">
+                        {recurrence === 'none'
+                            ? dictionary.timeline.hintOneOff
+                            : (direction === 'expense' ? dictionary.timeline.hintExpense : dictionary.timeline.hintIncome)}
+                    </p>
                 </div>
 
                 <div className="space-y-1">
