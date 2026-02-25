@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { useRouter } from 'next/navigation';
@@ -21,6 +21,8 @@ export default function OnboardingFlow() {
     const [income, setIncome] = useState<string>('');
     const [expense, setExpense] = useState<string>('');
     const [extra, setExtra] = useState<string>('');
+    const [extraMonth, setExtraMonth] = useState<string>('');
+    const [extraDirection, setExtraDirection] = useState<'income' | 'expense'>('expense');
 
     // Precomputed results for Step 5
     const [previewMonthsToZero, setPreviewMonthsToZero] = useState<number | null>(null);
@@ -51,6 +53,21 @@ export default function OnboardingFlow() {
         }
     }, [step]);
 
+    const next12Months = useMemo<{ value: string, label: string }[]>(() => {
+        const { format, addMonths } = require('date-fns');
+        const { fr } = require('date-fns/locale');
+        return Array.from({ length: 12 }).map((_, i) => {
+            const d = addMonths(new Date(), i + 1);
+            return { value: format(d, 'yyyy-MM'), label: format(d, 'MMMyy', { locale: fr }).replace('.', '') };
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!extraMonth && next12Months.length > 0) {
+            setExtraMonth(next12Months[0].value);
+        }
+    }, [next12Months, extraMonth]);
+
     // Precompute step 6 results when reaching step 6
     useEffect(() => {
         if (step === 6) {
@@ -62,14 +79,14 @@ export default function OnboardingFlow() {
             // Generate a fake local transaction list to compute
             const fakeTransactions = [];
             if (numIncome > 0) {
-                fakeTransactions.push({ id: 'inc', label: 'Entrée', amount: numIncome, direction: 'income' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-salary' });
+                fakeTransactions.push({ id: 'inc', label: 'Entrée 1', amount: numIncome, direction: 'income' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-salary' });
             }
             if (numExpense > 0) {
-                fakeTransactions.push({ id: 'exp', label: 'Sortie', amount: numExpense, direction: 'expense' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-rent' });
+                fakeTransactions.push({ id: 'exp', label: 'Sortie 1', amount: numExpense, direction: 'expense' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-rent' });
             }
             if (numExtra > 0) {
-                const nextMonth = new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
-                fakeTransactions.push({ id: 'ext', label: 'Extra', amount: numExtra, direction: 'expense' as const, recurrence: 'none' as const, month: nextMonth, categoryId: 'cat-shopping' });
+                const appliedMonth = extraMonth || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
+                fakeTransactions.push({ id: 'ext', label: 'Extra 1', amount: numExtra, direction: extraDirection, recurrence: 'none' as const, month: appliedMonth, categoryId: extraDirection === 'expense' ? 'cat-shopping' : 'cat-salary' });
             }
 
             // Simple 12 month dummy projection
@@ -116,14 +133,14 @@ export default function OnboardingFlow() {
 
         setStartingBalance(numBalance);
         await addTransaction({
-            label: 'Entrée',
+            label: 'Entrée 1',
             categoryId: 'cat-salary',
             amount: numIncome,
             direction: 'income',
             recurrence: 'monthly'
         });
         await addTransaction({
-            label: 'Sortie',
+            label: 'Sortie 1',
             categoryId: 'cat-rent',
             amount: numExpense,
             direction: 'expense',
@@ -132,13 +149,13 @@ export default function OnboardingFlow() {
         });
 
         if (numExtra > 0) {
-            const nextMonth = new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
+            const appliedMonth = extraMonth || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
             await addTransaction({
-                label: 'Extra',
-                categoryId: 'cat-shopping',
+                label: 'Extra 1',
+                categoryId: extraDirection === 'expense' ? 'cat-shopping' : 'cat-salary',
                 amount: numExtra,
-                direction: 'expense',
-                month: nextMonth,
+                direction: extraDirection,
+                month: appliedMonth,
                 recurrence: 'none'
             });
         }
@@ -155,8 +172,8 @@ export default function OnboardingFlow() {
     // -------------------------------------------------------------
 
     const renderStep1 = () => (
-        <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
-            <div className="flex flex-col items-center flex-1 space-y-8">
+        <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
+            <div className="flex flex-col items-center space-y-8 w-full max-w-sm mx-auto">
                 <div className="h-[15vh] w-full max-w-[140px]">
                     <ImageWithFallback
                         srcWebp="/illustrations/mascot-onboarding-start.webp"
@@ -169,14 +186,19 @@ export default function OnboardingFlow() {
                 </div>
                 <div className="text-center space-y-3">
                     <h1 className="text-3xl font-black italic tracking-tighter text-zinc-900 leading-tight">
-                        Voyons où va ton argent
+                        A quoi ressemblera ton compte en banque dans 12 mois ?
                     </h1>
                     <p className="text-[15px] font-medium text-zinc-500 leading-relaxed balance-text">
-                        En 30 secondes tu verras ton futur financier
+                        Entre quelques chiffres. On fait le reste.
                     </p>
                 </div>
             </div>
-            {renderCTA("Commencer", true)}
+            <div className="w-full max-w-sm mx-auto text-center space-y-3">
+                {renderCTA("J'essaye en 30 sec !", true)}
+                <p className="text-[12px] font-bold tracking-wide text-zinc-400">
+                    sans inscription • gratuit
+                </p>
+            </div>
         </div>
     );
 
@@ -184,8 +206,8 @@ export default function OnboardingFlow() {
         const canProceed = balance.length > 0;
 
         return (
-            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
-                <div className="flex flex-col items-center flex-1 space-y-6">
+            <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
                     <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-balance-day.webp"
@@ -218,7 +240,9 @@ export default function OnboardingFlow() {
                         </p>
                     </div>
                 </div>
-                {renderCTA("Continuer", canProceed)}
+                <div className="w-full max-w-sm mx-auto">
+                    {renderCTA("Continuer", canProceed)}
+                </div>
             </div>
         );
     };
@@ -227,8 +251,8 @@ export default function OnboardingFlow() {
         const canProceed = income.length > 0;
 
         return (
-            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
-                <div className="flex flex-col items-center flex-1 space-y-6">
+            <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
                     <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-income-recurring.webp"
@@ -261,7 +285,9 @@ export default function OnboardingFlow() {
                         </p>
                     </div>
                 </div>
-                {renderCTA("Continuer", canProceed)}
+                <div className="w-full max-w-sm mx-auto">
+                    {renderCTA("Continuer", canProceed)}
+                </div>
             </div>
         );
     };
@@ -270,8 +296,8 @@ export default function OnboardingFlow() {
         const canProceed = expense.length > 0;
 
         return (
-            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
-                <div className="flex flex-col items-center flex-1 space-y-6">
+            <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
                     <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-expense-recurring.webp"
@@ -304,7 +330,9 @@ export default function OnboardingFlow() {
                         </p>
                     </div>
                 </div>
-                {renderCTA("Continuer", canProceed)}
+                <div className="w-full max-w-sm mx-auto">
+                    {renderCTA("Continuer", canProceed)}
+                </div>
             </div>
         );
     };
@@ -313,8 +341,8 @@ export default function OnboardingFlow() {
         const canProceed = true; // Optional step
 
         return (
-            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
-                <div className="flex flex-col items-center flex-1 space-y-6">
+            <div className="flex flex-col pt-[8vh] px-6 space-y-6 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
                     <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-edit.webp"
@@ -329,25 +357,46 @@ export default function OnboardingFlow() {
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
                             Un imprévu à ajouter ?
                         </h2>
-                        <div className="relative mt-8 max-w-xs mx-auto">
+                        <div className="flex w-full bg-zinc-100 p-1 rounded-full mb-6 max-w-xs mx-auto mt-4">
+                            <button onClick={() => setExtraDirection('expense')} className={clsx("flex-1 py-1.5 text-sm font-bold rounded-full transition-all", extraDirection === 'expense' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500")}>Dépense</button>
+                            <button onClick={() => setExtraDirection('income')} className={clsx("flex-1 py-1.5 text-sm font-bold rounded-full transition-all", extraDirection === 'income' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500")}>Entrée</button>
+                        </div>
+                        <div className="relative mt-4 max-w-xs mx-auto">
                             <input
                                 ref={extraRef}
                                 type="number"
                                 inputMode="decimal"
                                 value={extra}
                                 onChange={(e) => setExtra(e.target.value)}
-                                className="w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 border-amber-200 pb-2 focus:outline-none focus:border-amber-500 transition-colors text-amber-600"
+                                className={clsx(
+                                    "w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 pb-2 focus:outline-none transition-colors",
+                                    extraDirection === 'income' ? "text-emerald-600 border-emerald-200 focus:border-emerald-500" : "text-amber-600 border-amber-200 focus:border-amber-500"
+                                )}
                                 placeholder="0"
                                 onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
                             />
-                            <span className="absolute right-4 bottom-4 text-2xl font-black text-amber-300">€</span>
+                            <span className={clsx(
+                                "absolute right-4 bottom-4 text-2xl font-black",
+                                extraDirection === 'income' ? "text-emerald-300" : "text-amber-300"
+                            )}>€</span>
                         </div>
-                        <p className="text-sm font-medium text-zinc-400 mt-4 max-w-[250px] mx-auto balance-text">
-                            Ex: réparation, voyage... (Optionnel)
+                        <p className="text-sm font-medium text-zinc-400 mt-2 max-w-[250px] mx-auto balance-text">
+                            Montant optionnel, on n'oublie jamais rien !
                         </p>
+                        <select
+                            value={extraMonth}
+                            onChange={(e) => setExtraMonth(e.target.value)}
+                            className="mt-2 bg-transparent text-zinc-600 font-bold py-1 px-4 text-center block mx-auto text-sm outline-none border-none appearance-none cursor-pointer hover:bg-zinc-50 rounded-lg transition-colors capitalize"
+                        >
+                            {next12Months.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
-                {renderCTA("Voir ma projection", canProceed)}
+                <div className="w-full max-w-sm mx-auto">
+                    {renderCTA("Voir ma projection", canProceed)}
+                </div>
             </div>
         );
     };
@@ -369,9 +418,13 @@ export default function OnboardingFlow() {
             }
         }
 
+        const { format } = require('date-fns');
+        const { fr } = require('date-fns/locale');
+        const numExtra = parseFloat(extra) || 0;
+
         return (
-            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
-                <div className="flex flex-col items-center flex-1 space-y-6">
+            <div className="flex flex-col pt-[8vh] px-6 pb-20 items-center h-full no-scrollbar overflow-y-auto w-full">
+                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
                     <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-overview.webp"
@@ -406,6 +459,14 @@ export default function OnboardingFlow() {
                                         <div className="flex items-center space-x-1 justify-end">
                                             <span className="text-rose-500 font-bold text-xs">-{parseFloat(expense) || 0}</span>
                                         </div>
+                                        {numExtra > 0 && (
+                                            <div className="flex items-center space-x-1 justify-end">
+                                                <span className={clsx("font-bold text-xs", extraDirection === 'income' ? 'text-emerald-500' : 'text-rose-500')}>
+                                                    {extraDirection === 'income' ? '+' : '-'}{numExtra}
+                                                    {extraMonth && <span className="text-[9px] text-zinc-400 font-normal tracking-tight ml-1">in {format(new Date(extraMonth), 'MMM', { locale: fr })}</span>}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -420,25 +481,24 @@ export default function OnboardingFlow() {
                                 </p>
                             )}
                         </div>
-                    </div>
-                </div>
 
-                {/* Custom CTA block for final step */}
-                <div className="pt-6 w-full z-20">
-                    <div className="bg-blue-50/50 rounded-2xl p-4 mb-4 border border-blue-100">
-                        <p className="text-center text-[12px] font-bold text-blue-600 leading-relaxed uppercase tracking-tight">
-                            Tu pourras tout éditer et ajuster par la suite (ajouter de nouvelles entrées et sorties).
-                        </p>
+                        {/* Custom CTA block placed directly under summary box */}
+                        <div className="pt-2 w-full z-20">
+                            <button
+                                onClick={handleSaveProfile}
+                                className="w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] bg-zinc-900 text-white shadow-premium flex items-center justify-center space-x-2"
+                            >
+                                <span>Voir mon compte sur l'année</span>
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                            <p className="text-center text-xs font-medium text-zinc-400 mt-4 leading-relaxed max-w-[280px] mx-auto">
+                                Tu pourras tout éditer et ajuster par la suite et ajouter de nouvelles entrées et sorties.
+                            </p>
+                            {/* Safe area spacer for iPhones */}
+                            <div className="h-[env(safe-area-inset-bottom)]" />
+                        </div>
+
                     </div>
-                    <button
-                        onClick={handleSaveProfile}
-                        className="w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] bg-zinc-900 text-white shadow-premium flex items-center justify-center space-x-2"
-                    >
-                        <span>Voir mon compte sur l'année</span>
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                    {/* Safe area spacer for iPhones */}
-                    <div className="h-[env(safe-area-inset-bottom)]" />
                 </div>
             </div>
         );
@@ -446,7 +506,7 @@ export default function OnboardingFlow() {
 
     // Shared CTA Renderer
     const renderCTA = (label: string, enabled: boolean) => (
-        <div className="pt-8 w-full z-20">
+        <div className="pt-4 w-full z-20">
             <button
                 disabled={!enabled}
                 onClick={handleNext}

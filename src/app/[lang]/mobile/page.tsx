@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronRight, ChevronLeft, Plus, Settings, Share2, Check, ChevronDown, LogOut, HelpCircle, Edit2, AlertTriangle, Info, Copy } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Plus, Settings, Share2, Check, ChevronDown, LogOut, HelpCircle, Edit2, AlertTriangle, Info, Copy, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
@@ -247,13 +247,29 @@ export default function MobileDashboard7() {
 
     // Header state
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [isShared, setIsShared] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isShared, setIsShared] = useState(false);
+
+    const [isGraphTipDismissed, setIsGraphTipDismissed] = useState(false);
+    const [isMatrixTipDismissed, setIsMatrixTipDismissed] = useState(false);
+
+    const [isHeaderCompact, setIsHeaderCompact] = useState(false);
+    const prevScrollY = useRef(0);
+
+    const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+        const currentScrollY = e.currentTarget.scrollTop;
+        if (currentScrollY > prevScrollY.current && currentScrollY > 50) {
+            setIsHeaderCompact(true);
+        } else if (currentScrollY < prevScrollY.current) {
+            setIsHeaderCompact(false);
+        }
+        prevScrollY.current = currentScrollY;
+    };
 
     // Planification state
-    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
     const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
     const [isAddingPlanification, setIsAddingPlanification] = useState(false);
     const [newPlanificationName, setNewPlanificationName] = useState('');
@@ -395,6 +411,16 @@ export default function MobileDashboard7() {
     const axisMin = -maxBal;
     const axisMax = maxBal;
 
+    const { minBalPoint, maxBalPoint } = useMemo(() => {
+        if (projection.length === 0) return { minBalPoint: null, maxBalPoint: null };
+        return projection.reduce((acc, curr) => {
+            return {
+                minBalPoint: curr.balance < acc.minBalPoint.balance ? curr : acc.minBalPoint,
+                maxBalPoint: curr.balance > acc.maxBalPoint.balance ? curr : acc.maxBalPoint
+            };
+        }, { minBalPoint: projection[0], maxBalPoint: projection[0] });
+    }, [projection]);
+
     // Points for the continuous line graph (Balance evolution)
     const linePath = useMemo(() => {
         if (projection.length === 0) return '';
@@ -486,7 +512,7 @@ export default function MobileDashboard7() {
     return (
         <div className="min-h-screen bg-zinc-50 font-sans flex flex-col relative overflow-hidden">
             {/* Header Sticky (Shared) */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 px-4 py-4 md:py-6 shadow-sm">
+            <header className={clsx("fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 px-4 py-4 md:py-6 shadow-sm transition-transform duration-300", isHeaderCompact && "-translate-y-full")}>
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex-1 flex justify-start items-center space-x-2">
                         {/* View Toggle */}
@@ -514,7 +540,10 @@ export default function MobileDashboard7() {
                         {/* Profile Menu */}
                         <div className="relative">
                             <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                onClick={() => {
+                                    setIsMenuOpen(!isMenuOpen);
+                                    if (!isMenuOpen) setIsPlanificationMenuOpen(false);
+                                }}
                                 className="px-3 py-1.5 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 rounded-full flex items-center justify-center active:scale-95 h-10 transition-colors"
                             >
                                 <ChevronDown className={clsx("w-4 h-4 transition-transform", isMenuOpen && "rotate-180")} />
@@ -598,7 +627,10 @@ export default function MobileDashboard7() {
                         {/* App Logo / Planification Menu */}
                         <div className="relative">
                             <button
-                                onClick={() => setIsPlanificationMenuOpen(!isPlanificationMenuOpen)}
+                                onClick={() => {
+                                    setIsPlanificationMenuOpen(!isPlanificationMenuOpen);
+                                    if (!isPlanificationMenuOpen) setIsMenuOpen(false);
+                                }}
                                 className={clsx(
                                     "w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-premium active:scale-95 transition-all select-none",
                                     isPlanificationMenuOpen && "scale-95 ring-2 ring-zinc-900 ring-offset-2"
@@ -691,7 +723,7 @@ export default function MobileDashboard7() {
                 </div>
 
                 {/* Interpretation Block & Runway Indicator */}
-                {activeView === 'graph' && (
+                {!isGraphTipDismissed && activeView === 'graph' && (
                     <div className="max-w-sm mx-auto mb-3">
                         <div className={clsx("rounded-xl p-2.5 border-2 flex items-center space-x-3 transition-colors", runwayColor)}>
                             <div className="shrink-0">
@@ -700,6 +732,13 @@ export default function MobileDashboard7() {
                             <p className="text-[11px] font-bold leading-tight flex-1">
                                 {runwayMessage}
                             </p>
+                            <button
+                                onClick={() => setIsGraphTipDismissed(true)}
+                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 hover:bg-white/80 active:scale-95 transition-all"
+                                title="Fermer"
+                            >
+                                <X className="w-4 h-4 opacity-50" />
+                            </button>
                         </div>
                     </div>
                 )}
@@ -750,7 +789,7 @@ export default function MobileDashboard7() {
                 </div>
 
                 {/* Tip Card (Only in matrix view) */}
-                {activeView === 'matrix' && (
+                {!isMatrixTipDismissed && activeView === 'matrix' && (
                     <div className="max-w-sm mx-auto mt-3">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -767,16 +806,28 @@ export default function MobileDashboard7() {
                                 <p className="text-[11px] font-bold leading-tight flex-1">
                                     {matrixTips[currentTipIndex]}
                                 </p>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length);
-                                    }}
-                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
-                                    title="Astuce suivante"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
+                                <div className="flex space-x-1 shrink-0">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length);
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
+                                        title="Astuce suivante"
+                                    >
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsMatrixTipDismissed(true);
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
+                                        title="Fermer"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </motion.div>
                         </AnimatePresence>
                     </div>
@@ -786,7 +837,7 @@ export default function MobileDashboard7() {
             </header>
 
             {/* Main Content Area */}
-            <main ref={mainRef} className={clsx("flex-1 pb-32 overflow-y-auto no-scrollbar relative w-full pt-4", activeView === 'graph' ? "mt-[190px]" : "mt-[210px]")}>
+            <main onScroll={handleScroll} ref={mainRef} className={clsx("flex-1 pb-32 overflow-y-auto no-scrollbar relative w-full pt-4", activeView === 'graph' ? "mt-[190px]" : "mt-[210px]")}>
                 <AnimatePresence mode="wait" initial={false}>
                     {activeView === 'graph' && (
                         <motion.div
@@ -825,6 +876,9 @@ export default function MobileDashboard7() {
                                     <svg width="100%" height="100%" className="overflow-visible">
                                         {/* Center Axis */}
                                         <line x1={midX} y1="0" x2={midX} y2="100%" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4 4" />
+
+                                        {minBalPoint && <line x1={midX + ((minBalPoint.balance / maxBal) * (graphWidth / 2))} y1="0" x2={midX + ((minBalPoint.balance / maxBal) * (graphWidth / 2))} y2="100%" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />}
+                                        {maxBalPoint && <line x1={midX + ((maxBalPoint.balance / maxBal) * (graphWidth / 2))} y1="0" x2={midX + ((maxBalPoint.balance / maxBal) * (graphWidth / 2))} y2="100%" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />}
 
                                         {/* Balance Line connecting points */}
                                         <path
