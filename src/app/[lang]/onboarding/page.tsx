@@ -20,6 +20,7 @@ export default function OnboardingFlow() {
     const [balance, setBalance] = useState<string>('');
     const [income, setIncome] = useState<string>('');
     const [expense, setExpense] = useState<string>('');
+    const [extra, setExtra] = useState<string>('');
 
     // Precomputed results for Step 5
     const [previewMonthsToZero, setPreviewMonthsToZero] = useState<number | null>(null);
@@ -28,6 +29,7 @@ export default function OnboardingFlow() {
     const balanceRef = useRef<HTMLInputElement>(null);
     const incomeRef = useRef<HTMLInputElement>(null);
     const expenseRef = useRef<HTMLInputElement>(null);
+    const extraRef = useRef<HTMLInputElement>(null);
 
     // Vibrate helper
     const vibrate = useCallback(() => {
@@ -44,23 +46,30 @@ export default function OnboardingFlow() {
             setTimeout(() => incomeRef.current?.focus(), 300);
         } else if (step === 4) {
             setTimeout(() => expenseRef.current?.focus(), 300);
+        } else if (step === 5) {
+            setTimeout(() => extraRef.current?.focus(), 300);
         }
     }, [step]);
 
-    // Precompute step 5 results when reaching step 5
+    // Precompute step 6 results when reaching step 6
     useEffect(() => {
-        if (step === 5) {
+        if (step === 6) {
             const numBalance = parseFloat(balance) || 0;
             const numIncome = parseFloat(income) || 0;
             const numExpense = parseFloat(expense) || 0;
+            const numExtra = parseFloat(extra) || 0;
 
             // Generate a fake local transaction list to compute
             const fakeTransactions = [];
             if (numIncome > 0) {
-                fakeTransactions.push({ id: 'inc', label: 'Revenus', amount: numIncome, direction: 'income' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-salary' });
+                fakeTransactions.push({ id: 'inc', label: 'Entrée', amount: numIncome, direction: 'income' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-salary' });
             }
             if (numExpense > 0) {
-                fakeTransactions.push({ id: 'exp', label: 'Dépenses', amount: numExpense, direction: 'expense' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-rent' });
+                fakeTransactions.push({ id: 'exp', label: 'Sortie', amount: numExpense, direction: 'expense' as const, recurrence: 'monthly' as const, month: '', categoryId: 'cat-rent' });
+            }
+            if (numExtra > 0) {
+                const nextMonth = new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
+                fakeTransactions.push({ id: 'ext', label: 'Extra', amount: numExtra, direction: 'expense' as const, recurrence: 'none' as const, month: nextMonth, categoryId: 'cat-shopping' });
             }
 
             // Simple 12 month dummy projection
@@ -75,12 +84,12 @@ export default function OnboardingFlow() {
                 setPreviewMonthsToZero(null);
             }
         }
-    }, [step, balance, income, expense]);
+    }, [step, balance, income, expense, extra]);
 
     // Flow controls
     const handleNext = () => {
         vibrate();
-        if (step < 5) {
+        if (step < 6) {
             setStep(prev => prev + 1);
         }
     };
@@ -103,22 +112,36 @@ export default function OnboardingFlow() {
         const numBalance = parseFloat(balance) || 0;
         const numIncome = parseFloat(income) || 0;
         const numExpense = parseFloat(expense) || 0;
+        const numExtra = parseFloat(extra) || 0;
 
         setStartingBalance(numBalance);
         await addTransaction({
-            label: dictionary.timeline.income,
+            label: 'Entrée',
             categoryId: 'cat-salary',
             amount: numIncome,
             direction: 'income',
             recurrence: 'monthly'
         });
         await addTransaction({
-            label: "Dépenses courantes",
+            label: 'Sortie',
             categoryId: 'cat-rent',
             amount: numExpense,
             direction: 'expense',
+            month: '',
             recurrence: 'monthly'
         });
+
+        if (numExtra > 0) {
+            const nextMonth = new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
+            await addTransaction({
+                label: 'Extra',
+                categoryId: 'cat-shopping',
+                amount: numExtra,
+                direction: 'expense',
+                month: nextMonth,
+                recurrence: 'none'
+            });
+        }
 
         const id = await addScenario('Mon profil');
         if (id) {
@@ -132,9 +155,9 @@ export default function OnboardingFlow() {
     // -------------------------------------------------------------
 
     const renderStep1 = () => (
-        <div className="flex flex-col h-full w-full justify-between pt-[10vh]">
-            <div className="flex flex-col items-center flex-1 space-y-8 px-6">
-                <div className="h-[30vh] w-full max-w-[280px]">
+        <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
+            <div className="flex flex-col items-center flex-1 space-y-8">
+                <div className="h-[15vh] w-full max-w-[140px]">
                     <ImageWithFallback
                         srcWebp="/illustrations/mascot-onboarding-start.webp"
                         srcPng="/illustrations/mascot-onboarding-start.png"
@@ -161,9 +184,9 @@ export default function OnboardingFlow() {
         const canProceed = balance.length > 0;
 
         return (
-            <div className="flex flex-col h-full w-full justify-between pt-[10vh]">
-                <div className="flex flex-col items-center flex-1 space-y-6 px-6">
-                    <div className="h-[25vh] w-full max-w-[240px]">
+            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
+                <div className="flex flex-col items-center flex-1 space-y-6">
+                    <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-balance-day.webp"
                             srcPng="/illustrations/mascot-balance-day.png"
@@ -204,9 +227,9 @@ export default function OnboardingFlow() {
         const canProceed = income.length > 0;
 
         return (
-            <div className="flex flex-col h-full w-full justify-between pt-[10vh]">
-                <div className="flex flex-col items-center flex-1 space-y-6 px-6">
-                    <div className="h-[25vh] w-full max-w-[240px]">
+            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
+                <div className="flex flex-col items-center flex-1 space-y-6">
+                    <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-income-recurring.webp"
                             srcPng="/illustrations/mascot-income-recurring.png"
@@ -247,9 +270,9 @@ export default function OnboardingFlow() {
         const canProceed = expense.length > 0;
 
         return (
-            <div className="flex flex-col h-full w-full justify-between pt-[10vh]">
-                <div className="flex flex-col items-center flex-1 space-y-6 px-6">
-                    <div className="h-[25vh] w-full max-w-[240px]">
+            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
+                <div className="flex flex-col items-center flex-1 space-y-6">
+                    <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-expense-recurring.webp"
                             srcPng="/illustrations/mascot-expense-recurring.png"
@@ -281,12 +304,55 @@ export default function OnboardingFlow() {
                         </p>
                     </div>
                 </div>
-                {renderCTA("Voir ma projection", canProceed)}
+                {renderCTA("Continuer", canProceed)}
             </div>
         );
     };
 
     const renderStep5 = () => {
+        const canProceed = true; // Optional step
+
+        return (
+            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
+                <div className="flex flex-col items-center flex-1 space-y-6">
+                    <div className="h-[15vh] w-full max-w-[140px]">
+                        <ImageWithFallback
+                            srcWebp="/illustrations/mascot-graph-edit.webp"
+                            srcPng="/illustrations/mascot-graph-edit.png"
+                            alt="Extra ponctuel"
+                            fill
+                            priority
+                            className="object-contain"
+                        />
+                    </div>
+                    <div className="text-center space-y-2 w-full">
+                        <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
+                            Un imprévu à ajouter ?
+                        </h2>
+                        <div className="relative mt-8 max-w-xs mx-auto">
+                            <input
+                                ref={extraRef}
+                                type="number"
+                                inputMode="decimal"
+                                value={extra}
+                                onChange={(e) => setExtra(e.target.value)}
+                                className="w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 border-amber-200 pb-2 focus:outline-none focus:border-amber-500 transition-colors text-amber-600"
+                                placeholder="0"
+                                onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
+                            />
+                            <span className="absolute right-4 bottom-4 text-2xl font-black text-amber-300">€</span>
+                        </div>
+                        <p className="text-sm font-medium text-zinc-400 mt-4 max-w-[250px] mx-auto balance-text">
+                            Ex: réparation, voyage... (Optionnel)
+                        </p>
+                    </div>
+                </div>
+                {renderCTA("Voir ma projection", canProceed)}
+            </div>
+        );
+    };
+
+    const renderStep6 = () => {
         let headline = "Tu es tranquille pour l'instant";
         let colorClass = "text-emerald-500";
         let bgClass = "bg-emerald-50";
@@ -304,9 +370,9 @@ export default function OnboardingFlow() {
         }
 
         return (
-            <div className="flex flex-col h-full w-full justify-between pt-[8vh]">
-                <div className="flex flex-col items-center flex-1 space-y-6 px-6">
-                    <div className="h-[22vh] w-full max-w-[240px]">
+            <div className="flex flex-col min-h-[90vh] pb-8 pt-[8vh] px-6 justify-between">
+                <div className="flex flex-col items-center flex-1 space-y-6">
+                    <div className="h-[15vh] w-full max-w-[140px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-overview.webp"
                             srcPng="/illustrations/mascot-graph-overview.png"
@@ -358,7 +424,12 @@ export default function OnboardingFlow() {
                 </div>
 
                 {/* Custom CTA block for final step */}
-                <div className="px-5 pb-8 pt-4 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent sticky bottom-0">
+                <div className="pt-6 w-full z-20">
+                    <div className="bg-blue-50/50 rounded-2xl p-4 mb-4 border border-blue-100">
+                        <p className="text-center text-[12px] font-bold text-blue-600 leading-relaxed uppercase tracking-tight">
+                            Tu pourras tout éditer et ajuster par la suite (ajouter de nouvelles entrées et sorties).
+                        </p>
+                    </div>
                     <button
                         onClick={handleSaveProfile}
                         className="w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] bg-zinc-900 text-white shadow-premium flex items-center justify-center space-x-2"
@@ -366,9 +437,6 @@ export default function OnboardingFlow() {
                         <span>Voir mon compte sur l'année</span>
                         <ChevronRight className="w-4 h-4" />
                     </button>
-                    <p className="text-center text-[11px] font-medium text-zinc-400 mt-4 px-2 leading-relaxed">
-                        Tu pourras ensuite ajuster tes entrées/sorties par mois et ajouter des extras ponctuels pour anticiper le reste de l'année.
-                    </p>
                     {/* Safe area spacer for iPhones */}
                     <div className="h-[env(safe-area-inset-bottom)]" />
                 </div>
@@ -378,7 +446,7 @@ export default function OnboardingFlow() {
 
     // Shared CTA Renderer
     const renderCTA = (label: string, enabled: boolean) => (
-        <div className="px-5 pb-8 pt-4 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent sticky bottom-0 z-20">
+        <div className="pt-8 w-full z-20">
             <button
                 disabled={!enabled}
                 onClick={handleNext}
@@ -404,6 +472,7 @@ export default function OnboardingFlow() {
         { id: 3, content: renderStep3() },
         { id: 4, content: renderStep4() },
         { id: 5, content: renderStep5() },
+        { id: 6, content: renderStep6() },
     ];
 
     return (
@@ -416,8 +485,8 @@ export default function OnboardingFlow() {
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-200 z-50">
                 <motion.div
                     className="h-full bg-zinc-900"
-                    initial={{ width: '20%' }}
-                    animate={{ width: `${(step / 5) * 100}%` }}
+                    initial={{ width: '16%' }}
+                    animate={{ width: `${(step / 6) * 100}%` }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
                 />
             </div>
@@ -448,12 +517,13 @@ export default function OnboardingFlow() {
                         const swipe = Math.abs(offset.x) * velocity.x;
                         if (swipe > 100 && step > 1) {
                             handleBack();
-                        } else if (swipe < -100 && step < 5) {
+                        } else if (swipe < -100 && step < 6) {
                             // Only allow forward swipe if allowed (e.g., they filled the input)
                             const canProceed =
                                 (step === 2 && balance.length > 0) ||
                                 (step === 3 && income.length > 0) ||
-                                (step === 4 && expense.length > 0);
+                                (step === 4 && expense.length > 0) ||
+                                (step === 5);
 
                             if (canProceed || step === 1) {
                                 handleNext();
@@ -471,6 +541,7 @@ export default function OnboardingFlow() {
                 <img src="/illustrations/mascot-balance-day.webp" alt="" />
                 <img src="/illustrations/mascot-income-recurring.webp" alt="" />
                 <img src="/illustrations/mascot-expense-recurring.webp" alt="" />
+                <img src="/illustrations/mascot-graph-edit.webp" alt="" />
                 <img src="/illustrations/mascot-graph-overview.webp" alt="" />
             </div>
         </div>

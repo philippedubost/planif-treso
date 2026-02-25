@@ -197,7 +197,14 @@ export default function MobileDashboard7() {
     const [selectedGraphPoint, setSelectedGraphPoint] = useState<{ month: string, type: 'balance' | 'income' | 'expense', value: number, x: number, y: number } | null>(null);
 
     const [isEditingBalance, setIsEditingBalance] = useState(false);
-    const [tempBalance, setTempBalance] = useState(startingBalance.toString());
+    const [tempBalance, setTempBalance] = useState('');
+    const mainRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        if (mainRef.current) {
+            mainRef.current.scrollTo({ top: 0, behavior: 'instant' });
+        }
+    }, [activeView]);
 
     const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
@@ -775,29 +782,11 @@ export default function MobileDashboard7() {
                     </div>
                 )}
 
-                {/* Selection Bubble (Only in graph view) */}
-                {activeView === 'graph' && (
-                    <div className="max-w-sm mx-auto mt-3 h-[24px] flex items-center justify-center">
-                        {/* Space placeholder if needed */}
-                        <AnimatePresence mode="wait">
-                            {!selectedGraphPoint && (
-                                <motion.div
-                                    key="empty-bubble"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="text-zinc-400 text-xs italic font-medium"
-                                >
-                                    Touchez le graphe pour voir un montant
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                )}
+                {/* Selection Bubble previously here, removed */}
             </header>
 
             {/* Main Content Area */}
-            <main className={clsx("flex-1 pb-32 overflow-y-auto no-scrollbar relative w-full pt-4", activeView === 'graph' ? "mt-[225px]" : "mt-[210px]")}>
+            <main ref={mainRef} className={clsx("flex-1 pb-32 overflow-y-auto no-scrollbar relative w-full pt-4", activeView === 'graph' ? "mt-[190px]" : "mt-[210px]")}>
                 <AnimatePresence mode="wait" initial={false}>
                     {activeView === 'graph' && (
                         <motion.div
@@ -815,7 +804,7 @@ export default function MobileDashboard7() {
                                 if (swipe < -100) setActiveView('matrix');
                             }}
                         >
-                            <div className="relative" onClick={() => setSelectedGraphPoint(null)}>
+                            <div className="relative mt-2.5" onClick={() => setSelectedGraphPoint(null)}>
                                 {/* Axis Track Markers Above the Graph */}
                                 <div className="flex justify-center mb-2" style={{ marginLeft: labelWidth }}>
                                     <div className="relative w-full h-5" style={{ maxWidth: graphWidth }}>
@@ -958,16 +947,6 @@ export default function MobileDashboard7() {
                                 </div>
                             </div>
 
-                            {/* CTA Editor */}
-                            <div className="px-4 pb-12 pt-8 flex justify-center w-full">
-                                <button
-                                    onClick={() => setActiveView('matrix')}
-                                    className="py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between w-full max-w-sm active:scale-95 transition-all text-[15px]"
-                                >
-                                    <span>Éditer les entrées/sorties</span>
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </div>
                         </motion.div>
                     )}
 
@@ -1182,20 +1161,52 @@ export default function MobileDashboard7() {
                                 )}
                             </AnimatePresence>
 
-                            {/* CTA Voir Graph */}
-                            <div className="px-4 pb-12 pt-8 flex justify-center w-full">
-                                <button
-                                    onClick={() => setActiveView('graph')}
-                                    className="py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between w-full max-w-sm active:scale-95 transition-all text-[15px]"
-                                >
-                                    <ChevronLeft className="w-5 h-5" />
-                                    <span>Voir le graph</span>
-                                </button>
-                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Fixed Bottom CTAs */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent z-40 pointer-events-none flex justify-center">
+                <AnimatePresence mode="wait">
+                    {activeView === 'graph' && (
+                        <motion.div
+                            key="cta-graph"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full max-w-sm pointer-events-auto"
+                        >
+                            <button
+                                onClick={() => setActiveView('matrix')}
+                                className="w-full py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between active:scale-95 transition-all text-[15px]"
+                            >
+                                <span>Éditer les entrées/sorties</span>
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </motion.div>
+                    )}
+                    {activeView === 'matrix' && (
+                        <motion.div
+                            key="cta-matrix"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full max-w-sm pointer-events-auto"
+                        >
+                            <button
+                                onClick={() => setActiveView('graph')}
+                                className="w-full py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between active:scale-95 transition-all text-[15px]"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                                <span>Voir le graph</span>
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
 
             {/* Editor Bottom Sheet */}
             <BottomSheet isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)}>
@@ -1308,6 +1319,6 @@ export default function MobileDashboard7() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
