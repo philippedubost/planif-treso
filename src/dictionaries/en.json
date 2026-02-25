@@ -92,5 +92,13 @@
         "textSize": "Text size",
         "projection": "Projection (months)",
         "language": "Language"
+    },
+    "onboarding": {
+        "step1": {
+            "title": "What will your bank account look like in 12 months?",
+            "subtitle": "Enter a few numbers. We'll do the rest.",
+            "cta": "Try it in 30 sec!",
+            "disclaimer": "no signup • free"
+        }
     }
 }

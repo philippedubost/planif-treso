@@ -92,5 +92,13 @@
         "textSize": "Taille du texte",
         "projection": "Projection (mois)",
         "language": "Langue"
+    },
+    "onboarding": {
+        "step1": {
+            "title": "A quoi ressemblera ton compte en banque dans 12 mois ?",
+            "subtitle": "Entre quelques chiffres. On fait le reste.",
+            "cta": "J'essaye en 30 sec !",
+            "disclaimer": "sans inscription • gratuit"
+        }
     }
 }

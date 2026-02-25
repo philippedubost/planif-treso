@@ -186,17 +186,17 @@ export default function OnboardingFlow() {
                 </div>
                 <div className="text-center space-y-3">
                     <h1 className="text-3xl font-black italic tracking-tighter text-zinc-900 leading-tight">
-                        A quoi ressemblera ton compte en banque dans 12 mois ?
+                        {dictionary.onboarding.step1.title}
                     </h1>
                     <p className="text-[15px] font-medium text-zinc-500 leading-relaxed balance-text">
-                        Entre quelques chiffres. On fait le reste.
+                        {dictionary.onboarding.step1.subtitle}
                     </p>
                 </div>
             </div>
             <div className="w-full max-w-sm mx-auto text-center space-y-3">
-                {renderCTA("J'essaye en 30 sec !", true)}
+                {renderCTA(dictionary.onboarding.step1.cta, true)}
                 <p className="text-[12px] font-bold tracking-wide text-zinc-400">
-                    sans inscription • gratuit
+                    {dictionary.onboarding.step1.disclaimer}
                 </p>
             </div>
         </div>
