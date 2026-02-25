@@ -573,10 +573,13 @@ export default function MobileDashboard7() {
                                                     onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
                                                     className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
                                                 >
-                                                    <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
-                                                        <Plus className="w-2 h-2 text-white" />
+                                                    <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
+                                                        <Plus className="w-3 h-3 text-white" />
                                                     </div>
-                                                    <span className="font-black italic text-sm">{dictionary.auth.login}</span>
+                                                    <div className="flex flex-col items-start pr-2">
+                                                        <span className="font-black italic text-sm leading-tight">Sauvegarder</span>
+                                                        <span className="text-[10px] font-medium text-zinc-500 leading-tight">mon profil</span>
+                                                    </div>
                                                 </button>
                                             </div>
                                         )}
@@ -954,6 +957,17 @@ export default function MobileDashboard7() {
                                     })}
                                 </div>
                             </div>
+
+                            {/* CTA Editor */}
+                            <div className="px-4 pb-12 pt-8 flex justify-center w-full">
+                                <button
+                                    onClick={() => setActiveView('matrix')}
+                                    className="py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between w-full max-w-sm active:scale-95 transition-all text-[15px]"
+                                >
+                                    <span>Éditer les entrées/sorties</span>
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </motion.div>
                     )}
 
@@ -1167,6 +1181,17 @@ export default function MobileDashboard7() {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+
+                            {/* CTA Voir Graph */}
+                            <div className="px-4 pb-12 pt-8 flex justify-center w-full">
+                                <button
+                                    onClick={() => setActiveView('graph')}
+                                    className="py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between w-full max-w-sm active:scale-95 transition-all text-[15px]"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                    <span>Voir le graph</span>
+                                </button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
