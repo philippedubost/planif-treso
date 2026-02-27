@@ -48,7 +48,7 @@ export function middleware(request: NextRequest) {
         const alreadyMobile = MOBILE_EXCLUDED.some(p => basePath.startsWith(p));
         if (!alreadyMobile) {
             const url = request.nextUrl.clone();
-            url.pathname = `/${locale}/mobile`;
+            url.pathname = `/${locale}/mobile-vertical`;
             return NextResponse.redirect(url);
         }
     }

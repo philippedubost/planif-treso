@@ -1,1380 +1,917 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
-import { format, parseISO } from 'date-fns';
+import { useState, useRef, useEffect } from 'react';
+import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronRight, ChevronLeft, Plus, Settings, Share2, Check, ChevronDown, LogOut, HelpCircle, Edit2, AlertTriangle, Info, Copy, X } from 'lucide-react';
+import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Settings, Plus, LogIn, LogOut, Share2, Check, Layers,
+    ChevronDown, Home, Undo2, Redo2, X
+} from 'lucide-react';
 import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
-import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
-import { SettingsModal } from '@/components/settings/SettingsModal';
-import { Transaction, TransactionDirection } from '@/lib/financeEngine';
-import { Trash2, Pencil, Home } from 'lucide-react';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { supabase } from '@/lib/supabase';
-import { InfoBubble } from '@/components/ui/InfoBubble';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
-import { useRouter, useParams } from 'next/navigation';
-import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, planName, dictionary }: any) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="bg-white rounded-[32px] p-6 w-full max-w-sm shadow-2xl z-10"
-            >
-                <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-2">
-                        <Image
-                            src="/illustrations/mascot-expense-oneoff.png"
-                            alt="Mascotte suppression"
-                            fill
-                            className="object-contain filter drop-shadow-xl"
-                        />
-                    </div>
-                    <h2 className="text-xl font-black text-zinc-900">
-                        Supprimer la planification ?
-                    </h2>
-                    <p className="text-sm text-zinc-500 font-medium">
-                        Êtes-vous sûr de vouloir supprimer définitivement <strong>{planName}</strong> ? Cette action effacera tous les scénarios et transactions associés.
-                    </p>
-                    <div className="flex w-full space-x-3 pt-4 inline-flex">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 py-3 px-4 rounded-xl font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
-                        >
-                            {dictionary.common.cancel}
-                        </button>
-                        <button
-                            onClick={onConfirm}
-                            className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
-                        >
-                            Supprimer
-                        </button>
-                    </div>
-                </div>
-            </motion.div>
-        </div>
-    );
-};
+import {
+    ResponsiveContainer,
+    ComposedChart,
+    Bar,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Cell,
+    ReferenceLine
+} from 'recharts';
+import { Transaction, TransactionDirection } from '@/lib/financeEngine';
+import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
+import { SentenceTransactionEditor } from '@/components/lists/SentenceTransactionEditor';
 
-export const EditableMenuItem = ({ item, isSelected, onSelect, onEdit, onDelete }: any) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editName, setEditName] = useState(item.name);
+// ── Column width for mobile (narrower than desktop's 96px) ──
+const MOBILE_COL = 68; // px per month column
+const LABEL_WIDTH = 52; // sticky left label area
 
-    if (isEditing) {
-        return (
-            <div className="w-full flex items-center justify-between px-2 py-2 rounded-xl bg-white text-zinc-900 border border-zinc-200">
-                <input
-                    autoFocus
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            if (editName.trim()) onEdit(item.id, editName.trim());
-                            setIsEditing(false);
-                        } else if (e.key === 'Escape') {
-                            setIsEditing(false);
-                            setEditName(item.name);
-                        }
-                    }}
-                    onBlur={() => {
-                        if (editName.trim()) onEdit(item.id, editName.trim());
-                        setIsEditing(false);
-                    }}
-                    className="flex-1 bg-transparent text-sm font-bold focus:outline-none"
-                />
-            </div>
-        );
-    }
-
-    return (
-        <div className="relative group flex items-center w-full">
-            <button
-                onClick={() => onSelect(item.id)}
-                className={clsx(
-                    "flex-1 flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all text-left",
-                    (onEdit || onDelete) ? "pr-14" : "pr-4",
-                    isSelected
-                        ? "bg-zinc-900 text-white"
-                        : "bg-white text-zinc-600 hover:bg-zinc-50"
-                )}
-            >
-                <div className="flex flex-col items-start truncate w-full">
-                    <span className="truncate w-full" style={{ paddingRight: isSelected ? '16px' : '0' }}>{item.name}</span>
-                    {item.subtitle && <span className="text-[8px] uppercase tracking-wider opacity-60 font-black mt-0.5">{item.subtitle}</span>}
-                </div>
-                {isSelected && <Check className="absolute right-4 w-4 h-4 text-emerald-400" />}
-            </button>
-            <div className="absolute right-2 flex items-center space-x-1 opacity-100 transition-opacity z-10 pointer-events-auto">
-                {onEdit && (
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsEditing(true);
-                        }}
-                        className="p-1 text-zinc-400 hover:text-zinc-900 bg-white rounded-md hover:bg-zinc-100 shadow-sm border border-zinc-100"
-                    >
-                        <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                )}
-                {onDelete && (
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onDelete(item.id);
-                        }}
-                        className="p-1 text-rose-500 hover:text-rose-600 bg-white rounded-md hover:bg-rose-50 shadow-sm border border-zinc-100"
-                    >
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                )}
-            </div>
-        </div>
-    );
-};
-
-function useWindowSize() {
-    const [windowSize, setWindowSize] = useState<{
-        width: number | undefined;
-        height: number | undefined;
-    }>({
-        width: undefined,
-        height: undefined,
-    });
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            function handleResize() {
-                setWindowSize({
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                });
-            }
-            window.addEventListener("resize", handleResize);
-            handleResize();
-            return () => window.removeEventListener("resize", handleResize);
-        }
-    }, []);
-    return windowSize;
+// ────────────────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────────────────
+function formatCurrencyCompact(val: number, currency: string) {
+    const sign = val < 0 ? '-' : '';
+    const abs = Math.abs(val);
+    if (abs >= 1000) return `${sign}${Math.round(abs / 1000)}K${currency}`;
+    return `${sign}${Math.round(abs)}${currency}`;
 }
 
-export default function MobileDashboard7() {
-    const {
-        startingBalance,
-        setStartingBalance,
-        currency,
-        transactions,
-        planifications,
-        currentPlanificationId,
-        addPlanification,
-        updatePlanification,
-        setCurrentPlanification,
-        deletePlanification,
-        user,
-        redoStack
-    } = useFinanceStore();
+// ────────────────────────────────────────────────────────────
+// Inline-editable pill for recurring transactions
+// ────────────────────────────────────────────────────────────
+function RecurringPill({ transaction }: { transaction: Transaction }) {
+    const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
+    const [localLabel, setLocalLabel] = useState(transaction.label);
+    const [localAmount, setLocalAmount] = useState(
+        transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString()
+    );
+    const [showDelete, setShowDelete] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const labelRef = useRef<HTMLInputElement>(null);
+    const amountRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setLocalLabel(transaction.label);
+        setLocalAmount(transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString());
+    }, [transaction.label, transaction.amount, transaction.direction]);
+
+    const scrollIntoView = (el: HTMLElement | null) => {
+        if (!el) return;
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    };
+
+    const commitLabel = () => {
+        if (localLabel !== transaction.label) updateTransaction(transaction.id, { label: localLabel });
+    };
+    const commitAmount = () => {
+        const val = parseFloat(localAmount) || 0;
+        const newAmount = Math.abs(val);
+        const newDirection: TransactionDirection = val < 0 ? 'expense' : 'income';
+        if (newAmount !== transaction.amount || newDirection !== transaction.direction) {
+            updateTransaction(transaction.id, { amount: newAmount, direction: newDirection });
+        }
+        setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
+    };
+
+    const isIncome = transaction.direction === 'income';
+
+    return (
+        <div
+            className={clsx(
+                'relative flex items-center pl-2 pr-1.5 py-1 rounded-lg border-2 shadow-sm shrink-0',
+                isIncome ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'
+            )}
+            onTouchStart={() => setShowDelete(false)}
+        >
+            <input
+                ref={labelRef}
+                className={clsx(
+                    'bg-transparent font-black italic text-xs outline-none border-none p-0 w-[48px] truncate',
+                    isIncome ? 'text-emerald-700 placeholder-emerald-400' : 'text-rose-700 placeholder-rose-400'
+                )}
+                placeholder="Label..."
+                value={localLabel}
+                autoFocus={transaction.label === ''}
+                onChange={e => setLocalLabel(e.target.value)}
+                onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                onBlur={() => { commitLabel(); setIsFocused(false); }}
+                onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+            />
+            <div className="flex items-center ml-1">
+                <input
+                    ref={amountRef}
+                    type="number"
+                    inputMode="decimal"
+                    className={clsx(
+                        'bg-transparent font-black text-[11px] outline-none border-none p-0 w-10 text-right',
+                        isIncome ? 'text-emerald-600' : 'text-rose-600'
+                    )}
+                    value={localAmount}
+                    placeholder="0"
+                    onChange={e => setLocalAmount(e.target.value)}
+                    onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                    onBlur={() => { commitAmount(); setIsFocused(false); }}
+                    onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                />
+                <span className={clsx('text-[10px] font-black ml-0.5', isIncome ? 'text-emerald-500' : 'text-rose-500')}>
+                    {currency}/m
+                </span>
+            </div>
+            <AnimatePresence mode="wait">
+                {(isFocused || isSuccess) ? (
+                    <motion.button
+                        key="check"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={isSuccess
+                            ? { scale: [1, 1.2, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
+                            : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
+                        }
+                        transition={isSuccess
+                            ? { duration: 0.4 }
+                            : { duration: 0.2 }
+                        }
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            setIsSuccess(true);
+                            setTimeout(() => {
+                                labelRef.current?.blur();
+                                amountRef.current?.blur();
+                                setIsSuccess(false);
+                            }, 400);
+                        }}
+                        className="ml-1 p-1 text-white rounded-full shadow-lg z-40 active:scale-95 transition-transform"
+                    >
+                        <Check className="w-3 h-3 stroke-[3px]" />
+                    </motion.button>
+                ) : (
+                    <motion.button
+                        key="x"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={e => { e.preventDefault(); setShowDelete(s => !s); }}
+                        className="ml-1 p-0.5 opacity-40 active:opacity-80"
+                    >
+                        <X className="w-3 h-3 text-zinc-500" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showDelete && !isFocused && (
+                    <motion.button
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        onClick={() => deleteTransaction(transaction.id)}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg z-30"
+                    >
+                        <X className="w-3 h-3 stroke-[3px]" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ────────────────────────────────────────────────────────────
+// Inline-editable one-off pill (per month column)
+// ────────────────────────────────────────────────────────────
+function OneOffPill({ transaction }: { transaction: Transaction }) {
+    const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
+    const [localLabel, setLocalLabel] = useState(transaction.label);
+    const [localAmount, setLocalAmount] = useState(
+        transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString()
+    );
+    const [showDelete, setShowDelete] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const labelRef = useRef<HTMLInputElement>(null);
+    const amountRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setLocalLabel(transaction.label);
+        setLocalAmount(transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString());
+    }, [transaction.label, transaction.amount, transaction.direction]);
+
+    const scrollIntoView = (el: HTMLElement | null) => {
+        if (!el) return;
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    };
+
+    const commitLabel = () => {
+        if (localLabel !== transaction.label) updateTransaction(transaction.id, { label: localLabel });
+    };
+    const commitAmount = () => {
+        const val = parseFloat(localAmount) || 0;
+        const newAmount = Math.abs(val);
+        const newDirection: TransactionDirection = val < 0 ? 'expense' : 'income';
+        if (newAmount !== transaction.amount || newDirection !== transaction.direction) {
+            updateTransaction(transaction.id, { amount: newAmount, direction: newDirection });
+        }
+        setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
+    };
+
+    const isIncome = transaction.direction === 'income';
+
+    return (
+        <div className="relative flex flex-col items-center">
+            <div
+                className={clsx(
+                    'px-1.5 py-1.5 rounded-lg shadow-sm flex flex-col items-center justify-center w-[64px] border',
+                    isIncome ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
+                )}
+            >
+                <input
+                    ref={labelRef}
+                    className="bg-transparent text-[8px] font-black italic uppercase leading-none mb-0.5 text-zinc-400 text-center w-full outline-none border-none p-0"
+                    value={localLabel}
+                    placeholder="Extra..."
+                    autoFocus={transaction.label === ''}
+                    onChange={e => setLocalLabel(e.target.value)}
+                    onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                    onBlur={() => { commitLabel(); setIsFocused(false); }}
+                    onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                />
+                <div className="flex items-center justify-center space-x-0.5">
+                    <input
+                        ref={amountRef}
+                        type="number"
+                        inputMode="decimal"
+                        className={clsx(
+                            'bg-transparent text-[11px] font-black leading-none w-12 text-center outline-none border-none p-0',
+                            isIncome ? 'text-emerald-600' : 'text-rose-600'
+                        )}
+                        value={localAmount}
+                        placeholder="0"
+                        onChange={e => setLocalAmount(e.target.value)}
+                        onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                        onBlur={() => { commitAmount(); setIsFocused(false); }}
+                        onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                    />
+                    <span className={clsx('text-[9px] font-bold leading-none', isIncome ? 'text-emerald-300' : 'text-rose-300')}>
+                        {currency}
+                    </span>
+                </div>
+            </div>
+            <AnimatePresence mode="wait">
+                {(isFocused || isSuccess) ? (
+                    <motion.button
+                        key="check"
+                        initial={{ scale: 0, opacity: .8 }}
+                        animate={isSuccess
+                            ? { scale: [1, 1.3, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
+                            : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
+                        }
+                        transition={isSuccess
+                            ? { duration: 0.4 }
+                            : { duration: 0.2 }
+                        }
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            setIsSuccess(true);
+                            setTimeout(() => {
+                                labelRef.current?.blur();
+                                amountRef.current?.blur();
+                                setIsSuccess(false);
+                            }, 400);
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-6 h-6 text-white rounded-full flex items-center justify-center shadow-lg z-40 active:scale-90 transition-transform"
+                    >
+                        <Check className="w-3.5 h-3.5 stroke-[3px]" />
+                    </motion.button>
+                ) : (
+                    <motion.button
+                        key="del-trigger"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={e => { e.preventDefault(); setShowDelete(s => !s); }}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white/80 backdrop-blur-sm border border-zinc-100 rounded-full flex items-center justify-center shadow-sm opacity-40 active:opacity-80"
+                    >
+                        <X className="w-2.5 h-2.5 text-zinc-500" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showDelete && !isFocused && (
+                    <motion.button
+                        key="del-action"
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        onClick={() => deleteTransaction(transaction.id)}
+                        className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg z-30"
+                    >
+                        <X className="w-3 h-3 stroke-[3px]" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ────────────────────────────────────────────────────────────
+// Compact Graph (uses same Recharts approach as desktop)
+// ────────────────────────────────────────────────────────────
+const Y_AXIS_WIDTH = 44; // must match the YAxis width prop below
+
+function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?: number }) {
     const projection = useProjection();
-    const { width, height } = useWindowSize();
+    const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+    if (projection.length === 0) return null;
+
+    const startBal = projection[0].balance;
+    const minBal = projection.reduce((min, p) => p.balance < min ? p.balance : min, projection[0].balance);
+    const maxBal = projection.reduce((max, p) => p.balance > max ? p.balance : max, projection[0].balance);
+    const range = Math.max(Math.abs(maxBal - minBal), 100);
+    const threshold = range * 0.15;
+    const yTicks = [startBal];
+    if (Math.abs(minBal - startBal) > threshold) yTicks.push(minBal);
+    if (Math.abs(maxBal - startBal) > threshold && Math.abs(maxBal - minBal) > threshold) yTicks.push(maxBal);
+
+    return (
+        <div className="relative" style={{ height }}>
+            <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                    data={projection.map(p => ({ ...p, expense: -p.expense }))}
+                    margin={{ top: 12, right: 0, bottom: 0, left: leftPadding ? leftPadding - Y_AXIS_WIDTH : 0 }}
+                    onClick={(e: any) => e?.activePayload && setSelectedMonth(e.activePayload[0].payload.month)}
+                >
+                    <defs>
+                        <linearGradient id="mobileColorIncome" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
+                        </linearGradient>
+                        <linearGradient id="mobileColorExpense" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.2} />
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={false} height={1} />
+                    <YAxis
+                        orientation="left"
+                        axisLine={false}
+                        tickLine={false}
+                        ticks={yTicks}
+                        tickFormatter={val => `${new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(val)}€`}
+                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
+                        width={44}
+                        domain={['auto', 'auto']}
+                    />
+                    <Tooltip
+                        content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                                <div className="bg-white/95 backdrop-blur-xl p-3 rounded-2xl shadow-premium border border-white/40 min-w-[140px] text-xs">
+                                    <p className="font-black uppercase tracking-widest text-zinc-400 mb-2 text-[9px]">
+                                        {format(parseISO(`${d.month}-01`), 'MMMM yyyy', { locale: fr })}
+                                    </p>
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between"><span className="text-zinc-400 font-bold">Revenus</span><span className="font-black text-emerald-500">+{d.income}€</span></div>
+                                        <div className="flex justify-between"><span className="text-zinc-400 font-bold">Dépenses</span><span className="font-black text-rose-500">-{Math.abs(d.expense)}€</span></div>
+                                        <div className="pt-1.5 border-t border-zinc-100 flex justify-between"><span className="font-bold text-zinc-900">Solde</span><span className="font-black text-slate-900">{d.balance}€</span></div>
+                                    </div>
+                                </div>
+                            );
+                        }}
+                        cursor={false}
+                    />
+                    <Bar dataKey="income" fill="url(#mobileColorIncome)" radius={[8, 8, 0, 0]} barSize={16} animationDuration={1200} activeBar={false}>
+                        {projection.map((e, i) => (
+                            <Cell key={i} fill={e.month === selectedMonth ? '#10b981' : 'url(#mobileColorIncome)'} />
+                        ))}
+                    </Bar>
+                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[8, 8, 0, 0]} barSize={16} animationDuration={1200} activeBar={false}>
+                        {projection.map((e, i) => (
+                            <Cell key={i} fill={e.month === selectedMonth ? '#f43f5e' : 'url(#mobileColorExpense)'} />
+                        ))}
+                    </Bar>
+                    <Line type="monotone" dataKey="balance" stroke="#0f172a" strokeWidth={3}
+                        dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 6, strokeWidth: 0 }} animationDuration={1800} />
+                    <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="3 3" />
+                </ComposedChart>
+            </ResponsiveContainer>
+
+            <AnimatePresence>
+                {selectedMonth && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                        className="absolute inset-x-3 bottom-3 flex justify-between items-center bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-premium border border-white"
+                    >
+                        <div className="flex flex-col">
+                            <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400">Mois</span>
+                            <span className="text-zinc-900 font-black italic text-sm leading-tight">
+                                {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: fr })}
+                            </span>
+                        </div>
+                        <button onClick={() => setSelectedMonth(null)} className="bg-zinc-900 text-white p-1.5 rounded-xl active:scale-90">
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ────────────────────────────────────────────────────────────
+// KPI Section (compact mobile variant)
+// ────────────────────────────────────────────────────────────
+function MobileKPISection() {
+    const projection = useProjection();
+    const { startingBalance, setStartingBalance, currency, projectionMonths } = useFinanceStore();
+    const { dictionary, locale } = useTranslation();
+    const [isEditing, setIsEditing] = useState(false);
+    const [inputValue, setInputValue] = useState(startingBalance.toString());
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => { setInputValue(startingBalance.toString()); }, [startingBalance, isEditing]);
+
+    if (projection.length === 0) return null;
+
+    const currentBalance = projection[0].balance;
+    const targetBalance = projection[projection.length - 1].balance;
+
+    const fmt = (val: number) => {
+        const sign = val < 0 ? '-' : '';
+        return `${sign}${new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.abs(val))}${currency}`;
+    };
+
+    const submit = () => {
+        const val = parseFloat(inputValue);
+        if (!isNaN(val)) setStartingBalance(val);
+        else setInputValue(startingBalance.toString());
+        setIsEditing(false);
+    };
+
+    const scrollIntoView = (el: HTMLElement | null) => {
+        if (!el) return;
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    };
+
+    return (
+        <div className="grid grid-cols-2 gap-1.5 mb-2 px-3 pt-2">
+            {/* Editable current balance */}
+            <motion.div
+                whileHover={{ y: -1 }}
+                className="p-2 rounded-2xl border border-white bg-white shadow-soft cursor-pointer min-h-[60px] flex flex-col justify-between"
+                onClick={() => !isEditing && setIsEditing(true)}
+            >
+                <span className="text-zinc-400 font-bold text-[7px] uppercase tracking-widest leading-tight">{dictionary.kpi.currentBalance}</span>
+                {isEditing ? (
+                    <input
+                        ref={inputRef}
+                        autoFocus
+                        type="number"
+                        inputMode="decimal"
+                        value={inputValue}
+                        onChange={e => setInputValue(e.target.value)}
+                        onFocus={e => scrollIntoView(e.currentTarget)}
+                        onBlur={submit}
+                        onKeyDown={e => e.key === 'Enter' && submit()}
+                        className="text-sm font-black tracking-tighter text-zinc-900 bg-zinc-50 rounded-lg w-full outline-none p-0.5 border-b-2 border-zinc-900"
+                    />
+                ) : (
+                    <div className="text-sm font-black tracking-tighter text-zinc-900">{fmt(currentBalance)}</div>
+                )}
+            </motion.div>
+
+            {/* Target simulation balance */}
+            <div className="p-2 rounded-2xl border border-white bg-white shadow-soft min-h-[60px] flex flex-col justify-between">
+                <span className="text-zinc-400 font-bold text-[7px] uppercase tracking-widest leading-tight">
+                    {dictionary.kpi.simulation.replace('{months}', projectionMonths.toString())}
+                </span>
+                <div className="text-sm font-black tracking-tighter text-zinc-900">{fmt(targetBalance)}</div>
+            </div>
+        </div>
+    );
+}
+
+// ────────────────────────────────────────────────────────────
+// Main Page
+// ────────────────────────────────────────────────────────────
+export default function DashboardMobilePage() {
+    const {
+        initAuth, user, transactions, currency, textSize,
+        startingBalance, startingMonth,
+        loadProject, planifications, currentPlanificationId,
+        addPlanification, setCurrentPlanification,
+        currentScenarioId, scenarios, showScenarioBadge, projectionMonths,
+        addScenario, setCurrentScenario,
+        undo, redo, undoStack, redoStack
+    } = useFinanceStore();
+
+    const { dictionary, locale } = useTranslation();
     const router = useRouter();
-    const params = useParams();
+    const searchParams = useSearchParams();
 
-    useEffect(() => {
-        if (width && height && width > height) {
-            const lang = params?.lang || 'fr';
-            router.push(`/${lang}/dashboard`);
-        }
-    }, [width, height, router, params]);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isShared, setIsShared] = useState(false);
+    const [showDetails, setShowDetails] = useState(false);
 
-    const [activeView, setActiveView] = useState<'graph' | 'matrix'>('graph');
-    const [selectedGraphPoint, setSelectedGraphPoint] = useState<{ month: string, type: 'balance' | 'income' | 'expense', value: number, x: number, y: number } | null>(null);
+    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
+    const [isScenarioMenuOpen, setIsScenarioMenuOpen] = useState(false);
+    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
+    const [newPlanificationName, setNewPlanificationName] = useState('');
+    const [isAddingScenario, setIsAddingScenario] = useState(false);
+    const [newScenarioName, setNewScenarioName] = useState('');
 
-    const [isEditingBalance, setIsEditingBalance] = useState(false);
-    const [tempBalance, setTempBalance] = useState('');
-    const mainRef = useRef<HTMLElement>(null);
-
-    useEffect(() => {
-        if (mainRef.current) {
-            mainRef.current.scrollTo({ top: 0, behavior: 'instant' });
-        }
-    }, [activeView]);
-
-    const [currentTipIndex, setCurrentTipIndex] = useState(0);
-
-    const matrixTips = useMemo(() => [
-        <>Pensez aux sorties souvent oubliées : <span className="font-medium opacity-80">Impôts, Assurances, Abonnements...</span></>,
-        <>Les dépenses annuelles ou trimestrielles peuvent être <span className="font-medium opacity-80">mensualisées pour éviter les surprises.</span></>,
-        <>Un extra prévu pour les vacances ou Noël ? <span className="font-medium opacity-80">Ajoutez-le dès aujourd'hui en ponctuel !</span></>,
-        <>N'oubliez pas d'inclure votre <span className="font-medium opacity-80">épargne de précaution chaque mois.</span></>,
-        <>Les petits plaisirs (café, resto) finissent par compter ! <span className="font-medium opacity-80">Prévoyez un budget "sorties" mensuel.</span></>,
-        <>Anticipez vos frais de santé : <span className="font-medium opacity-80">Mutuelle, lunettes, soins médicaux divers...</span></>,
-        <>Prévoyez une enveloppe pour les imprévus : <span className="font-medium opacity-80">Panne de voiture, remplacement d'électroménager...</span></>,
-        <>Avez-vous pensé aux frais liés à la rentrée ? <span className="font-medium opacity-80">Fournitures, inscriptions scolaires ou sportives...</span></>,
-        <>Vos abonnements numériques s'accumulent : <span className="font-medium opacity-80">Faites régulièrement le point (streaming, apps...).</span></>,
-        <>L'entretien de la maison a un coût : <span className="font-medium opacity-80">Chauffage, petites réparations, jardinage...</span></>
-    ], []);
-
-    // Tips rotation
-    useEffect(() => {
-        if (activeView === 'matrix') {
-            setCurrentTipIndex(Math.floor(Math.random() * matrixTips.length));
-            const interval = setInterval(() => {
-                setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length);
-            }, 30000);
-            return () => clearInterval(interval);
-        }
-    }, [activeView, matrixTips]);
-
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    // Editor bottom sheet
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [addMonth, setAddMonth] = useState<string | undefined>();
     const [addRecurrence, setAddRecurrence] = useState<'monthly' | 'none'>('none');
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-    // Drag tracking state
-    const [draggingTxId, setDraggingTxId] = useState<string | null>(null);
-    const [hoveredMonth, setHoveredMonth] = useState<string | null>(null);
-    const [isHoveringTrash, setIsHoveringTrash] = useState(false);
-    const [isHoveringDuplicate, setIsHoveringDuplicate] = useState(false);
-    const [txToDelete, setTxToDelete] = useState<string | null>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // Header state
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [isShared, setIsShared] = useState(false);
+    const months = Array.from({ length: projectionMonths }).map((_, i) => {
+        const date = addMonths(parseISO(`${startingMonth}-01`), i);
+        return format(date, 'yyyy-MM');
+    });
 
-    const [isGraphTipDismissed, setIsGraphTipDismissed] = useState(false);
-    const [isMatrixTipDismissed, setIsMatrixTipDismissed] = useState(false);
+    const oneOffTransactions = transactions.filter(t => t.recurrence === 'none');
+    const recurringTransactions = transactions.filter(t => t.recurrence !== 'none');
 
-    const [isHeaderCompact, setIsHeaderCompact] = useState(false);
-    const prevScrollY = useRef(0);
+    const currentPlanification = planifications.find(p => p.id === currentPlanificationId);
+    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+    const isScenarioVisible = showScenarioBadge && (user || scenarios.length > 0);
 
-    const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-        const currentScrollY = e.currentTarget.scrollTop;
-        if (currentScrollY > prevScrollY.current && currentScrollY > 50) {
-            setIsHeaderCompact(true);
-        } else if (currentScrollY < prevScrollY.current) {
-            setIsHeaderCompact(false);
+    useEffect(() => { initAuth(); }, [initAuth]);
+
+    useEffect(() => {
+        const sharedData = searchParams.get('data');
+        if (sharedData) {
+            try {
+                const decoded = JSON.parse(decodeURIComponent(atob(sharedData)));
+                loadProject(decoded);
+                router.replace(`/${locale}/dashboard-mobile`);
+            } catch { }
         }
-        prevScrollY.current = currentScrollY;
-    };
+    }, [searchParams, loadProject, router, locale]);
 
-    // Planification state
-    const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
-    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
-    const [newPlanificationName, setNewPlanificationName] = useState('');
-
-    // --- Inline Edit State ---
-    const [editingTxId, setEditingTxId] = useState<string | null>(null);
-    const [editLabel, setEditLabel] = useState('');
-    const [editAmount, setEditAmount] = useState('');
-
-    const startInlineEdit = (tx: Transaction) => {
-        setEditingTxId(tx.id);
-        setEditLabel(tx.label);
-        setEditAmount(tx.direction === 'expense' ? `-${tx.amount}` : `${tx.amount}`);
-    };
-
-    const saveInlineEdit = async (tx: Transaction) => {
-        const rawAmount = parseFloat(editAmount);
-        if (isNaN(rawAmount) || rawAmount === 0) {
-            setEditingTxId(null);
-            return;
-        }
-        const direction: TransactionDirection = rawAmount < 0 ? 'expense' : 'income';
-        const absoluteAmount = Math.abs(rawAmount);
-
-        await updateTransaction(tx.id, {
-            ...tx,
-            label: editLabel.trim() || (direction === 'income' ? 'Recette' : 'Dépense'),
-            amount: absoluteAmount,
-            direction
-        });
-        setEditingTxId(null);
-    };
-
-    // Shared render for transaction pill (inline edit vs display)
-    const renderTransactionPill = (tx: Transaction) => {
-        const isEditing = editingTxId === tx.id;
-
-        if (isEditing) {
-            return (
-                <div
-                    key={`editing-${tx.id}`}
-                    className={clsx(
-                        "pl-2 min-w-[200px] pr-1 py-1 rounded-lg border-2 flex items-center space-x-2 shadow-sm",
-                        tx.direction === 'income' ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900",
-                        tx.recurrence === 'monthly' ? "h-9" : "h-7"
-                    )}
-                >
-                    <input
-                        autoFocus
-                        type="text"
-                        value={editLabel}
-                        onChange={(e) => setEditLabel(e.target.value)}
-                        className="w-20 bg-transparent text-sm font-black italic border-none focus:outline-none focus:ring-0 p-0 text-inherit placeholder-zinc-400"
-                        onKeyDown={(e) => e.key === 'Enter' && saveInlineEdit(tx)}
-                    />
-                    <input
-                        type="number"
-                        inputMode="decimal"
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                        className="w-16 bg-transparent text-xs font-bold text-right border-none focus:outline-none focus:ring-0 p-0 text-inherit placeholder-zinc-400 tabular-nums"
-                        onKeyDown={(e) => e.key === 'Enter' && saveInlineEdit(tx)}
-                    />
-                    <button
-                        onClick={() => saveInlineEdit(tx)}
-                        className="w-7 h-7 flex items-center justify-center bg-zinc-900 text-white rounded-md active:scale-95 shadow-sm"
-                    >
-                        <Check className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        onClick={() => setEditingTxId(null)}
-                        className="w-7 h-7 flex items-center justify-center bg-white text-zinc-400 border border-zinc-200 rounded-md active:scale-95 shadow-sm ml-1 hover:bg-zinc-50"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            );
-        }
-
-        return (
-            <motion.button
-                key={tx.id}
-                onClick={(e) => {
-                    if (draggingTxId) {
-                        e.preventDefault();
-                        return;
-                    }
-                    startInlineEdit(tx);
-                }}
-                onPointerDown={(e) => {
-                    e.stopPropagation();
-                }}
-                drag
-                dragSnapToOrigin
-                dragElastic={1}
-                onDragStart={() => handleDragStart(tx.id)}
-                onDrag={(e, info) => {
-                    const el = document.elementFromPoint(info.point.x, info.point.y);
-                    if (el) {
-                        const trash = el.closest('[data-droptarget="trash"]');
-                        if (trash && !isHoveringTrash) setIsHoveringTrash(true);
-                        else if (!trash && isHoveringTrash) setIsHoveringTrash(false);
-
-                        const row = el.closest('[data-droptarget="month"]');
-                        if (row && tx.recurrence === 'none') {
-                            const m = row.getAttribute('data-month');
-                            if (m && m !== hoveredMonth) setHoveredMonth(m);
-                        } else {
-                            if (hoveredMonth) setHoveredMonth(null);
-                        }
-
-                        const duplicate = el.closest('[data-droptarget="duplicate"]');
-                        if (duplicate && !isHoveringDuplicate) setIsHoveringDuplicate(true);
-                        else if (!duplicate && isHoveringDuplicate) setIsHoveringDuplicate(false);
-                    }
-                }}
-                onDragEnd={(e, info) => {
-                    if (tx.recurrence === 'monthly') {
-                        setDraggingTxId(null);
-                        setIsHoveringTrash(false);
-                        const el = document.elementFromPoint(info.point.x, info.point.y);
-                        if (el) {
-                            const trash = el.closest('[data-droptarget="trash"]');
-                            if (trash) {
-                                setTxToDelete(tx.id);
-                            }
-                        }
-                    } else {
-                        handleDragEnd(e, info, tx);
-                    }
-                }}
-                whileDrag={{ scale: 1.1, zIndex: 100, rotate: -2, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)" }}
-                className={clsx(
-                    "px-3 py-1.5 rounded-lg text-sm font-black border-2 flex items-center space-x-1 active:scale-95 transition-all touch-none",
-                    tx.direction === 'income' ? "border-emerald-200 text-emerald-600 bg-white" : "border-rose-200 text-rose-600 bg-white",
-                    tx.recurrence === 'monthly' && (tx.direction === 'income' ? "bg-emerald-50" : "bg-rose-50"),
-                    tx.recurrence === 'monthly' && "space-x-2 pl-3 pr-2",
-                    tx.recurrence === 'none' && "text-xs h-7",
-                    draggingTxId === tx.id && "shadow-xl border-zinc-900"
-                )}
-            >
-                <span className="truncate max-w-[100px] italic pointer-events-none">{tx.label || 'Virement'}</span>
-                <span className="opacity-75 pointer-events-none text-xs">
-                    {formatCurrencyDetailed(tx.amount)}{tx.recurrence === 'monthly' ? '/m' : ''}
-                </span>
-            </motion.button>
-        );
-    };
-
-    const { dictionary } = useTranslation();
-
-    const currentPlanification = useMemo(() => {
-        return planifications.find(p => p.id === currentPlanificationId);
-    }, [planifications, currentPlanificationId]);
-
-    const handleLogin = () => {
-        setIsAuthModalOpen(true);
-    };
-
-    const handleAddPlanification = async () => {
-        if (!newPlanificationName.trim()) return;
-        const id = await addPlanification(newPlanificationName.trim());
-        if (id) {
-            setCurrentPlanification(id);
-            setNewPlanificationName('');
-            setIsAddingPlanification(false);
-            setIsPlanificationMenuOpen(false);
-        }
-    };
-
-    const formatCurrency = (val: number, shrinkK = false) => {
-        const sign = val < 0 ? '-' : '';
-        const absVal = Math.abs(val);
-        if (shrinkK && absVal >= 1000) {
-            return `${sign}${Math.round(absVal / 1000)}K`;
-        }
-        const formatted = new Intl.NumberFormat('fr-FR', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(absVal);
-        return `${sign}${formatted}`;
-    };
-
-    const formatCurrencyDetailed = (val: number) => {
-        const sign = val < 0 ? '-' : '';
-        const absVal = Math.abs(val);
-        const formatted = new Intl.NumberFormat('fr-FR', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(absVal);
-        return `${sign} ${formatted} ${currency}`;
-    };
-
-    const handleEdit = (tx: Transaction) => {
-        setSelectedTransaction(tx);
-        setIsAdding(false);
-        setIsEditorOpen(true);
-    };
-
-    const handleAdd = (month?: string, recurrence: 'monthly' | 'none' = 'none') => {
-        setSelectedTransaction(null);
-        setAddMonth(month);
-        setAddRecurrence(recurrence);
-        setIsAdding(true);
-        setIsEditorOpen(true);
-    };
-
-    // --- Drag n Drop Logic ---
-    const { updateTransaction, deleteTransaction, addTransaction } = useFinanceStore();
-
-    const handleDragStart = (txId: string) => {
-        setDraggingTxId(txId);
-    };
-
-    const handleDragEnd = async (e: any, info: any, tx: Transaction) => {
-        setDraggingTxId(null);
-        setHoveredMonth(null);
-        setIsHoveringTrash(false);
-        setIsHoveringDuplicate(false);
-
-        // Simple DOM element overlap detection since we are scrolling and standard HTML5 Dnd is tricky on mobile
-        // Look for the element under the pointer
-        const dropTarget = document.elementFromPoint(e.clientX || (e.changedTouches ? e.changedTouches[0].clientX : 0), e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : 0));
-
-        if (!dropTarget) return;
-
-        // Check if it's the trash
-        const isTrash = dropTarget.closest('[data-droptarget="trash"]');
-        if (isTrash) {
-            setTxToDelete(tx.id);
-            return;
-        }
-
-        // Check if it's the duplicate
-        const isDuplicate = dropTarget.closest('[data-droptarget="duplicate"]');
-        if (isDuplicate) {
-            const { id, ...txWithoutId } = tx;
-            await addTransaction(txWithoutId);
-            return;
-        }
-
-        // Check if it's a month row
-        const monthRow = dropTarget.closest('[data-droptarget="month"]');
-        if (monthRow) {
-            const newMonth = monthRow.getAttribute('data-month');
-            if (newMonth && newMonth !== tx.month) {
-                await updateTransaction(tx.id, { ...tx, month: newMonth });
+    // Undo/Redo keyboard
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) { if (redoStack.length > 0) redo(); }
+                else { if (undoStack.length > 0) undo(); }
             }
-            return;
-        }
-    };
-
-    // --- Graph Data Prep ---
-    // Reduced rowHeight as requested for density
-    const rowHeight = 45;
-    const labelWidth = 60; // Slightly larger for bigger text if needed, but 'Fev.26' is short
-    const graphWidth = width ? width - labelWidth - 32 : 250;
-    const midX = graphWidth / 2;
-
-    const maxFlow = useMemo(() => {
-        let max = 1;
-        projection.forEach(p => {
-            if (p.income > max) max = p.income;
-            if (p.expense > max) max = p.expense;
-        });
-        return max;
-    }, [projection]);
-
-    const maxBal = useMemo(() => {
-        let min = startingBalance;
-        let max = startingBalance;
-        projection.forEach(p => {
-            if (p.balance < min) min = p.balance;
-            if (p.balance > max) max = p.balance;
-        });
-
-        // Ensure axis includes 0 if possible or just center around the actual range
-        // If we center around 0 (midX = 0), then max magnitude
-        return Math.max(Math.abs(min), Math.abs(max), 1);
-    }, [projection, startingBalance]);
-
-    // To place '25k | 32k' markers we need the actual boundaries used by the line graph
-    // The graph draws from -maxBal to +maxBal centered at midX.
-    const axisMin = -maxBal;
-    const axisMax = maxBal;
-
-    const { minBalPoint, maxBalPoint } = useMemo(() => {
-        if (projection.length === 0) return { minBalPoint: null, maxBalPoint: null };
-        return projection.reduce((acc, curr) => {
-            return {
-                minBalPoint: curr.balance < acc.minBalPoint.balance ? curr : acc.minBalPoint,
-                maxBalPoint: curr.balance > acc.maxBalPoint.balance ? curr : acc.maxBalPoint
-            };
-        }, { minBalPoint: projection[0], maxBalPoint: projection[0] });
-    }, [projection]);
-
-    // Points for the continuous line graph (Balance evolution)
-    const linePath = useMemo(() => {
-        if (projection.length === 0) return '';
-
-        let pts = [];
-        let x0 = midX + ((startingBalance / maxBal) * (graphWidth / 2));
-        pts.push({ x: x0, y: rowHeight / 2 });
-
-        projection.forEach((p, i) => {
-            const y = (i * rowHeight) + (rowHeight / 2);
-            const x = midX + ((p.balance / maxBal) * (graphWidth / 2));
-            pts.push({ x, y });
-        });
-
-        if (pts.length < 2) return `M ${pts[0]?.x},${pts[0]?.y}`;
-
-        // Straight lines with rounded corners
-        let path = `M ${pts[0].x},${pts[0].y}`;
-        const radius = 20; // 20px border radius for smooth trend changes
-
-        for (let i = 1; i < pts.length - 1; i++) {
-            let p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1];
-            let d1 = Math.hypot(p1.x - p0.x, p1.y - p0.y);
-            let d2 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-
-            // If distance is too small, just draw line to p1
-            if (d1 === 0 || d2 === 0) {
-                path += ` L ${p1.x},${p1.y}`;
-                continue;
-            }
-
-            let r = Math.min(radius, d1 / 2, d2 / 2);
-
-            let v1x = (p0.x - p1.x) / d1;
-            let v1y = (p0.y - p1.y) / d1;
-
-            let v2x = (p2.x - p1.x) / d2;
-            let v2y = (p2.y - p1.y) / d2;
-
-            let q1x = p1.x + v1x * r;
-            let q1y = p1.y + v1y * r;
-
-            let q2x = p1.x + v2x * r;
-            let q2y = p1.y + v2y * r;
-
-            path += ` L ${q1x},${q1y} Q ${p1.x},${p1.y} ${q2x},${q2y}`;
-        }
-        path += ` L ${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
-
-        return path;
-    }, [projection, maxBal, midX, graphWidth, startingBalance, rowHeight]);
-
-    // --- Matrix Data Prep ---
-    const recurringTxs = useMemo(() => {
-        return transactions.filter(t => t.recurrence !== 'none').sort((a, b) => b.amount - a.amount);
-    }, [transactions]);
-
-    const finalBalance12m = projection[projection.length - 1]?.balance || startingBalance;
-
-    // Runway calculation
-    const negativeMonthIndex = projection.findIndex(p => p.balance < 0);
-    let runwayMessage = "";
-    let runwayColor = "bg-emerald-50 text-emerald-800 border-emerald-200";
-
-    if (negativeMonthIndex !== -1) {
-        if (negativeMonthIndex === 0) {
-            runwayMessage = `Alerte : ton compte passe sous zéro dès ${format(parseISO(`${projection[0].month}-01`), 'MMM yyyy', { locale: fr })}`;
-            runwayColor = "bg-rose-50 text-rose-800 border-rose-200";
-        } else if (negativeMonthIndex <= 3) {
-            runwayMessage = `Attention : ton compte passe sous zéro en ${format(parseISO(`${projection[negativeMonthIndex].month}-01`), 'MMM yyyy', { locale: fr })}`;
-            runwayColor = "bg-orange-50 text-orange-800 border-orange-200";
-        } else {
-            runwayMessage = `À ce rythme, ton compte passe sous zéro en ${format(parseISO(`${projection[negativeMonthIndex].month}-01`), 'MMM yyyy', { locale: fr })}`;
-            runwayColor = "bg-amber-50 text-amber-800 border-amber-200";
-        }
-    } else {
-        runwayMessage = "Tout va bien, ton compte reste positif sur cette période.";
-    }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [undo, redo, undoStack.length, redoStack.length]);
 
     const handleShare = () => {
-        const url = `${window.location.origin}${window.location.pathname}`;
+        const state = { transactions, startingBalance, startingMonth, currency, textSize, projectionMonths };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+        const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
         navigator.clipboard.writeText(url).then(() => {
             setIsShared(true);
-            setIsShareModalOpen(true);
             setTimeout(() => setIsShared(false), 2000);
         });
     };
 
+    const handleAddPlanification = async () => {
+        if (!newPlanificationName.trim()) return;
+        const id = await addPlanification(newPlanificationName);
+        if (id) { setCurrentPlanification(id); setNewPlanificationName(''); setIsAddingPlanification(false); setIsPlanificationMenuOpen(false); }
+    };
+
+    const handleAddScenario = async () => {
+        if (!newScenarioName.trim()) return;
+        const id = await addScenario(newScenarioName);
+        if (id) { setCurrentScenario(id); setNewScenarioName(''); setIsAddingScenario(false); setIsScenarioMenuOpen(false); }
+    };
+
+    const handleOpenEditor = (tx?: Transaction, month?: string, recurrence: 'monthly' | 'none' = 'none') => {
+        if (tx) { setSelectedTransaction(tx); setIsAdding(false); }
+        else { setSelectedTransaction(null); setAddMonth(month); setAddRecurrence(recurrence); setIsAdding(true); }
+        setIsEditorOpen(true);
+    };
+
+    const TOTAL_WIDTH = LABEL_WIDTH + projectionMonths * MOBILE_COL;
+
     return (
-        <div className="min-h-screen bg-zinc-50 font-sans flex flex-col relative overflow-hidden">
-            {/* Header Sticky (Shared) */}
-            <header className={clsx("fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 px-4 py-4 md:py-6 shadow-sm transition-transform duration-300", isHeaderCompact && "-translate-y-full")}>
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex-1 flex justify-start items-center space-x-2">
-                        {/* View Toggle */}
-                        <div className="flex bg-zinc-100 p-1 rounded-full shrink-0">
-                            <button
-                                onClick={() => setActiveView('graph')}
-                                className={clsx(
-                                    "px-4 py-1.5 rounded-full text-xs font-black tracking-wide transition-all",
-                                    activeView === 'graph' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400"
-                                )}>
-                                {dictionary.mobile.graph}
-                            </button>
-                            <button
-                                onClick={() => setActiveView('matrix')}
-                                className={clsx(
-                                    "px-4 py-1.5 rounded-full text-xs font-black tracking-wide transition-all",
-                                    activeView === 'matrix' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400"
-                                )}>
-                                {dictionary.mobile.details}
-                            </button>
+        <div className={clsx(
+            'min-h-screen bg-zinc-50/50 flex flex-col overflow-hidden relative font-sans transition-all duration-500',
+            textSize === 'small' && 'scale-[0.98]',
+            textSize === 'large' && 'scale-[1.02]'
+        )}>
+            {/* ── Header ── */}
+            <header className="fixed top-0 left-0 right-0 h-14 bg-white/85 backdrop-blur-xl z-50 border-b border-zinc-100 px-3 flex items-center justify-between">
+                {/* Left: logo + planification */}
+                <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1.5">
+                        <div className="w-7 h-7 bg-zinc-900 rounded-xl flex items-center justify-center shadow-premium">
+                            <div className="w-3.5 h-3.5 border-2 border-white rounded-md flex items-center justify-center">
+                                <div className="w-1 h-1 bg-white rounded-full" />
+                            </div>
                         </div>
+                        <span className="font-black italic text-sm tracking-tighter text-zinc-900">PLANIF</span>
                     </div>
 
-                    <div className="flex-1 flex justify-end items-center space-x-2">
-                        {/* Profile Menu */}
-                        <div className="relative">
-                            <button
-                                onClick={() => {
-                                    setIsMenuOpen(!isMenuOpen);
-                                    if (!isMenuOpen) setIsPlanificationMenuOpen(false);
-                                }}
-                                className="px-3 py-1.5 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 rounded-full flex items-center justify-center active:scale-95 h-10 transition-colors"
-                            >
-                                <ChevronDown className={clsx("w-4 h-4 transition-transform", isMenuOpen && "rotate-180")} />
-                            </button>
+                    {/* Planification pill */}
+                    <div className="relative">
+                        <button
+                            onClick={() => { setIsPlanificationMenuOpen(!isPlanificationMenuOpen); setIsScenarioMenuOpen(false); setIsMenuOpen(false); }}
+                            className={clsx(
+                                'flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider',
+                                isPlanificationMenuOpen ? 'bg-zinc-100 border-zinc-200 text-zinc-900' : 'bg-zinc-50 border-zinc-100 text-zinc-600 hover:bg-zinc-100'
+                            )}
+                        >
+                            <Home className="w-3 h-3" />
+                            <span className="truncate max-w-[70px]">{currentPlanification?.name || 'Home'}</span>
+                        </button>
 
-                            <AnimatePresence>
-                                {isMenuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                    >
-                                        <div className="p-1">
+                        <AnimatePresence>
+                            {isPlanificationMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                    className="absolute left-0 mt-2 w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                >
+                                    <div className="space-y-1 max-h-52 overflow-y-auto no-scrollbar">
+                                        {planifications.map(p => (
                                             <button
-                                                onClick={() => {
-                                                    setIsMenuOpen(false);
-                                                    handleShare();
-                                                }}
-                                                className="w-full flex items-center justify-between p-2 rounded-xl text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"
+                                                key={p.id}
+                                                onClick={() => { setCurrentPlanification(p.id); setIsPlanificationMenuOpen(false); }}
+                                                className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all', currentPlanificationId === p.id ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50')}
                                             >
-                                                <div className="flex items-center space-x-3">
-                                                    <Share2 className="w-4 h-4 text-zinc-400" />
-                                                    <span className="font-bold text-sm">Partager</span>
-                                                </div>
-                                                {isShared && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                                                {p.name}
                                             </button>
-
-                                            <button
-                                                onClick={() => {
-                                                    setIsMenuOpen(false);
-                                                    setIsSettingsModalOpen(true);
-                                                }}
-                                                className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"
-                                            >
-                                                <Settings className="w-4 h-4 text-zinc-400" />
-                                                <span className="font-bold text-sm">Paramètres</span>
-                                            </button>
-                                        </div>
-
-                                        <div className="h-px bg-zinc-100 my-1 mx-2" />
-
-                                        {user ? (
-                                            <>
-                                                <div className="px-3 py-2 text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-                                                    {user.email || 'Mode invité'}
-                                                </div>
-                                                <div className="p-1">
-                                                    <button
-                                                        onClick={async () => {
-                                                            await supabase.auth.signOut();
-                                                        }}
-                                                        className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                                    >
-                                                        <LogOut className="w-4 h-4" />
-                                                        <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
+                                        ))}
+                                        {user && (
+                                            <div className="pt-2 mt-1 border-t border-zinc-50">
+                                                {!isAddingPlanification ? (
+                                                    <button onClick={() => setIsAddingPlanification(true)} className="w-full flex items-center justify-center space-x-1.5 py-2 text-zinc-400 hover:text-zinc-600 text-xs font-bold">
+                                                        <Plus className="w-3.5 h-3.5" /><span>Nouvelle Planification</span>
                                                     </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="p-1">
-                                                <button
-                                                    onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                                                    className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-                                                >
-                                                    <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
-                                                        <Plus className="w-3 h-3 text-white" />
+                                                ) : (
+                                                    <div className="flex items-center space-x-2 p-1">
+                                                        <input autoFocus value={newPlanificationName} onChange={e => setNewPlanificationName(e.target.value)} placeholder="Nom..." className="flex-1 h-8 px-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none" onKeyDown={e => e.key === 'Enter' && handleAddPlanification()} />
+                                                        <button onClick={handleAddPlanification} className="w-8 h-8 bg-zinc-900 text-white rounded-lg flex items-center justify-center active:scale-95"><Check className="w-3.5 h-3.5" /></button>
                                                     </div>
-                                                    <div className="flex flex-col items-start pr-2">
-                                                        <span className="font-black italic text-sm leading-tight">Sauvegarder</span>
-                                                        <span className="text-[10px] font-medium text-zinc-500 leading-tight">mon profil</span>
-                                                    </div>
-                                                </button>
+                                                )}
                                             </div>
                                         )}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
-                        {/* App Logo / Planification Menu */}
+                    {/* Scenario pill */}
+                    {isScenarioVisible && (
                         <div className="relative">
                             <button
-                                onClick={() => {
-                                    setIsPlanificationMenuOpen(!isPlanificationMenuOpen);
-                                    if (!isPlanificationMenuOpen) setIsMenuOpen(false);
-                                }}
+                                onClick={() => { setIsScenarioMenuOpen(!isScenarioMenuOpen); setIsPlanificationMenuOpen(false); setIsMenuOpen(false); }}
                                 className={clsx(
-                                    "w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-premium active:scale-95 transition-all select-none",
-                                    isPlanificationMenuOpen && "scale-95 ring-2 ring-zinc-900 ring-offset-2"
+                                    'flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider',
+                                    isScenarioMenuOpen ? 'bg-zinc-100 border-zinc-200 text-zinc-900' : 'bg-zinc-50 border-zinc-100 text-zinc-600'
                                 )}
                             >
-                                <div className="w-5 h-5 border-2 border-white rounded-lg flex items-center justify-center">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                </div>
+                                <Layers className="w-3 h-3" />
+                                <span className="truncate max-w-[60px]">{currentScenario?.name || 'Principal'}</span>
                             </button>
 
                             <AnimatePresence>
-                                {isPlanificationMenuOpen && (
+                                {isScenarioMenuOpen && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute right-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                        initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                        className="absolute left-0 mt-2 w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
                                     >
-                                        <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
-                                            {planifications.map((p) => (
-                                                <EditableMenuItem
-                                                    key={p.id}
-                                                    item={p}
-                                                    isSelected={currentPlanificationId === p.id}
-                                                    onSelect={(id: string) => {
-                                                        setCurrentPlanification(id);
-                                                        setIsPlanificationMenuOpen(false);
-                                                    }}
-                                                    onEdit={user ? async (id: string, newName: string) => {
-                                                        await updatePlanification(id, { name: newName });
-                                                    } : undefined}
-                                                    onDelete={user && planifications.length > 1 ? async (id: string) => {
-                                                        setDeletingPlanificationId(id);
-                                                    } : undefined}
-                                                />
+                                        <div className="space-y-1 max-h-52 overflow-y-auto no-scrollbar">
+                                            <button onClick={() => { setCurrentScenario(null); setIsScenarioMenuOpen(false); }} className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm font-bold', !currentScenarioId ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600')}>
+                                                Principal
+                                            </button>
+                                            {scenarios.map(s => (
+                                                <button key={s.id} onClick={() => { setCurrentScenario(s.id); setIsScenarioMenuOpen(false); }} className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm font-bold', currentScenarioId === s.id ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600')}>
+                                                    {s.name}
+                                                </button>
                                             ))}
-
-                                            {user ? (
-                                                <div className="pt-2 mt-2 border-t border-zinc-50">
-                                                    {!isAddingPlanification ? (
-                                                        <button
-                                                            onClick={() => setIsAddingPlanification(true)}
-                                                            className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                            <span>{dictionary.common.add} Planification</span>
-                                                        </button>
-                                                    ) : (
-                                                        <div className="flex items-center space-x-2 p-1">
-                                                            <input
-                                                                autoFocus
-                                                                type="text"
-                                                                value={newPlanificationName}
-                                                                onChange={(e) => setNewPlanificationName(e.target.value)}
-                                                                placeholder="Nom..."
-                                                                className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
-                                                                onKeyDown={(e) => e.key === 'Enter' && handleAddPlanification()}
-                                                            />
-                                                            <button
-                                                                onClick={handleAddPlanification}
-                                                                className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
-                                                            >
-                                                                <Check className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
-                                                    <p className="text-xs text-zinc-500 font-medium mb-3">
-                                                        {dictionary.auth.planificationPrompt}
-                                                    </p>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsPlanificationMenuOpen(false);
-                                                            handleLogin();
-                                                        }}
-                                                        className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
-                                                    >
-                                                        {dictionary.auth.login}
-                                                    </button>
-                                                </div>
-                                            )}
                                         </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Scorecards */}
-                <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
-                    <div
-                        className="text-center rounded-[14px] border-2 border-zinc-200 py-1.5 px-2 relative cursor-pointer active:scale-95 transition-transform bg-white/50"
-                        onClick={() => {
-                            if (!isEditingBalance) {
-                                setIsEditingBalance(true);
-                                setTempBalance(startingBalance.toString());
-                            }
-                        }}
-                    >
-                        <div className="flex items-center justify-center mb-0.5 space-x-1">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900">{dictionary.kpi.todayBalance}</p>
-                            <Edit2 className="w-2.5 h-2.5 text-zinc-400" />
-                        </div>
-                        {isEditingBalance ? (
-                            <input
-                                autoFocus
-                                type="number"
-                                value={tempBalance}
-                                onChange={(e) => setTempBalance(e.target.value)}
-                                onBlur={() => {
-                                    setStartingBalance(parseFloat(tempBalance) || 0);
-                                    setIsEditingBalance(false);
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        setStartingBalance(parseFloat(tempBalance) || 0);
-                                        setIsEditingBalance(false);
-                                    }
-                                }}
-                                className="w-full text-center text-sm font-black tracking-tighter text-zinc-900 tabular-nums bg-transparent border-none p-0 focus:ring-0"
-                            />
-                        ) : (
-                            <p className="text-sm font-black tracking-tighter text-zinc-900 tabular-nums">{formatCurrency(startingBalance)}</p>
-                        )}
+                {/* Right: undo/redo + share + settings + profile */}
+                <div className="flex items-center space-x-1.5">
+                    {/* Undo / Redo */}
+                    <div className="flex items-center bg-zinc-50 border border-zinc-100 rounded-xl p-0.5 space-x-0.5">
+                        <button onClick={() => undo()} disabled={undoStack.length === 0}
+                            className={clsx('p-1.5 rounded-lg transition-all', undoStack.length === 0 ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-600 hover:bg-zinc-200 active:scale-95')}>
+                            <Undo2 className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="w-px h-3 bg-zinc-200" />
+                        <button onClick={() => redo()} disabled={redoStack.length === 0}
+                            className={clsx('p-1.5 rounded-lg transition-all', redoStack.length === 0 ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-600 hover:bg-zinc-200 active:scale-95')}>
+                            <Redo2 className="w-3.5 h-3.5" />
+                        </button>
                     </div>
-                    <div className="text-center rounded-[14px] border-2 border-zinc-200 py-1.5 px-2 bg-white/50">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-900 mb-0.5">{dictionary.kpi['12mBalance']}</p>
-                        <p className={clsx("text-sm font-black tracking-tighter tabular-nums", finalBalance12m < 0 ? "text-rose-500" : "text-zinc-900")}>
-                            {formatCurrency(finalBalance12m)}
-                        </p>
+
+                    {/* Share */}
+                    {/* moved to settings menu */}
+
+                    {/* Settings */}
+                    <button onClick={() => setIsSettingsModalOpen(true)} className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center shadow-soft active:scale-95 group">
+                        <Settings className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
+                    </button>
+
+                    {/* Profile — app icon only, opens login/logout menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => { setIsMenuOpen(!isMenuOpen); setIsPlanificationMenuOpen(false); setIsScenarioMenuOpen(false); }}
+                            className={clsx(
+                                'w-9 h-9 rounded-xl flex items-center justify-center shadow-premium active:scale-95 transition-all',
+                                isMenuOpen ? 'bg-zinc-700' : 'bg-zinc-900'
+                            )}
+                        >
+                            <div className="w-4 h-4 border-2 border-white rounded-md flex items-center justify-center">
+                                <div className="w-1 h-1 bg-white rounded-full" />
+                            </div>
+                        </button>
+
+                        <AnimatePresence>
+                            {isMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-52 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
+                                >
+                                    {/* Share */}
+                                    <button
+                                        onClick={() => { handleShare(); setIsMenuOpen(false); }}
+                                        className={clsx('w-full flex items-center space-x-2 p-3 rounded-2xl transition-all', isShared ? 'text-emerald-600 bg-emerald-50' : 'text-zinc-600 hover:bg-zinc-50')}
+                                    >
+                                        {isShared ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                                        <span className="font-black italic text-sm">{isShared ? 'Lien copié !' : 'Partager'}</span>
+                                    </button>
+                                    {/* Login / Logout */}
+                                    {user ? (
+                                        <button onClick={() => supabase.auth.signOut()} className="w-full flex items-center space-x-2 p-3 rounded-2xl text-zinc-400 hover:text-zinc-900">
+                                            <LogOut className="w-4 h-4" /><span className="font-black italic text-sm">{dictionary.auth.logout}</span>
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }} className="w-full flex items-center space-x-2 p-3 rounded-2xl text-zinc-900 bg-zinc-50">
+                                            <LogIn className="w-4 h-4" /><span className="font-black italic text-sm">{dictionary.auth.login}</span>
+                                        </button>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
-
-                {/* Interpretation Block & Runway Indicator (Graph View) */}
-                {!isGraphTipDismissed && activeView === 'graph' && (
-                    <InfoBubble
-                        id="graph-tip"
-                        icon={negativeMonthIndex !== -1 && negativeMonthIndex === 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
-                        content={runwayMessage}
-                        colorClasses={runwayColor}
-                        onDismiss={() => setIsGraphTipDismissed(true)}
-                    />
-                )}
-
-                {/* Tip Card (Matrix View) */}
-                {!isMatrixTipDismissed && activeView === 'matrix' && (
-                    <InfoBubble
-                        id={`tip-${currentTipIndex}`}
-                        icon={<span className="text-sm">💡</span>}
-                        content={matrixTips[currentTipIndex]}
-                        colorClasses="bg-amber-50 text-amber-800 border-amber-200"
-                        onNext={() => setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length)}
-                        onDismiss={() => setIsMatrixTipDismissed(true)}
-                    />
-                )}
             </header>
 
-            {/* Main Content Area */}
-            <main onScroll={handleScroll} ref={mainRef} className={clsx("flex-1 pb-32 overflow-y-auto no-scrollbar relative w-full pt-4", activeView === 'graph' ? "mt-[190px]" : "mt-[210px]")}>
-                <AnimatePresence mode="wait" initial={false}>
-                    {activeView === 'graph' && (
-                        <motion.div
-                            key="graph"
-                            initial={{ x: '-10%', opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: '-10%', opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-full px-4"
-                            drag="x"
-                            dragConstraints={{ left: 0, right: 0 }}
-                            dragElastic={0.2}
-                            onDragEnd={(e, { offset, velocity }) => {
-                                const swipe = Math.abs(offset.x) * velocity.x;
-                                if (swipe < -100) setActiveView('matrix');
-                            }}
-                        >
-                            <div className="relative mt-2.5" onClick={() => setSelectedGraphPoint(null)}>
-                                {/* Axis Track Markers Above the Graph */}
-                                <div className="flex justify-center mb-2" style={{ marginLeft: labelWidth }}>
-                                    <div className="relative w-full h-5" style={{ maxWidth: graphWidth }}>
-                                        <div className="absolute left-0 text-xs font-black text-zinc-400 -translate-x-1/2">
-                                            {formatCurrency(axisMin, true)}
-                                        </div>
-                                        <div className="absolute left-[50%] text-xs font-black text-zinc-400 -translate-x-1/2">
-                                            0
-                                        </div>
-                                        <div className="absolute right-0 text-xs font-black text-zinc-400 translate-x-1/2">
-                                            {formatCurrency(axisMax, true)}
-                                        </div>
-                                    </div>
-                                </div>
+            {/* ── Main scroll area ── */}
+            <main className="flex-1 overflow-y-auto pt-14 pb-24 no-scrollbar">
 
-                                {/* SVG Overlay for the continuous line and central axis */}
-                                <div className="absolute top-8 right-0 bottom-0 pointer-events-none z-10" style={{ width: graphWidth, height: projection.length * rowHeight }}>
-                                    <svg width="100%" height="100%" className="overflow-visible">
-                                        {/* Center Axis */}
-                                        <line x1={midX} y1="0" x2={midX} y2="100%" stroke="#e4e4e7" strokeWidth="1.5" strokeDasharray="4 4" />
+                {/* KPI section */}
+                <MobileKPISection />
 
-                                        {minBalPoint && <line x1={midX + ((minBalPoint.balance / maxBal) * (graphWidth / 2))} y1="0" x2={midX + ((minBalPoint.balance / maxBal) * (graphWidth / 2))} y2="100%" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />}
-                                        {maxBalPoint && <line x1={midX + ((maxBalPoint.balance / maxBal) * (graphWidth / 2))} y1="0" x2={midX + ((maxBalPoint.balance / maxBal) * (graphWidth / 2))} y2="100%" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 4" />}
+                {/* Horizontally scrollable: months axis + graph + pills */}
+                <div
+                    ref={scrollContainerRef}
+                    className="overflow-x-auto no-scrollbar pb-4"
+                >
+                    <div style={{ minWidth: `${TOTAL_WIDTH}px` }} className="flex flex-col space-y-0">
 
-                                        {/* Balance Line connecting points */}
-                                        <path
-                                            d={linePath}
-                                            fill="none"
-                                            stroke="#18181b"
-                                            strokeWidth="4"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-
-                                        {/* Balance Points */}
-                                        {projection.map((p, i) => {
-                                            const y = (i * rowHeight) + (rowHeight / 2);
-                                            const x = midX + ((p.balance / maxBal) * (graphWidth / 2));
-                                            return (
-                                                <g
-                                                    key={`pt-${i}`}
-                                                    className="pointer-events-auto cursor-pointer"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedGraphPoint({ month: p.month, type: 'balance', value: p.balance, x, y });
-                                                    }}
-                                                >
-                                                    <circle cx={x} cy={y} r="15" fill="transparent" />
-                                                    <circle cx={x} cy={y} r="7" fill={p.balance < 0 ? "#f43f5e" : "#10b981"} stroke="#ffffff" strokeWidth="2" />
-                                                </g>
-                                            )
-                                        })}
-                                        {/* Start point */}
-                                        <g
-                                            className="pointer-events-auto cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const x = midX + ((startingBalance / maxBal) * (graphWidth / 2));
-                                                // @ts-ignore
-                                                setSelectedGraphPoint({ month: projection[0]?.month || '', type: 'balance', value: startingBalance, x, y: rowHeight / 2 });
-                                            }}
-                                        >
-                                            <circle cx={midX + ((startingBalance / maxBal) * (graphWidth / 2))} cy={rowHeight / 2} r="15" fill="transparent" />
-                                            <circle cx={midX + ((startingBalance / maxBal) * (graphWidth / 2))} cy={rowHeight / 2} r="7" fill={startingBalance < 0 ? "#f43f5e" : "#10b981"} stroke="#ffffff" strokeWidth="2" />
-                                        </g>
-                                    </svg>
-                                </div>
-
-                                {/* Graph Tooltip Overlay */}
-                                <AnimatePresence>
-                                    {selectedGraphPoint && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                            className="absolute z-50 bg-zinc-900 text-white px-3 py-1.5 rounded-xl shadow-xl pointer-events-none flex items-center space-x-1.5 whitespace-nowrap border border-zinc-700/50"
-                                            style={{
-                                                right: graphWidth - selectedGraphPoint.x,
-                                                top: selectedGraphPoint.y + 32 - 45,
-                                                transform: 'translateX(50%)'
-                                            }}
-                                        >
-                                            <div className={clsx(
-                                                "w-2 h-2 rounded-full",
-                                                selectedGraphPoint.type === 'balance' ? (selectedGraphPoint.value < 0 ? 'bg-rose-500' : 'bg-emerald-500') :
-                                                    selectedGraphPoint.type === 'income' ? 'bg-emerald-300' : 'bg-rose-300'
-                                            )} />
-                                            <span className="font-black text-xs">{formatCurrencyDetailed(selectedGraphPoint.value)}</span>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                {/* Rows */}
-                                <div className="space-y-0 mt-8" style={{ paddingRight: 0 }}>
-                                    {projection.map((p, i) => {
-                                        const d = parseISO(`${p.month}-01`);
-
-                                        const incomeW = (p.income / maxFlow) * (graphWidth / 2 * 0.85);
-                                        const expenseW = (p.expense / maxFlow) * (graphWidth / 2 * 0.85);
-
-                                        return (
-                                            <div key={p.month} className="flex items-center relative" style={{ height: rowHeight }}>
-                                                {/* Label (Larger font, bold italic as requested) */}
-                                                <div className="w-[60px] flex-shrink-0 text-left">
-                                                    <span className="text-sm font-black italic text-zinc-900 capitalize">
-                                                        {format(d, 'MMM.yy', { locale: fr }).replace('.', '')}
-                                                    </span>
-                                                </div>
-
-                                                {/* Bar Chart Container */}
-                                                <div className="flex-1 relative flex items-center justify-center h-full">
-                                                    {/* Expense Bar (Left) */}
-                                                    <div className="absolute right-[50%] flex justify-end items-center pr-1 h-full">
-                                                        {p.expense > 0 && (
-                                                            <div
-                                                                className="h-4 bg-rose-300 rounded-l-md pointer-events-auto cursor-pointer"
-                                                                style={{ width: expenseW }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedGraphPoint({ month: p.month, type: 'expense', value: -p.expense, x: midX - expenseW / 2, y: (i * rowHeight) + rowHeight / 2 });
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-
-                                                    {/* Income Bar (Right) */}
-                                                    <div className="absolute left-[50%] flex justify-start items-center pl-1 h-full">
-                                                        {p.income > 0 && (
-                                                            <div
-                                                                className="h-4 bg-emerald-300 rounded-r-md pointer-events-auto cursor-pointer"
-                                                                style={{ width: incomeW }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedGraphPoint({ month: p.month, type: 'income', value: p.income, x: midX + incomeW / 2, y: (i * rowHeight) + rowHeight / 2 });
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                        {/* Months axis */}
+                        <div className="flex border-b border-zinc-200 pb-2 pt-1 sticky top-0 bg-zinc-50/95 backdrop-blur-md z-20">
+                            <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 px-2 font-black text-[8px] uppercase tracking-widest text-zinc-400 flex items-end justify-start">
+                                Mois
                             </div>
+                            <div className="flex flex-1">
+                                {months.map(m => (
+                                    <div key={m} style={{ width: MOBILE_COL, minWidth: MOBILE_COL }} className="text-center font-black italic text-[9px] text-zinc-400 capitalize shrink-0">
+                                        {format(parseISO(`${m}-01`), 'MMM yy', { locale: fr })}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
+                        {/* Graph */}
+                        <motion.div
+                            animate={{ height: showDetails ? 220 : 340 }}
+                            transition={{ type: 'spring', stiffness: 280, damping: 30 }}
+                            className="relative bg-white/70 backdrop-blur-sm rounded-[24px] mx-2 my-2 shadow-soft border border-white overflow-hidden"
+                        >
+                            <MobileGraph height={showDetails ? 220 : 340} leftPadding={LABEL_WIDTH} />
                         </motion.div>
-                    )}
 
-                    {activeView === 'matrix' && (
-                        <motion.div
-                            key="matrix"
-                            initial={{ x: '10%', opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: '10%', opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-full relative"
-                            drag={!draggingTxId ? "x" : false} // Disable page swipe when dragging a pill
-                            dragConstraints={{ left: 0, right: 0 }}
-                            dragElastic={0.2}
-                            onDragEnd={(e, { offset, velocity }) => {
-                                if (draggingTxId) return; // Ignore if dragging element
-                                const swipe = Math.abs(offset.x) * velocity.x;
-                                if (swipe > 100) setActiveView('graph');
-                            }}
+                        {/* Toggle button — controls BOTH sections together */}
+                        <button
+                            onClick={() => setShowDetails(!showDetails)}
+                            className="ml-2 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95"
                         >
-                            <div className="px-4 mb-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-3">{dictionary.mobile.monthly}</h3>
-                                {/* Pills Layout for Mensuels */}
-                                <div className="flex flex-wrap gap-2 relative">
-                                    {recurringTxs.length === 0 && (
-                                        <div className="text-zinc-400 text-[10px] italic py-3 px-1 w-full text-left">
-                                            {dictionary.timeline.emptyIncome}
+                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
+                                {showDetails ? 'Masquer' : 'Voir opérations'}
+                            </span>
+                            <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+                                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900" />
+                            </motion.div>
+                        </button>
+
+                        <AnimatePresence>
+                            {showDetails && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    {/* ── Extras (one-off) — first ── */}
+                                    <div className="flex border-t border-zinc-100">
+                                        <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 sticky left-0 bg-zinc-50/95 backdrop-blur-md z-10 px-1.5 pt-2">
+                                            <span className="text-[7px] uppercase font-black tracking-widest text-zinc-500">Extras</span>
                                         </div>
-                                    )}
-                                    {recurringTxs.map(tx => renderTransactionPill(tx))}
-                                    <button
-                                        onClick={() => handleAdd(undefined, 'monthly')}
-                                        className="w-10 h-10 rounded-lg border-2 border-zinc-200 text-zinc-400 flex items-center justify-center active:bg-zinc-50"
-                                    >
-                                        <Plus className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="px-4">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 mb-2">{dictionary.mobile.oneOff}</h3>
-                                {transactions.filter(t => t.recurrence === 'none').length === 0 && (
-                                    <div className="text-zinc-400 text-[10px] italic pt-1 pb-3 px-1 w-full text-left">
-                                        {dictionary.timeline.emptyOneOff}
+                                        <div className="flex flex-1">
+                                            {months.map(m => {
+                                                const monthOneOffs = oneOffTransactions.filter(t => t.month === m);
+                                                return (
+                                                    <div key={m} style={{ width: MOBILE_COL, minWidth: MOBILE_COL }} className="flex flex-col items-center justify-start py-2 space-y-1.5 border-l border-zinc-100 border-dashed min-h-[90px]">
+                                                        {monthOneOffs.map(t => (
+                                                            <OneOffPill key={t.id} transaction={t} />
+                                                        ))}
+                                                        <button
+                                                            onClick={() => handleOpenEditor(undefined, m, 'none')}
+                                                            className="w-10 h-8 rounded-lg border-2 border-dashed border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all flex items-center justify-center"
+                                                        >
+                                                            <Plus className="w-3 h-3 text-zinc-400" />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                )}
-                                <div className="space-y-0">
-                                    {projection.map(p => {
-                                        const d = parseISO(`${p.month}-01`);
-                                        const oneOffs = transactions.filter(t => t.month === p.month && t.recurrence === 'none');
 
-                                        return (
-                                            <div
-                                                key={p.month}
-                                                className={clsx(
-                                                    "flex min-h-[45px] py-1 transition-colors duration-200 border-2 rounded-xl mb-1 border-transparent",
-                                                    hoveredMonth === p.month && "border-zinc-200 bg-zinc-50"
-                                                )}
-                                                data-droptarget="month"
-                                                data-month={p.month}
+                                    {/* ── Chaque mois (recurring) — second ── */}
+                                    <div className="flex items-start py-2 border-t border-zinc-100">
+                                        <div style={{ width: LABEL_WIDTH, lineHeight: 1 }} className="flex-shrink-0 sticky left-0 bg-zinc-50/95 backdrop-blur-md z-10 px-1.5 pt-1">
+                                            <span className="text-[7px] uppercase font-black tracking-widest text-zinc-500">Chaque mois</span>
+                                        </div>
+                                        <div className="flex items-center gap-x-1.5 gap-y-1 flex-wrap px-1.5 flex-1 py-1">
+                                            {recurringTransactions.map(tx => (
+                                                <RecurringPill key={tx.id} transaction={tx} />
+                                            ))}
+                                            <button
+                                                onClick={() => handleOpenEditor(undefined, undefined, 'monthly')}
+                                                className="h-7 w-7 rounded-lg border-2 border-dashed border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all flex items-center justify-center shrink-0"
                                             >
-                                                {/* Label (Same format as Graph view) */}
-                                                <div className="w-[80px] flex-shrink-0 flex items-center text-left pt-2 px-2">
-                                                    <span className="text-sm font-black italic text-zinc-900 capitalize inline-block border-b border-zinc-100 pb-1 w-full border-dotted pointer-events-none">
-                                                        {format(d, 'MMM.yy', { locale: fr }).replace('.', '')}
-                                                    </span>
-                                                </div>
-
-                                                {/* One-off Container */}
-                                                <div className="flex-1 flex flex-wrap gap-2 items-start pl-2 pt-1">
-                                                    {oneOffs.map(tx => renderTransactionPill(tx))}
-                                                    <button
-                                                        onClick={() => handleAdd(p.month, 'none')}
-                                                        className="h-8 w-12 rounded-lg border-2 border-zinc-200 flex items-center justify-center text-zinc-400 active:bg-zinc-50 shrink-0"
-                                                    >
-                                                        <Plus className="w-4 h-4 pointer-events-none" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                            {/* Floating Trash and Duplicate Zones (visible only when dragging) */}
-                            <AnimatePresence>
-                                {draggingTxId && (
-                                    <motion.div
-                                        initial={{ y: -100, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        exit={{ y: -100, opacity: 0 }}
-                                        className="fixed top-28 left-4 right-4 z-50 flex justify-between pointer-events-none"
-                                    >
-                                        <div
-                                            data-droptarget="trash"
-                                            className={clsx(
-                                                "w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all pointer-events-auto shadow-md",
-                                                isHoveringTrash ? "bg-rose-500 border-rose-600 scale-110 shadow-xl" : "bg-white border-rose-200"
-                                            )}
-                                        >
-                                            <Trash2 className={clsx("w-6 h-6", isHoveringTrash ? "text-white" : "text-rose-400")} />
+                                                <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                                            </button>
                                         </div>
-
-                                        <div
-                                            data-droptarget="duplicate"
-                                            className={clsx(
-                                                "w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all pointer-events-auto shadow-md",
-                                                isHoveringDuplicate ? "bg-emerald-500 border-emerald-600 scale-110 shadow-xl" : "bg-white border-emerald-200"
-                                            )}
-                                        >
-                                            <Copy className={clsx("w-6 h-6", isHoveringDuplicate ? "text-white" : "text-emerald-400")} />
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
             </main>
 
-            {/* Fixed Bottom CTAs */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent z-40 pointer-events-none flex justify-center">
-                <AnimatePresence mode="wait">
-                    {activeView === 'graph' && (
-                        <motion.div
-                            key="cta-graph"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-full max-w-sm pointer-events-auto"
-                        >
-                            <button
-                                onClick={() => setActiveView('matrix')}
-                                className="w-full py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between active:scale-95 transition-all text-[15px]"
-                            >
-                                <span>Éditer les entrées/sorties</span>
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
-                        </motion.div>
-                    )}
-                    {activeView === 'matrix' && (
-                        <motion.div
-                            key="cta-matrix"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-full max-w-sm pointer-events-auto"
-                        >
-                            <button
-                                onClick={() => setActiveView('graph')}
-                                className="w-full py-[18px] px-6 bg-zinc-900 text-white rounded-[24px] font-black italic shadow-premium flex items-center justify-between active:scale-95 transition-all text-[15px]"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                                <span>Voir le graph</span>
-                            </button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Editor Bottom Sheet */}
-            <BottomSheet isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)}>
-                {isEditorOpen && (
-                    <MobileTransactionEditor
+            {/* -- Bottom Sheet: NEW transaction (sentence style) -- */}
+            <BottomSheet isOpen={isEditorOpen && isAdding} onClose={() => setIsEditorOpen(false)}>
+                {isEditorOpen && isAdding && (
+                    <SentenceTransactionEditor
+                        recurrence={addRecurrence}
+                        month={addMonth}
                         onClose={() => setIsEditorOpen(false)}
-                        initialData={isAdding ? { month: addMonth, recurrence: addRecurrence } : selectedTransaction}
                     />
                 )}
             </BottomSheet>
 
-            {/* Custom Delete Confirmation Modal */}
-            <AnimatePresence>
-                {txToDelete && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-6 shadow-2xl"
-                        >
-                            <div>
-                                <h3 className="text-xl font-black italic tracking-tighter text-zinc-900 mb-2">Supprimer la transaction ?</h3>
-                                <p className="text-sm font-medium text-zinc-500">Cette action est irréversible. Confirmez-vous ?</p>
-                            </div>
-                            <div className="flex space-x-3">
-                                <button
-                                    onClick={() => setTxToDelete(null)}
-                                    className="flex-1 py-3 rounded-2xl font-bold text-sm text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    onClick={async () => {
-                                        if (txToDelete) {
-                                            await deleteTransaction(txToDelete);
-                                            setTxToDelete(null);
-                                        }
-                                    }}
-                                    className="flex-1 py-3 rounded-2xl font-bold text-sm text-white bg-rose-500 hover:bg-rose-600 shadow-premium transition-colors"
-                                >
-                                    Supprimer
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
+            {/* -- Bottom Sheet: EDIT existing transaction -- */}
+            <BottomSheet isOpen={isEditorOpen && !isAdding} onClose={() => setIsEditorOpen(false)}>
+                {isEditorOpen && !isAdding && (
+                    <MobileTransactionEditor
+                        onClose={() => setIsEditorOpen(false)}
+                        initialData={selectedTransaction}
+                    />
                 )}
-            </AnimatePresence>
+            </BottomSheet>
 
-            {/* Settings Modal */}
-            <SettingsModal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
-            />
-
-            {/* Auth Modal */}
-            <AuthModal
-                isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
-            />
-
-            {/* Delete Planification Modal */}
-            <ConfirmDeleteModal
-                isOpen={!!deletingPlanificationId}
-                onClose={() => setDeletingPlanificationId(null)}
-                onConfirm={async () => {
-                    if (deletingPlanificationId) {
-                        await deletePlanification(deletingPlanificationId);
-                        setDeletingPlanificationId(null);
-                    }
-                }}
-                planName={planifications.find(p => p.id === deletingPlanificationId)?.name || 'Cette planification'}
-                dictionary={dictionary}
-            />
-
-            {/* Share Success Modal */}
-            <AnimatePresence>
-                {isShareModalOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-2 text-emerald-500">
-                                <Share2 className="w-8 h-8" />
-                            </div>
-                            <h3 className="text-xl font-black italic tracking-tighter text-zinc-900 text-center">Lien de partage copié !</h3>
-                            <p className="text-sm font-medium text-zinc-500 text-center">
-                                Votre configuration actuelle a été copiée. Vous pouvez envoyer ce lien à un ami, ou le garder pour recharger votre Dashboard plus tard.
-                            </p>
-                            <button
-                                onClick={() => setIsShareModalOpen(false)}
-                                className="w-full py-3 rounded-2xl font-bold text-sm text-white bg-zinc-900 hover:bg-zinc-800 transition-colors shadow-premium mt-4"
-                            >
-                                Fermer
-                            </button>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div >
+            {/* -- Modals -- */}
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+        </div>
     );
 }

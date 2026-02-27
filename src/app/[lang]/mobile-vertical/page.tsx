@@ -57,6 +57,8 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
         transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString()
     );
     const [showDelete, setShowDelete] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
     const labelRef = useRef<HTMLInputElement>(null);
     const amountRef = useRef<HTMLInputElement>(null);
 
@@ -103,8 +105,8 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
                 value={localLabel}
                 autoFocus={transaction.label === ''}
                 onChange={e => setLocalLabel(e.target.value)}
-                onFocus={e => scrollIntoView(e.currentTarget)}
-                onBlur={commitLabel}
+                onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                onBlur={() => { commitLabel(); setIsFocused(false); }}
                 onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
             />
             <div className="flex items-center ml-1">
@@ -119,22 +121,57 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
                     value={localAmount}
                     placeholder="0"
                     onChange={e => setLocalAmount(e.target.value)}
-                    onFocus={e => scrollIntoView(e.currentTarget)}
-                    onBlur={commitAmount}
+                    onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                    onBlur={() => { commitAmount(); setIsFocused(false); }}
                     onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                 />
                 <span className={clsx('text-[10px] font-black ml-0.5', isIncome ? 'text-emerald-500' : 'text-rose-500')}>
                     {currency}/m
                 </span>
             </div>
-            <button
-                onPointerDown={e => { e.preventDefault(); setShowDelete(s => !s); }}
-                className="ml-1 p-0.5 opacity-40 active:opacity-80"
-            >
-                <X className="w-3 h-3 text-zinc-500" />
-            </button>
+            <AnimatePresence mode="wait">
+                {(isFocused || isSuccess) ? (
+                    <motion.button
+                        key="check"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={isSuccess
+                            ? { scale: [1, 1.2, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
+                            : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
+                        }
+                        transition={isSuccess
+                            ? { duration: 0.4 }
+                            : { duration: 0.2 }
+                        }
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            setIsSuccess(true);
+                            setTimeout(() => {
+                                labelRef.current?.blur();
+                                amountRef.current?.blur();
+                                setIsSuccess(false);
+                            }, 400);
+                        }}
+                        className="ml-1 p-1 text-white rounded-full shadow-lg z-40 active:scale-95 transition-transform"
+                    >
+                        <Check className="w-3 h-3 stroke-[3px]" />
+                    </motion.button>
+                ) : (
+                    <motion.button
+                        key="x"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={e => { e.preventDefault(); setShowDelete(s => !s); }}
+                        className="ml-1 p-0.5 opacity-40 active:opacity-80"
+                    >
+                        <X className="w-3 h-3 text-zinc-500" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
-                {showDelete && (
+                {showDelete && !isFocused && (
                     <motion.button
                         initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
                         onClick={() => deleteTransaction(transaction.id)}
@@ -158,6 +195,10 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
         transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString()
     );
     const [showDelete, setShowDelete] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const labelRef = useRef<HTMLInputElement>(null);
+    const amountRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setLocalLabel(transaction.label);
@@ -198,8 +239,8 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
                     placeholder="Extra..."
                     autoFocus={transaction.label === ''}
                     onChange={e => setLocalLabel(e.target.value)}
-                    onFocus={e => scrollIntoView(e.currentTarget)}
-                    onBlur={commitLabel}
+                    onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                    onBlur={() => { commitLabel(); setIsFocused(false); }}
                     onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                 />
                 <div className="flex items-center justify-center space-x-0.5">
@@ -213,8 +254,8 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
                         value={localAmount}
                         placeholder="0"
                         onChange={e => setLocalAmount(e.target.value)}
-                        onFocus={e => scrollIntoView(e.currentTarget)}
-                        onBlur={commitAmount}
+                        onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                        onBlur={() => { commitAmount(); setIsFocused(false); }}
                         onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                     />
                     <span className={clsx('text-[9px] font-bold leading-none', isIncome ? 'text-emerald-300' : 'text-rose-300')}>
@@ -222,23 +263,59 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
                     </span>
                 </div>
             </div>
-            <button
-                onPointerDown={e => { e.preventDefault(); setShowDelete(s => !s); }}
-                className="absolute -top-1.5 -right-1.5"
-            >
-                <AnimatePresence>
-                    {showDelete ? (
-                        <motion.span
-                            key="del"
-                            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                            className="w-4.5 h-4.5 flex"
-                            onClick={() => deleteTransaction(transaction.id)}
-                        >
-                            <X className="w-4 h-4 bg-rose-500 text-white rounded-full stroke-[3px]" />
-                        </motion.span>
-                    ) : null}
-                </AnimatePresence>
-            </button>
+            <AnimatePresence mode="wait">
+                {(isFocused || isSuccess) ? (
+                    <motion.button
+                        key="check"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={isSuccess
+                            ? { scale: [1, 1.3, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
+                            : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
+                        }
+                        transition={isSuccess
+                            ? { duration: 0.4 }
+                            : { duration: 0.2 }
+                        }
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            setIsSuccess(true);
+                            setTimeout(() => {
+                                labelRef.current?.blur();
+                                amountRef.current?.blur();
+                                setIsSuccess(false);
+                            }, 400);
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-6 h-6 text-white rounded-full flex items-center justify-center shadow-lg z-40 active:scale-90 transition-transform"
+                    >
+                        <Check className="w-3.5 h-3.5 stroke-[3px]" />
+                    </motion.button>
+                ) : (
+                    <motion.button
+                        key="del-trigger"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        onPointerDown={e => { e.preventDefault(); setShowDelete(s => !s); }}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white/80 backdrop-blur-sm border border-zinc-100 rounded-full flex items-center justify-center shadow-sm opacity-40 active:opacity-80"
+                    >
+                        <X className="w-2.5 h-2.5 text-zinc-500" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showDelete && !isFocused && (
+                    <motion.button
+                        key="del-action"
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        onClick={() => deleteTransaction(transaction.id)}
+                        className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg z-30"
+                    >
+                        <X className="w-3 h-3 stroke-[3px]" />
+                    </motion.button>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
