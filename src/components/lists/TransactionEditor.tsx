@@ -92,7 +92,8 @@ export function TransactionEditor({ onClose, initialData }: TransactionEditorPro
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4">Montant</label>
                     <div className="relative">
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="text"
                             placeholder="0.00"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}

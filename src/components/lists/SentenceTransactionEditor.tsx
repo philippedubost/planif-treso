@@ -118,8 +118,8 @@ export function SentenceTransactionEditor({ recurrence, month, onClose }: Props)
                     <span className="text-zinc-400">un montant de</span>
                     <input
                         ref={amountRef}
-                        type="number"
-                        inputMode="decimal"
+                        type="text"
+                        inputMode="text"
                         placeholder="0"
                         value={amount}
                         onChange={e => setAmount(e.target.value)}

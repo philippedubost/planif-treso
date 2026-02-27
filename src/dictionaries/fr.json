@@ -19,7 +19,7 @@
         "scenarioPrompt": "Connectez-vous pour simuler plusieurs scénarios en parallèle."
     },
     "dashboard": {
-        "title": "Simulateur",
+        "title": "Editer Entrées / Sorties",
         "balance": "Solde",
         "startingBalance": "Solde aujourd'hui",
         "income": "Entrées chaque mois",

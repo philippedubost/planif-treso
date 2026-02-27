@@ -68,8 +68,8 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
                         </linearGradient>
                         <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.2} />
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.8} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
@@ -114,7 +114,7 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                     <Bar
                         dataKey="expense"
                         fill="url(#colorExpense)"
-                        radius={[10, 10, 0, 0]}
+                        radius={[15, 15, 0, 0]}
                         barSize={24}
                         animationDuration={1500}
                     >
@@ -136,6 +136,7 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                         animationDuration={2000}
                     />
                     <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={2} strokeDasharray="3 3" />
+                    <ReferenceLine y={maxBal} stroke="#e2e8f0" strokeWidth={1} strokeDasharray="4 4" />
 
                 </ComposedChart>
             </ResponsiveContainer>

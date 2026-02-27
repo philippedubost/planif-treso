@@ -112,8 +112,8 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
             <div className="flex items-center ml-1">
                 <input
                     ref={amountRef}
-                    type="number"
-                    inputMode="decimal"
+                    type="text"
+                    inputMode="text"
                     className={clsx(
                         'bg-transparent font-black text-[11px] outline-none border-none p-0 w-10 text-right',
                         isIncome ? 'text-emerald-600' : 'text-rose-600'
@@ -223,10 +223,30 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
         setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
     };
 
+    const handleDragEnd = (event: any, info: any) => {
+        const element = document.elementFromPoint(info.point.x, info.point.y);
+        const col = element?.closest('[data-month]');
+        if (col) {
+            const newMonth = col.getAttribute('data-month');
+            if (newMonth && newMonth !== transaction.month) {
+                updateTransaction(transaction.id, { month: newMonth });
+            }
+        }
+    };
+
     const isIncome = transaction.direction === 'income';
 
     return (
-        <div className="relative flex flex-col items-center">
+        <motion.div
+            layout
+            drag
+            dragSnapToOrigin
+            dragMomentum={false}
+            onDragEnd={handleDragEnd}
+            dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+            whileDrag={{ scale: 1.1, zIndex: 50, opacity: 0.8 }}
+            className="relative flex flex-col items-center pointer-events-auto cursor-grab active:cursor-grabbing"
+        >
             <div
                 className={clsx(
                     'px-1.5 py-1.5 rounded-lg shadow-sm flex flex-col items-center justify-center w-[64px] border',
@@ -234,6 +254,7 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
                 )}
             >
                 <input
+                    ref={labelRef}
                     className="bg-transparent text-[8px] font-black italic uppercase leading-none mb-0.5 text-zinc-400 text-center w-full outline-none border-none p-0"
                     value={localLabel}
                     placeholder="Extra..."
@@ -245,8 +266,9 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
                 />
                 <div className="flex items-center justify-center space-x-0.5">
                     <input
-                        type="number"
-                        inputMode="decimal"
+                        ref={amountRef}
+                        type="text"
+                        inputMode="text"
                         className={clsx(
                             'bg-transparent text-[11px] font-black leading-none w-12 text-center outline-none border-none p-0',
                             isIncome ? 'text-emerald-600' : 'text-rose-600'
@@ -316,7 +338,7 @@ function OneOffPill({ transaction }: { transaction: Transaction }) {
                     </motion.button>
                 )}
             </AnimatePresence>
-        </div>
+        </motion.div>
     );
 }
 
@@ -345,7 +367,7 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection.map(p => ({ ...p, expense: -p.expense }))}
-                    margin={{ top: 12, right: 0, bottom: 0, left: leftPadding ? leftPadding - Y_AXIS_WIDTH : 0 }}
+                    margin={{ top: 10, right: 0, bottom: 0, left: 0 }}
                     onClick={(e: any) => e?.activePayload && setSelectedMonth(e.activePayload[0].payload.month)}
                 >
                     <defs>
@@ -354,8 +376,8 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
                         </linearGradient>
                         <linearGradient id="mobileColorExpense" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.2} />
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.8} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
@@ -394,7 +416,12 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                             <Cell key={i} fill={e.month === selectedMonth ? '#10b981' : 'url(#mobileColorIncome)'} />
                         ))}
                     </Bar>
-                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[8, 8, 0, 0]} barSize={16} animationDuration={1200} activeBar={false}>
+                    <Bar
+                        dataKey="expense"
+                        fill="url(#mobileColorExpense)"
+                        radius={[12, 12, 0, 0]}
+                        barSize={16}
+                    >
                         {projection.map((e, i) => (
                             <Cell key={i} fill={e.month === selectedMonth ? '#f43f5e' : 'url(#mobileColorExpense)'} />
                         ))}
@@ -403,6 +430,7 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                         dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#fff' }}
                         activeDot={{ r: 6, strokeWidth: 0 }} animationDuration={1800} />
                     <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="3 3" />
+                    <ReferenceLine y={maxBal} stroke="#e2e8f0" strokeWidth={1} strokeDasharray="4 4" />
                 </ComposedChart>
             </ResponsiveContainer>
 
@@ -436,6 +464,7 @@ function MobileKPISection() {
     const { startingBalance, setStartingBalance, currency, projectionMonths } = useFinanceStore();
     const { dictionary, locale } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
     const [inputValue, setInputValue] = useState(startingBalance.toString());
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -464,7 +493,7 @@ function MobileKPISection() {
     };
 
     return (
-        <div className="grid grid-cols-2 gap-1.5 mb-2 px-3 pt-2">
+        <div className="grid grid-cols-2 gap-1.5 mb-2 px-4 pt-2">
             {/* Editable current balance */}
             <motion.div
                 whileHover={{ y: -1 }}
@@ -476,8 +505,8 @@ function MobileKPISection() {
                     <input
                         ref={inputRef}
                         autoFocus
-                        type="number"
-                        inputMode="decimal"
+                        type="text"
+                        inputMode="text"
                         value={inputValue}
                         onChange={e => setInputValue(e.target.value)}
                         onFocus={e => scrollIntoView(e.currentTarget)}
@@ -486,7 +515,37 @@ function MobileKPISection() {
                         className="text-sm font-black tracking-tighter text-zinc-900 bg-zinc-50 rounded-lg w-full outline-none p-0.5 border-b-2 border-zinc-900"
                     />
                 ) : (
-                    <div className="text-sm font-black tracking-tighter text-zinc-900">{fmt(currentBalance)}</div>
+                    <div className="flex items-center justify-between w-full">
+                        <div className="text-sm font-black tracking-tighter text-zinc-900">{fmt(currentBalance)}</div>
+                        <AnimatePresence mode="wait">
+                            {(isEditing || isSuccess) ? (
+                                <motion.button
+                                    key="check-solde"
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={isSuccess
+                                        ? { scale: [1, 1.2, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
+                                        : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
+                                    }
+                                    transition={isSuccess
+                                        ? { duration: 0.4 }
+                                        : { duration: 0.2 }
+                                    }
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    onPointerDown={(e) => {
+                                        e.preventDefault();
+                                        setIsSuccess(true);
+                                        setTimeout(() => {
+                                            submit();
+                                            setIsSuccess(false);
+                                        }, 400);
+                                    }}
+                                    className="p-1 text-white rounded-full shadow-lg z-40 active:scale-95 transition-transform"
+                                >
+                                    <Check className="w-3 h-3 stroke-[3px]" />
+                                </motion.button>
+                            ) : null}
+                        </AnimatePresence>
+                    </div>
                 )}
             </motion.div>
 
@@ -616,7 +675,7 @@ export default function DashboardMobilePage() {
             textSize === 'large' && 'scale-[1.02]'
         )}>
             {/* ── Header ── */}
-            <header className="fixed top-0 left-0 right-0 h-14 bg-white/85 backdrop-blur-xl z-50 border-b border-zinc-100 px-3 flex items-center justify-between">
+            <header className="fixed top-0 left-0 right-0 h-14 bg-white/85 backdrop-blur-xl z-50 border-b border-zinc-100 px-4 flex items-center justify-between">
                 {/* Left: logo + planification */}
                 <div className="flex items-center space-x-2">
                     <div className="flex items-center space-x-1.5">
@@ -783,7 +842,7 @@ export default function DashboardMobilePage() {
             </header>
 
             {/* ── Main scroll area ── */}
-            <main className="flex-1 overflow-y-auto pt-14 pb-24 no-scrollbar">
+            <main className="flex-1 overflow-y-auto pt-14 pb-8 no-scrollbar">
 
                 {/* KPI section */}
                 <MobileKPISection />
@@ -811,20 +870,20 @@ export default function DashboardMobilePage() {
 
                         {/* Graph */}
                         <motion.div
-                            animate={{ height: showDetails ? 220 : 340 }}
+                            animate={{ height: showDetails ? 320 : 500 }}
                             transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-                            className="relative bg-white/70 backdrop-blur-sm rounded-[24px] mx-2 my-2 shadow-soft border border-white overflow-hidden"
+                            className="relative bg-white/70 backdrop-blur-sm rounded-[24px] mx-4 my-3 shadow-soft border border-white overflow-hidden"
                         >
-                            <MobileGraph height={showDetails ? 220 : 340} leftPadding={LABEL_WIDTH} />
+                            <MobileGraph height={showDetails ? 320 : 500} leftPadding={LABEL_WIDTH} />
                         </motion.div>
 
                         {/* Toggle button — controls BOTH sections together */}
                         <button
                             onClick={() => setShowDetails(!showDetails)}
-                            className="ml-2 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95"
+                            className="ml-4 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95"
                         >
                             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                {showDetails ? 'Masquer' : 'Voir opérations'}
+                                {showDetails ? 'Masquer' : 'Editer entrées / sorties'}
                             </span>
                             <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
                                 <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900" />
@@ -846,7 +905,12 @@ export default function DashboardMobilePage() {
                                             {months.map(m => {
                                                 const monthOneOffs = oneOffTransactions.filter(t => t.month === m);
                                                 return (
-                                                    <div key={m} style={{ width: MOBILE_COL, minWidth: MOBILE_COL }} className="flex flex-col items-center justify-start py-2 space-y-1.5 border-l border-zinc-100 border-dashed min-h-[90px]">
+                                                    <div
+                                                        key={m}
+                                                        data-month={m}
+                                                        style={{ width: MOBILE_COL, minWidth: MOBILE_COL }}
+                                                        className="flex flex-col items-center justify-start py-2 space-y-1.5 border-l border-zinc-100 border-dashed min-h-[90px]"
+                                                    >
                                                         {monthOneOffs.map(t => (
                                                             <OneOffPill key={t.id} transaction={t} />
                                                         ))}

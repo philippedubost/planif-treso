@@ -77,7 +77,7 @@ export const calculateProjection = (
       }
 
       if (applies) {
-        const amount = t.amount;
+        const amount = Math.abs(t.amount);
         if (t.direction === 'income') {
           monthIncome += amount;
         } else {

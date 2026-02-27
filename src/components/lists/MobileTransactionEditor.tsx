@@ -140,7 +140,8 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
 
                 <div className="space-y-1 relative">
                     <input
-                        type="number"
+                        type="text"
+                        inputMode="text"
                         placeholder="-50 ou 150"
                         value={amountInput}
                         onChange={(e) => setAmountInput(e.target.value)}

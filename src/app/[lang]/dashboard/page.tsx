@@ -715,7 +715,7 @@ export default function DashboardPage() {
                                     className="flex items-center space-x-2 px-5 md:px-6 py-3 md:py-2.5 bg-white rounded-2xl shadow-soft border border-zinc-100 group transition-all active:scale-95 hover:bg-zinc-50"
                                 >
                                     <span className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                        {showDetails ? (typeof window !== 'undefined' && window.innerWidth < 768 ? "Hide" : "Hide details") : dictionary.dashboard.title}
+                                        {showDetails ? "Masquer" : dictionary.dashboard.title}
                                     </span>
                                     <motion.div
                                         animate={{ rotate: showDetails ? 180 : 0 }}
