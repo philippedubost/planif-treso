@@ -20,7 +20,7 @@ type Row = {
 
 export default function AssistantPage() {
     const [step, setStep] = useState(0); // 0: Context + Currency, 1: Balance, 2: Income, 3: Expenses
-    const { setContext, context, setStartingBalance, addTransaction, currency, setCurrency } = useFinanceStore();
+    const { setContext, context, setStartingBalance, addTransaction, currency, setCurrency, firstName, user } = useFinanceStore();
     const [balance, setBalance] = useState('');
     const [incomeRows, setIncomeRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
     const [expenseRows, setExpenseRows] = useState<Row[]>([{ label: '', amount: '', isMonthly: true }]);
@@ -108,8 +108,10 @@ export default function AssistantPage() {
                             </div>
 
                             <div className="space-y-4">
-                                <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">Assistant Nouvelle Planification</h1>
-                                <p className="text-sm font-bold text-zinc-400">C'est pour qui ?</p>
+                                <h1 className="text-xl md:text-2xl font-black italic tracking-tighter text-zinc-900 leading-none">
+                                    {firstName || (user?.email?.split('@')[0]) ? `Bonjour ${firstName || user?.email?.split('@')[0]}` : "Bonjour"}
+                                </h1>
+                                <p className="text-sm font-bold text-zinc-400">Nouvelle planification • C'est pour qui ?</p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => { setContext('perso'); next(); }}

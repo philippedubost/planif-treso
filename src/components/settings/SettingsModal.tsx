@@ -18,8 +18,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const {
         currency,
         setCurrency,
-        textSize,
-        setTextSize,
+        firstName,
+        setFirstName,
+        ageRange,
+        setAgeRange,
         resetSimulation,
         scenarios,
         currentScenarioId,
@@ -28,13 +30,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         deleteScenario,
         showScenarioBadge,
         setShowScenarioBadge,
-        projectionMonths,
-        setProjectionMonths,
         user
     } = useFinanceStore();
     const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
-    const [isTextSizeOpen, setIsTextSizeOpen] = useState(false);
-    const [isProjectionOpen, setIsProjectionOpen] = useState(false);
+    const [isAgeRangeOpen, setIsAgeRangeOpen] = useState(false);
 
     const router = useRouter();
     const pathname = usePathname();
@@ -61,11 +60,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         { label: 'CAD', symbol: 'CA$', code: 'CAD' }
     ];
 
-    const textSizes = [
-        { id: 'small', label: 'Petit', class: 'text-[11px]' },
-        { id: 'medium', label: 'Moyen', class: 'text-sm' },
-        { id: 'large', label: 'Grand', class: 'text-lg' }
-    ] as const;
+    const ageRanges = ['15-24', '25-34', '35-50', '51+', 'Non spécifié'];
 
     const handleReset = async () => {
         await resetSimulation();
@@ -165,98 +160,63 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                     </div>
                                 </div>
 
-                                {/* Text Size Dropdown */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center space-x-2 px-2">
-                                        <Type className="w-4 h-4 text-zinc-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taille du texte</span>
+                                {/* User Fields */}
+                                <div className="space-y-4 pt-4 border-t border-zinc-50">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2 px-2">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prénom</span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)}
+                                            placeholder="Ton prénom..."
+                                            className="w-full h-12 px-4 bg-zinc-50 border-2 border-transparent hover:border-zinc-100 rounded-2xl font-bold text-zinc-900 transition-all outline-none focus:border-zinc-200"
+                                        />
                                     </div>
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setIsTextSizeOpen(!isTextSizeOpen)}
-                                            className="w-full h-12 px-4 bg-zinc-50 border-2 border-transparent hover:border-zinc-100 rounded-2xl flex items-center justify-between font-bold text-zinc-900 transition-all group"
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <span>{textSizes.find(s => s.id === textSize)?.label || 'Moyen'}</span>
-                                            </div>
-                                            <ChevronDown className={clsx("w-4 h-4 text-zinc-300 transition-transform duration-500", isTextSizeOpen && "rotate-180")} />
-                                        </button>
-                                        <AnimatePresence>
-                                            {isTextSizeOpen && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 10 }}
-                                                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-zinc-50 p-2 z-50 overflow-hidden"
-                                                >
-                                                    <div className="max-h-48 overflow-y-auto no-scrollbar">
-                                                        {textSizes.map((size) => (
-                                                            <button
-                                                                key={size.id}
-                                                                onClick={() => {
-                                                                    setTextSize(size.id);
-                                                                    setIsTextSizeOpen(false);
-                                                                }}
-                                                                className={clsx(
-                                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all",
-                                                                    textSize === size.id ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
-                                                                )}
-                                                            >
-                                                                <span>{size.label}</span>
-                                                                <span className={clsx("opacity-50", size.class)}>A</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
 
-                                {/* Projection Period Dropdown */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center space-x-2 px-2">
-                                        <Eye className="w-4 h-4 text-zinc-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Horizon cible</span>
-                                    </div>
-                                    <div className="relative">
-                                        <button
-                                            onClick={() => setIsProjectionOpen(!isProjectionOpen)}
-                                            className="w-full h-12 px-4 bg-zinc-50 border-2 border-transparent hover:border-zinc-100 rounded-2xl flex items-center justify-between font-bold text-zinc-900 transition-all group"
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <span>{projectionMonths} mois</span>
-                                            </div>
-                                            <ChevronDown className={clsx("w-4 h-4 text-zinc-300 transition-transform duration-500", isProjectionOpen && "rotate-180")} />
-                                        </button>
-                                        <AnimatePresence>
-                                            {isProjectionOpen && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 10 }}
-                                                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-zinc-50 p-2 z-50 overflow-hidden"
-                                                >
-                                                    <div className="max-h-48 overflow-y-auto no-scrollbar">
-                                                        {[12, 18, 24].map((months) => (
-                                                            <button
-                                                                key={months}
-                                                                onClick={() => {
-                                                                    setProjectionMonths(months);
-                                                                    setIsProjectionOpen(false);
-                                                                }}
-                                                                className={clsx(
-                                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all",
-                                                                    projectionMonths === months ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
-                                                                )}
-                                                            >
-                                                                <span>{months} mois</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                    {/* Age Range Dropdown */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2 px-2">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Tranche d'âge</span>
+                                        </div>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setIsAgeRangeOpen(!isAgeRangeOpen)}
+                                                className="w-full h-12 px-4 bg-zinc-50 border-2 border-transparent hover:border-zinc-100 rounded-2xl flex items-center justify-between font-bold text-zinc-900 transition-all group"
+                                            >
+                                                <span>{ageRange}</span>
+                                                <ChevronDown className={clsx("w-4 h-4 text-zinc-300 transition-transform duration-500", isAgeRangeOpen && "rotate-180")} />
+                                            </button>
+                                            <AnimatePresence>
+                                                {isAgeRangeOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: 10 }}
+                                                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-zinc-50 p-2 z-50 overflow-hidden"
+                                                    >
+                                                        <div className="max-h-48 overflow-y-auto no-scrollbar">
+                                                            {ageRanges.map((range) => (
+                                                                <button
+                                                                    key={range}
+                                                                    onClick={() => {
+                                                                        setAgeRange(range);
+                                                                        setIsAgeRangeOpen(false);
+                                                                    }}
+                                                                    className={clsx(
+                                                                        "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all",
+                                                                        ageRange === range ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-50"
+                                                                    )}
+                                                                >
+                                                                    <span>{range}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

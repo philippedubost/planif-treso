@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFinanceStore } from '@/store/useFinanceStore';
+import { useFinanceStore, getAgeBasedSuggestions } from '@/store/useFinanceStore';
 import { TransactionDirection, Recurrence } from '@/lib/financeEngine';
 import { clsx } from 'clsx';
 import { Plus } from 'lucide-react';
@@ -13,7 +13,8 @@ interface MobileTransactionEditorProps {
 }
 
 export function MobileTransactionEditor({ onClose, initialData }: MobileTransactionEditorProps) {
-    const { addTransaction, updateTransaction, categories } = useFinanceStore();
+    const { addTransaction, updateTransaction, categories, ageRange } = useFinanceStore();
+    const suggestions = getAgeBasedSuggestions(ageRange);
     const { dictionary } = useTranslation();
 
     const [label, setLabel] = useState(initialData?.label || '');
@@ -82,6 +83,10 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
                         placeholder="Nom (ex: Loyer, Salaire...)"
                         value={label}
                         onChange={(e) => setLabel(e.target.value)}
+                        onFocus={(e) => {
+                            // Delay slightly to let keyboard appear before scrolling on native webviews
+                            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -99,18 +104,35 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
                     {/* Presets */}
                     <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
                         {recurrence === 'none' ? (
-                            <>
-                                <button onClick={() => { setLabel('Vente'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Vente</button>
-                                <button onClick={() => { setLabel('Cadeau'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Cadeau</button>
-                                <button onClick={() => { setLabel('Shopping'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Shopping</button>
-                                <button onClick={() => { setLabel('Restaurant'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Restaurant</button>
-                            </>
+                            suggestions.extra.map((s, i) => (
+                                <button
+                                    key={`extra-${i}`}
+                                    onClick={() => { setLabel(s); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }}
+                                    className="px-3 py-1 bg-zinc-50 text-zinc-600 rounded-full text-[11px] font-black italic border border-zinc-100"
+                                >
+                                    {s}
+                                </button>
+                            ))
                         ) : (
                             <>
-                                <button onClick={() => { setLabel('Salaire'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Salaire</button>
-                                <button onClick={() => { setLabel('Aides'); if (!amountInput) setAmountInput(''); }} className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100">+ Aides</button>
-                                <button onClick={() => { setLabel('Loyer'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Loyer</button>
-                                <button onClick={() => { setLabel('Abonnements'); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }} className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100">- Abonnements</button>
+                                {suggestions.income.map((s, i) => (
+                                    <button
+                                        key={`inc-${i}`}
+                                        onClick={() => { setLabel(s); if (!amountInput) setAmountInput(''); }}
+                                        className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-black italic border border-emerald-100"
+                                    >
+                                        + {s}
+                                    </button>
+                                ))}
+                                {suggestions.expense.map((s, i) => (
+                                    <button
+                                        key={`exp-${i}`}
+                                        onClick={() => { setLabel(s); if (!amountInput || !amountInput.startsWith('-')) setAmountInput('-' + amountInput.replace('-', '')); }}
+                                        className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full text-[11px] font-black italic border border-rose-100"
+                                    >
+                                        - {s}
+                                    </button>
+                                ))}
                             </>
                         )}
                     </div>
@@ -122,6 +144,9 @@ export function MobileTransactionEditor({ onClose, initialData }: MobileTransact
                         placeholder="-50 ou 150"
                         value={amountInput}
                         onChange={(e) => setAmountInput(e.target.value)}
+                        onFocus={(e) => {
+                            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();

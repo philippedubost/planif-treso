@@ -10,10 +10,11 @@ import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
 import { SettingsModal } from '@/components/settings/SettingsModal';
-import { Transaction } from '@/lib/financeEngine';
+import { Transaction, TransactionDirection } from '@/lib/financeEngine';
 import { Trash2, Pencil, Home } from 'lucide-react';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/lib/supabase';
+import { InfoBubble } from '@/components/ui/InfoBubble';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
@@ -273,6 +274,151 @@ export default function MobileDashboard7() {
     const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
     const [isAddingPlanification, setIsAddingPlanification] = useState(false);
     const [newPlanificationName, setNewPlanificationName] = useState('');
+
+    // --- Inline Edit State ---
+    const [editingTxId, setEditingTxId] = useState<string | null>(null);
+    const [editLabel, setEditLabel] = useState('');
+    const [editAmount, setEditAmount] = useState('');
+
+    const startInlineEdit = (tx: Transaction) => {
+        setEditingTxId(tx.id);
+        setEditLabel(tx.label);
+        setEditAmount(tx.direction === 'expense' ? `-${tx.amount}` : `${tx.amount}`);
+    };
+
+    const saveInlineEdit = async (tx: Transaction) => {
+        const rawAmount = parseFloat(editAmount);
+        if (isNaN(rawAmount) || rawAmount === 0) {
+            setEditingTxId(null);
+            return;
+        }
+        const direction: TransactionDirection = rawAmount < 0 ? 'expense' : 'income';
+        const absoluteAmount = Math.abs(rawAmount);
+
+        await updateTransaction(tx.id, {
+            ...tx,
+            label: editLabel.trim() || (direction === 'income' ? 'Recette' : 'Dépense'),
+            amount: absoluteAmount,
+            direction
+        });
+        setEditingTxId(null);
+    };
+
+    // Shared render for transaction pill (inline edit vs display)
+    const renderTransactionPill = (tx: Transaction) => {
+        const isEditing = editingTxId === tx.id;
+
+        if (isEditing) {
+            return (
+                <div
+                    key={`editing-${tx.id}`}
+                    className={clsx(
+                        "pl-2 min-w-[200px] pr-1 py-1 rounded-lg border-2 flex items-center space-x-2 shadow-sm",
+                        tx.direction === 'income' ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900",
+                        tx.recurrence === 'monthly' ? "h-9" : "h-7"
+                    )}
+                >
+                    <input
+                        autoFocus
+                        type="text"
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        className="w-20 bg-transparent text-sm font-black italic border-none focus:outline-none focus:ring-0 p-0 text-inherit placeholder-zinc-400"
+                        onKeyDown={(e) => e.key === 'Enter' && saveInlineEdit(tx)}
+                    />
+                    <input
+                        type="number"
+                        inputMode="decimal"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="w-16 bg-transparent text-xs font-bold text-right border-none focus:outline-none focus:ring-0 p-0 text-inherit placeholder-zinc-400 tabular-nums"
+                        onKeyDown={(e) => e.key === 'Enter' && saveInlineEdit(tx)}
+                    />
+                    <button
+                        onClick={() => saveInlineEdit(tx)}
+                        className="w-7 h-7 flex items-center justify-center bg-zinc-900 text-white rounded-md active:scale-95 shadow-sm"
+                    >
+                        <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        onClick={() => setEditingTxId(null)}
+                        className="w-7 h-7 flex items-center justify-center bg-white text-zinc-400 border border-zinc-200 rounded-md active:scale-95 shadow-sm ml-1 hover:bg-zinc-50"
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            );
+        }
+
+        return (
+            <motion.button
+                key={tx.id}
+                onClick={(e) => {
+                    if (draggingTxId) {
+                        e.preventDefault();
+                        return;
+                    }
+                    startInlineEdit(tx);
+                }}
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+                }}
+                drag
+                dragSnapToOrigin
+                dragElastic={1}
+                onDragStart={() => handleDragStart(tx.id)}
+                onDrag={(e, info) => {
+                    const el = document.elementFromPoint(info.point.x, info.point.y);
+                    if (el) {
+                        const trash = el.closest('[data-droptarget="trash"]');
+                        if (trash && !isHoveringTrash) setIsHoveringTrash(true);
+                        else if (!trash && isHoveringTrash) setIsHoveringTrash(false);
+
+                        const row = el.closest('[data-droptarget="month"]');
+                        if (row && tx.recurrence === 'none') {
+                            const m = row.getAttribute('data-month');
+                            if (m && m !== hoveredMonth) setHoveredMonth(m);
+                        } else {
+                            if (hoveredMonth) setHoveredMonth(null);
+                        }
+
+                        const duplicate = el.closest('[data-droptarget="duplicate"]');
+                        if (duplicate && !isHoveringDuplicate) setIsHoveringDuplicate(true);
+                        else if (!duplicate && isHoveringDuplicate) setIsHoveringDuplicate(false);
+                    }
+                }}
+                onDragEnd={(e, info) => {
+                    if (tx.recurrence === 'monthly') {
+                        setDraggingTxId(null);
+                        setIsHoveringTrash(false);
+                        const el = document.elementFromPoint(info.point.x, info.point.y);
+                        if (el) {
+                            const trash = el.closest('[data-droptarget="trash"]');
+                            if (trash) {
+                                setTxToDelete(tx.id);
+                            }
+                        }
+                    } else {
+                        handleDragEnd(e, info, tx);
+                    }
+                }}
+                whileDrag={{ scale: 1.1, zIndex: 100, rotate: -2, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)" }}
+                className={clsx(
+                    "px-3 py-1.5 rounded-lg text-sm font-black border-2 flex items-center space-x-1 active:scale-95 transition-all touch-none",
+                    tx.direction === 'income' ? "border-emerald-200 text-emerald-600 bg-white" : "border-rose-200 text-rose-600 bg-white",
+                    tx.recurrence === 'monthly' && (tx.direction === 'income' ? "bg-emerald-50" : "bg-rose-50"),
+                    tx.recurrence === 'monthly' && "space-x-2 pl-3 pr-2",
+                    tx.recurrence === 'none' && "text-xs h-7",
+                    draggingTxId === tx.id && "shadow-xl border-zinc-900"
+                )}
+            >
+                <span className="truncate max-w-[100px] italic pointer-events-none">{tx.label || 'Virement'}</span>
+                <span className="opacity-75 pointer-events-none text-xs">
+                    {formatCurrencyDetailed(tx.amount)}{tx.recurrence === 'monthly' ? '/m' : ''}
+                </span>
+            </motion.button>
+        );
+    };
 
     const { dictionary } = useTranslation();
 
@@ -722,27 +868,6 @@ export default function MobileDashboard7() {
                     </div>
                 </div>
 
-                {/* Interpretation Block & Runway Indicator */}
-                {!isGraphTipDismissed && activeView === 'graph' && (
-                    <div className="max-w-sm mx-auto mb-3">
-                        <div className={clsx("rounded-xl p-2.5 border-2 flex items-center space-x-3 transition-colors", runwayColor)}>
-                            <div className="shrink-0">
-                                {negativeMonthIndex !== -1 && negativeMonthIndex === 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
-                            </div>
-                            <p className="text-[11px] font-bold leading-tight flex-1">
-                                {runwayMessage}
-                            </p>
-                            <button
-                                onClick={() => setIsGraphTipDismissed(true)}
-                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/50 hover:bg-white/80 active:scale-95 transition-all"
-                                title="Fermer"
-                            >
-                                <X className="w-4 h-4 opacity-50" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 {/* Scorecards */}
                 <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
                     <div
@@ -788,52 +913,28 @@ export default function MobileDashboard7() {
                     </div>
                 </div>
 
-                {/* Tip Card (Only in matrix view) */}
-                {!isMatrixTipDismissed && activeView === 'matrix' && (
-                    <div className="max-w-sm mx-auto mt-3">
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={currentTipIndex}
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -5 }}
-                                transition={{ duration: 0.3 }}
-                                className="rounded-xl p-2.5 border-2 flex items-center space-x-3 transition-colors bg-amber-50 text-amber-800 border-amber-200"
-                            >
-                                <div className="shrink-0 flex items-center justify-center">
-                                    <span className="text-sm">💡</span>
-                                </div>
-                                <p className="text-[11px] font-bold leading-tight flex-1">
-                                    {matrixTips[currentTipIndex]}
-                                </p>
-                                <div className="flex space-x-1 shrink-0">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length);
-                                        }}
-                                        className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
-                                        title="Astuce suivante"
-                                    >
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsMatrixTipDismissed(true);
-                                        }}
-                                        className="w-6 h-6 flex items-center justify-center rounded-full bg-amber-100/50 hover:bg-amber-200/50 text-amber-700 active:scale-95 transition-all"
-                                        title="Fermer"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
+                {/* Interpretation Block & Runway Indicator (Graph View) */}
+                {!isGraphTipDismissed && activeView === 'graph' && (
+                    <InfoBubble
+                        id="graph-tip"
+                        icon={negativeMonthIndex !== -1 && negativeMonthIndex === 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                        content={runwayMessage}
+                        colorClasses={runwayColor}
+                        onDismiss={() => setIsGraphTipDismissed(true)}
+                    />
                 )}
 
-                {/* Selection Bubble previously here, removed */}
+                {/* Tip Card (Matrix View) */}
+                {!isMatrixTipDismissed && activeView === 'matrix' && (
+                    <InfoBubble
+                        id={`tip-${currentTipIndex}`}
+                        icon={<span className="text-sm">💡</span>}
+                        content={matrixTips[currentTipIndex]}
+                        colorClasses="bg-amber-50 text-amber-800 border-amber-200"
+                        onNext={() => setCurrentTipIndex((prev) => (prev + 1) % matrixTips.length)}
+                        onDismiss={() => setIsMatrixTipDismissed(true)}
+                    />
+                )}
             </header>
 
             {/* Main Content Area */}
@@ -1030,55 +1131,7 @@ export default function MobileDashboard7() {
                                             {dictionary.timeline.emptyIncome}
                                         </div>
                                     )}
-                                    {recurringTxs.map(tx => (
-                                        <motion.button
-                                            key={tx.id}
-                                            onClick={(e) => {
-                                                if (draggingTxId) {
-                                                    e.preventDefault();
-                                                    return;
-                                                }
-                                                handleEdit(tx);
-                                            }}
-                                            onPointerDown={(e) => {
-                                                e.stopPropagation();
-                                            }}
-                                            drag
-                                            dragSnapToOrigin
-                                            dragElastic={1}
-                                            onDragStart={() => handleDragStart(tx.id)}
-                                            onDrag={(e, info) => {
-                                                const el = document.elementFromPoint(info.point.x, info.point.y);
-                                                if (el) {
-                                                    const trash = el.closest('[data-droptarget="trash"]');
-                                                    if (trash && !isHoveringTrash) setIsHoveringTrash(true);
-                                                    else if (!trash && isHoveringTrash) setIsHoveringTrash(false);
-                                                }
-                                            }}
-                                            onDragEnd={(e, info) => {
-                                                // Only handle trash for recurrings
-                                                setDraggingTxId(null);
-                                                setIsHoveringTrash(false);
-                                                const el = document.elementFromPoint(info.point.x, info.point.y);
-                                                if (el) {
-                                                    const trash = el.closest('[data-droptarget="trash"]');
-                                                    if (trash) {
-                                                        setTxToDelete(tx.id);
-                                                        return;
-                                                    }
-                                                }
-                                            }}
-                                            whileDrag={{ scale: 1.1, zIndex: 100, rotate: -2, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)" }}
-                                            className={clsx(
-                                                "pl-3 pr-2 py-1.5 rounded-lg border-2 text-sm font-black flex items-center space-x-2 active:scale-95 transition-all touch-none",
-                                                tx.direction === 'income' ? "border-emerald-200 text-emerald-600 bg-emerald-50" : "border-rose-200 text-rose-600 bg-rose-50",
-                                                draggingTxId === tx.id && "shadow-xl border-zinc-900"
-                                            )}
-                                        >
-                                            <span className="truncate max-w-[100px] italic pointer-events-none">{tx.label}</span>
-                                            <span className="opacity-75 text-xs pointer-events-none">{formatCurrencyDetailed(tx.amount)}/m</span>
-                                        </motion.button>
-                                    ))}
+                                    {recurringTxs.map(tx => renderTransactionPill(tx))}
                                     <button
                                         onClick={() => handleAdd(undefined, 'monthly')}
                                         className="w-10 h-10 rounded-lg border-2 border-zinc-200 text-zinc-400 flex items-center justify-center active:bg-zinc-50"
@@ -1118,59 +1171,8 @@ export default function MobileDashboard7() {
                                                 </div>
 
                                                 {/* One-off Container */}
-                                                <div className="flex-1 flex flex-wrap gap-2 items-start pl-2">
-                                                    {oneOffs.map(tx => (
-                                                        <motion.button
-                                                            key={`p-${tx.id}`}
-                                                            onClick={(e) => {
-                                                                // Prevent tapping if we just dragged
-                                                                if (draggingTxId) {
-                                                                    e.preventDefault();
-                                                                    return;
-                                                                }
-                                                                handleEdit(tx);
-                                                            }}
-                                                            onPointerDown={(e) => {
-                                                                // Prevent the swipe gesture of the parent "matrix" view so drag is stable
-                                                                e.stopPropagation();
-                                                            }}
-                                                            drag
-                                                            dragSnapToOrigin
-                                                            dragElastic={1}
-                                                            onDragStart={() => handleDragStart(tx.id)}
-                                                            onDrag={(e, info) => {
-                                                                // Highlight the row we are hovering
-                                                                const el = document.elementFromPoint(info.point.x, info.point.y);
-                                                                if (el) {
-                                                                    const row = el.closest('[data-droptarget="month"]');
-                                                                    if (row) {
-                                                                        const m = row.getAttribute('data-month');
-                                                                        if (m && m !== hoveredMonth) setHoveredMonth(m);
-                                                                    } else {
-                                                                        if (hoveredMonth) setHoveredMonth(null);
-                                                                    }
-
-                                                                    const trash = el.closest('[data-droptarget="trash"]');
-                                                                    if (trash && !isHoveringTrash) setIsHoveringTrash(true);
-                                                                    else if (!trash && isHoveringTrash) setIsHoveringTrash(false);
-
-                                                                    const duplicate = el.closest('[data-droptarget="duplicate"]');
-                                                                    if (duplicate && !isHoveringDuplicate) setIsHoveringDuplicate(true);
-                                                                    else if (!duplicate && isHoveringDuplicate) setIsHoveringDuplicate(false);
-                                                                }
-                                                            }}
-                                                            onDragEnd={(e, info) => handleDragEnd(e, info, tx)}
-                                                            whileDrag={{ scale: 1.1, zIndex: 100, rotate: -2, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)" }}
-                                                            className={clsx(
-                                                                "px-3 py-1.5 rounded-lg text-xs font-black border-2 flex items-center space-x-1 active:scale-95 transition-all touch-none",
-                                                                tx.direction === 'income' ? "border-emerald-200 text-emerald-600 bg-white" : "border-rose-200 text-rose-600 bg-white",
-                                                                draggingTxId === tx.id && "shadow-xl border-zinc-900"
-                                                            )}
-                                                        >
-                                                            <span className="pointer-events-none">{tx.label || 'Virement'}</span>
-                                                            <span className="opacity-75 pointer-events-none">{formatCurrencyDetailed(tx.amount)}</span>
-                                                        </motion.button>
-                                                    ))}
+                                                <div className="flex-1 flex flex-wrap gap-2 items-start pl-2 pt-1">
+                                                    {oneOffs.map(tx => renderTransactionPill(tx))}
                                                     <button
                                                         onClick={() => handleAdd(p.month, 'none')}
                                                         className="h-8 w-12 rounded-lg border-2 border-zinc-200 flex items-center justify-center text-zinc-400 active:bg-zinc-50 shrink-0"
