@@ -63,6 +63,8 @@ interface FinanceState {
     currency: string;
     textSize: 'small' | 'medium' | 'large';
     hasCompletedOnboarding: boolean;
+    firstName: string;
+    ageRange: string;
 
     // Planification & Scenario & History State
     planifications: Planification[];
@@ -91,6 +93,8 @@ interface FinanceState {
     setTextSize: (size: 'small' | 'medium' | 'large') => void;
     loadProject: (data: any) => void;
     setHasCompletedOnboarding: (completed: boolean) => void;
+    setFirstName: (name: string) => void;
+    setAgeRange: (range: string) => void;
 
     // Autosave State
     lastAutosaveDate: number;
@@ -183,6 +187,41 @@ const cleanupRealtimeSync = () => {
     }
 };
 
+export const getAgeBasedSuggestions = (ageRange: string) => {
+    switch (ageRange) {
+        case '15-24':
+            return {
+                income: ['Job étudiant', 'Bourse', 'Aides familiales'],
+                expense: ['Loyer étudiant', 'Abonnements', 'Transport'],
+                extra: ['Voyage', 'Ordinateur', 'Cadeaux', 'Dépôt de garantie']
+            };
+        case '25-34':
+            return {
+                income: ['Salaire', 'Prime', 'Freelance'],
+                expense: ['Loyer', 'Crédit étudiant', 'Abonnements', 'Assurance'],
+                extra: ['Vacances', 'Voiture', 'Formation', 'Mariage', 'Travaux']
+            };
+        case '35-50':
+            return {
+                income: ['Salaire', 'Revenus locatifs', 'Allocations familiales'],
+                expense: ['Crédit immobilier', 'Impôts', 'Frais de scolarité', 'Assurances vie'],
+                extra: ['Travaux maison', 'Vacances famille', 'Remplacement voiture', 'Sécurisation épargne']
+            };
+        case '51+':
+            return {
+                income: ['Salaire', 'Revenus SCPI', 'Rentes'],
+                expense: ['Crédit immobilier', 'Impôts', 'Santé', 'Loisirs'],
+                extra: ['Aide aux enfants', 'Voyages longs', 'Santé spécifique', 'Transmission']
+            };
+        default:
+            return {
+                income: ['Salaire', 'Aides'],
+                expense: ['Loyer', 'Abonnements'],
+                extra: ['Vente', 'Cadeau', 'Shopping', 'Restaurant']
+            };
+    }
+};
+
 export const useFinanceStore = create<FinanceState>()(
     persist(
         (set, get) => ({
@@ -199,6 +238,8 @@ export const useFinanceStore = create<FinanceState>()(
             currency: '€',
             textSize: 'medium',
             hasCompletedOnboarding: false,
+            firstName: '',
+            ageRange: 'Non spécifié',
             planifications: [],
             currentPlanificationId: null,
             scenarios: [],
@@ -671,6 +712,10 @@ export const useFinanceStore = create<FinanceState>()(
             setContext: (context) => set({ context }),
 
             setHasCompletedOnboarding: (completed) => set({ hasCompletedOnboarding: completed }),
+
+            setFirstName: (firstName) => set({ firstName }),
+
+            setAgeRange: (ageRange) => set({ ageRange }),
 
             addTransaction: async (t: any, skipHistory = false) => {
                 const { user, currentScenarioId, currentPlanificationId } = get();

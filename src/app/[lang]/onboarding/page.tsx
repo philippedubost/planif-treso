@@ -7,13 +7,13 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { calculateProjection } from '@/lib/financeEngine';
 
 export default function OnboardingFlow() {
     const { dictionary, locale } = useTranslation();
     const router = useRouter();
-    const { setStartingBalance, addTransaction, setCurrentScenario, addScenario, resetSimulation, setHasCompletedOnboarding } = useFinanceStore();
+    const { setStartingBalance, addTransaction, setCurrentScenario, addScenario, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange } = useFinanceStore();
     const [step, setStep] = useState(1);
 
     // Data
@@ -23,6 +23,9 @@ export default function OnboardingFlow() {
     const [extra, setExtra] = useState<string>('');
     const [extraMonth, setExtraMonth] = useState<string>('');
     const [extraDirection, setExtraDirection] = useState<'income' | 'expense'>('expense');
+    const [extraLabel, setExtraLabel] = useState<string>('');
+    const [extraIsOther, setExtraIsOther] = useState<boolean>(false);
+    const [ageRange, setAgeRange] = useState<string>('Non spécifié');
 
     // Precomputed results for Step 5
     const [previewMonthsToZero, setPreviewMonthsToZero] = useState<number | null>(null);
@@ -44,11 +47,11 @@ export default function OnboardingFlow() {
     useEffect(() => {
         if (step === 2) {
             setTimeout(() => balanceRef.current?.focus(), 300);
-        } else if (step === 3) {
-            setTimeout(() => incomeRef.current?.focus(), 300);
         } else if (step === 4) {
-            setTimeout(() => expenseRef.current?.focus(), 300);
+            setTimeout(() => incomeRef.current?.focus(), 300);
         } else if (step === 5) {
+            setTimeout(() => expenseRef.current?.focus(), 300);
+        } else if (step === 6) {
             setTimeout(() => extraRef.current?.focus(), 300);
         }
     }, [step]);
@@ -58,7 +61,7 @@ export default function OnboardingFlow() {
         const { fr } = require('date-fns/locale');
         return Array.from({ length: 12 }).map((_, i) => {
             const d = addMonths(new Date(), i + 1);
-            return { value: format(d, 'yyyy-MM'), label: format(d, 'MMMyy', { locale: fr }).replace('.', '') };
+            return { value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy', { locale: fr }) };
         });
     }, []);
 
@@ -68,9 +71,9 @@ export default function OnboardingFlow() {
         }
     }, [next12Months, extraMonth]);
 
-    // Precompute step 6 results when reaching step 6
+    // Precompute step 7 results when reaching step 7
     useEffect(() => {
-        if (step === 6) {
+        if (step === 7) {
             const numBalance = parseFloat(balance) || 0;
             const numIncome = parseFloat(income) || 0;
             const numExpense = parseFloat(expense) || 0;
@@ -106,7 +109,7 @@ export default function OnboardingFlow() {
     // Flow controls
     const handleNext = () => {
         vibrate();
-        if (step < 6) {
+        if (step < 7) {
             setStep(prev => prev + 1);
         }
     };
@@ -132,6 +135,7 @@ export default function OnboardingFlow() {
         const numExtra = parseFloat(extra) || 0;
 
         setStartingBalance(numBalance);
+        setStoreAgeRange(ageRange);
         await addTransaction({
             label: 'Entrée 1',
             categoryId: 'cat-salary',
@@ -151,7 +155,7 @@ export default function OnboardingFlow() {
         if (numExtra > 0) {
             const appliedMonth = extraMonth || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
             await addTransaction({
-                label: 'Extra 1',
+                label: extraLabel || 'Extra',
                 categoryId: extraDirection === 'expense' ? 'cat-shopping' : 'cat-salary',
                 amount: numExtra,
                 direction: extraDirection,
@@ -248,6 +252,67 @@ export default function OnboardingFlow() {
     };
 
     const renderStep3 = () => {
+        const canProceed = ageRange.length > 0;
+        const ages = ['15-24', '25-34', '35-50', '51+'];
+
+        return (
+            <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
+                    <div className="h-[15vh] w-full max-w-[140px]">
+                        <ImageWithFallback
+                            srcWebp="/illustrations/mascot-graph-overview.webp"
+                            srcPng="/illustrations/mascot-graph-overview.png"
+                            alt="Age Range"
+                            fill
+                            priority
+                            className="object-contain"
+                        />
+                    </div>
+                    <div className="text-center space-y-4 w-full">
+                        <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
+                            Quel est ton âge ?
+                        </h2>
+                        <p className="text-sm font-medium text-zinc-400 max-w-[250px] mx-auto balance-text">
+                            Pour t'aider à budgéter selon ta situation.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 mt-8 w-full">
+                            {ages.map((range) => (
+                                <button
+                                    key={range}
+                                    onClick={() => {
+                                        setAgeRange(range);
+                                        setTimeout(() => handleNext(), 300);
+                                    }}
+                                    className={clsx(
+                                        "py-4 rounded-2xl font-black text-[17px] transition-all",
+                                        ageRange === range
+                                            ? "bg-zinc-900 text-white shadow-premium scale-100 border-2 border-zinc-900"
+                                            : "bg-white text-zinc-600 border-2 border-zinc-100 hover:border-zinc-200 active:scale-95"
+                                    )}
+                                >
+                                    {range}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => {
+                                setAgeRange('Non spécifié');
+                                setTimeout(() => handleNext(), 300);
+                            }}
+                            className={clsx(
+                                "mt-6 text-[11px] font-black uppercase tracking-widest underline underline-offset-4 transition-all",
+                                ageRange === 'Non spécifié' ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
+                            )}
+                        >
+                            Je préfère ne pas le dire
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderStep4 = () => {
         const canProceed = income.length > 0;
 
         return (
@@ -292,7 +357,7 @@ export default function OnboardingFlow() {
         );
     };
 
-    const renderStep4 = () => {
+    const renderStep5 = () => {
         const canProceed = expense.length > 0;
 
         return (
@@ -337,31 +402,87 @@ export default function OnboardingFlow() {
         );
     };
 
-    const renderStep5 = () => {
+    const renderStep6 = () => {
         const canProceed = true; // Optional step
+        const isFilled = parseFloat(extra) > 0 && extraLabel.trim().length > 0;
+
+        const labelOptions = extraDirection === 'income'
+            ? (ageRange === '15-24' ? ['Cadeau', 'Petit boulot', 'Vente'] : ['Prime', 'Cadeau', 'Remboursement'])
+            : (ageRange === '15-24' ? ['Sortie', 'Voyage', 'Cadeau']
+                : ageRange === '35-50' ? ['Voyage', 'Réparation', 'Impôts']
+                    : ageRange === '51+' ? ['Voyage', 'Santé', 'Vacances']
+                        : ['Voyage', 'Shopping', 'Cadeau']);
 
         return (
             <div className="flex flex-col pt-[8vh] px-6 space-y-6 items-center h-full no-scrollbar overflow-y-auto">
-                <div className="flex flex-col items-center space-y-6 w-full max-w-sm mx-auto">
-                    <div className="h-[15vh] w-full max-w-[140px]">
+                <div className="flex flex-col items-center space-y-5 w-full max-w-sm mx-auto">
+                    <div className="h-[13vh] w-full max-w-[120px]">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-edit.webp"
-                            srcPng="/illustrations/mascot-graph-edit.png"
+                            srcPng="/illustrations/mascot-income-oneoff.png"
                             alt="Extra ponctuel"
                             fill
                             priority
                             className="object-contain"
                         />
                     </div>
-                    <div className="text-center space-y-2 w-full">
-                        <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Un imprévu à ajouter ?
-                        </h2>
-                        <div className="flex w-full bg-zinc-100 p-1 rounded-full mb-6 max-w-xs mx-auto mt-4">
-                            <button onClick={() => setExtraDirection('expense')} className={clsx("flex-1 py-1.5 text-sm font-bold rounded-full transition-all", extraDirection === 'expense' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500")}>Dépense</button>
-                            <button onClick={() => setExtraDirection('income')} className={clsx("flex-1 py-1.5 text-sm font-bold rounded-full transition-all", extraDirection === 'income' ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500")}>Entrée</button>
+
+                    {/* Sentence card */}
+                    <div className="w-full text-left space-y-4 text-[17px] font-black italic tracking-tight text-zinc-900 leading-snug">
+
+                        {/* Line 1 — month */}
+                        <div className="space-y-2">
+                            <span className="text-zinc-400">En</span>
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-1">
+                                {next12Months.slice(0, 6).map(m => (
+                                    <button
+                                        key={m.value}
+                                        onClick={() => setExtraMonth(m.value)}
+                                        className={clsx(
+                                            'shrink-0 px-3 py-1.5 rounded-xl text-sm font-black border transition-all active:scale-95 capitalize',
+                                            extraMonth === m.value
+                                                ? 'bg-zinc-900 text-white border-zinc-900'
+                                                : 'bg-white text-zinc-500 border-zinc-100 hover:border-zinc-300'
+                                        )}
+                                    >
+                                        {m.label.split(' ')[0]}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="relative mt-4 max-w-xs mx-auto">
+
+                        {/* Line 2 — direction */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-zinc-400">je vais</span>
+                            <div className="flex rounded-xl overflow-hidden border border-zinc-100 shadow-sm text-sm">
+                                <button
+                                    onClick={() => setExtraDirection('expense')}
+                                    className={clsx(
+                                        'px-4 py-1.5 font-black transition-all',
+                                        extraDirection === 'expense'
+                                            ? 'bg-rose-500 text-white'
+                                            : 'bg-white text-zinc-400 hover:bg-zinc-50'
+                                    )}
+                                >
+                                    payer
+                                </button>
+                                <button
+                                    onClick={() => setExtraDirection('income')}
+                                    className={clsx(
+                                        'px-4 py-1.5 font-black transition-all',
+                                        extraDirection === 'income'
+                                            ? 'bg-emerald-500 text-white'
+                                            : 'bg-white text-zinc-400 hover:bg-zinc-50'
+                                    )}
+                                >
+                                    recevoir
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Line 3 — amount */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-zinc-400">un montant de</span>
                             <input
                                 ref={extraRef}
                                 type="number"
@@ -369,39 +490,80 @@ export default function OnboardingFlow() {
                                 value={extra}
                                 onChange={(e) => setExtra(e.target.value)}
                                 className={clsx(
-                                    "w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 pb-2 focus:outline-none transition-colors",
-                                    extraDirection === 'income' ? "text-emerald-600 border-emerald-200 focus:border-emerald-500" : "text-amber-600 border-amber-200 focus:border-amber-500"
+                                    'w-24 text-center font-black text-base border-b-2 bg-transparent outline-none pb-0.5 transition-colors',
+                                    extraDirection === 'expense'
+                                        ? 'border-rose-300 text-rose-600 placeholder:text-rose-200'
+                                        : 'border-emerald-300 text-emerald-600 placeholder:text-emerald-200'
                                 )}
                                 placeholder="0"
                                 onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
                             />
-                            <span className={clsx(
-                                "absolute right-4 bottom-4 text-2xl font-black",
-                                extraDirection === 'income' ? "text-emerald-300" : "text-amber-300"
-                            )}>€</span>
                         </div>
-                        <p className="text-sm font-medium text-zinc-400 mt-2 max-w-[250px] mx-auto balance-text">
-                            Montant optionnel, on n'oublie jamais rien !
-                        </p>
-                        <select
-                            value={extraMonth}
-                            onChange={(e) => setExtraMonth(e.target.value)}
-                            className="mt-2 bg-transparent text-zinc-600 font-bold py-1 px-4 text-center block mx-auto text-sm outline-none border-none appearance-none cursor-pointer hover:bg-zinc-50 rounded-lg transition-colors capitalize"
-                        >
-                            {next12Months.map(m => (
-                                <option key={m.value} value={m.value}>{m.label}</option>
-                            ))}
-                        </select>
+
+                        {/* Line 4 — label */}
+                        <div className="space-y-2">
+                            <span className="text-zinc-400">pour</span>
+                            {extraIsOther ? (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={extraLabel}
+                                        onChange={(e) => setExtraLabel(e.target.value)}
+                                        className="flex-1 border-b-2 border-zinc-200 bg-transparent outline-none font-black text-zinc-900 placeholder:text-zinc-300 pb-0.5 not-italic"
+                                        placeholder="Libellé…"
+                                        onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={() => { setExtraIsOther(false); setExtraLabel(''); }}
+                                        className="text-[10px] text-zinc-400 uppercase tracking-widest font-black"
+                                    >
+                                        ← retour
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {labelOptions.map(opt => (
+                                        <button
+                                            key={opt}
+                                            onClick={() => { setExtraLabel(opt); setExtraIsOther(false); }}
+                                            className={clsx(
+                                                'px-3 py-1.5 rounded-xl text-sm font-black border transition-all active:scale-95 not-italic',
+                                                extraLabel === opt
+                                                    ? extraDirection === 'expense'
+                                                        ? 'bg-rose-500 text-white border-rose-500'
+                                                        : 'bg-emerald-500 text-white border-emerald-500'
+                                                    : 'bg-white text-zinc-600 border-zinc-100 hover:border-zinc-300'
+                                            )}
+                                        >
+                                            {opt}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => { setExtraIsOther(true); setExtraLabel(''); }}
+                                        className="px-3 py-1.5 rounded-xl text-sm font-black border border-dashed border-zinc-200 text-zinc-400 hover:border-zinc-400 transition-all not-italic"
+                                    >
+                                        Autre…
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <div className="w-full max-w-sm mx-auto">
-                    {renderCTA("Voir ma projection", canProceed)}
+
+                <div className="w-full max-w-sm mx-auto flex flex-col items-center">
+                    <div className="w-full">
+                        {renderCTA(isFilled ? "Ajouter l'extra" : "Passer cette étape", canProceed)}
+                    </div>
+                    <p className="text-zinc-400 font-medium text-xs mt-3 pb-8 text-center px-4">
+                        Tu pourras en ajouter d'autres plus tard dans ton espace personnel.
+                    </p>
                 </div>
             </div>
         );
     };
 
-    const renderStep6 = () => {
+    const renderStep7 = () => {
         let headline = "Tu es tranquille pour l'instant";
         let colorClass = "text-emerald-500";
         let bgClass = "bg-emerald-50";
@@ -463,7 +625,7 @@ export default function OnboardingFlow() {
                                             <div className="flex items-center space-x-1 justify-end">
                                                 <span className={clsx("font-bold text-xs", extraDirection === 'income' ? 'text-emerald-500' : 'text-rose-500')}>
                                                     {extraDirection === 'income' ? '+' : '-'}{numExtra}
-                                                    {extraMonth && <span className="text-[9px] text-zinc-400 font-normal tracking-tight ml-1">in {format(new Date(extraMonth), 'MMM', { locale: fr })}</span>}
+                                                    {extraMonth && <span className="text-[9px] text-zinc-400 font-normal tracking-tight ml-1">en {format(new Date(extraMonth), 'MMMM', { locale: fr })}</span>}
                                                 </span>
                                             </div>
                                         )}
@@ -533,6 +695,7 @@ export default function OnboardingFlow() {
         { id: 4, content: renderStep4() },
         { id: 5, content: renderStep5() },
         { id: 6, content: renderStep6() },
+        { id: 7, content: renderStep7() },
     ];
 
     return (
@@ -546,7 +709,7 @@ export default function OnboardingFlow() {
                 <motion.div
                     className="h-full bg-zinc-900"
                     initial={{ width: '16%' }}
-                    animate={{ width: `${(step / 6) * 100}%` }}
+                    animate={{ width: `${(step / 7) * 100}%` }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
                 />
             </div>
@@ -554,12 +717,10 @@ export default function OnboardingFlow() {
             {/* Back button (invisible area for swiping back / small hit target) */}
             {step > 1 && (
                 <div
-                    className="absolute top-4 left-4 z-50 w-12 h-12 flex items-center justify-center"
+                    className="absolute top-4 left-4 z-50 w-12 h-12 flex items-center justify-center cursor-pointer"
                     onClick={handleBack}
                 >
-                    <div className="text-zinc-400 font-black text-xs uppercase tracking-widest pl-2">
-                        ←
-                    </div>
+                    <ChevronLeft className="w-8 h-8 text-zinc-400" strokeWidth={2.5} />
                 </div>
             )}
 
@@ -577,13 +738,14 @@ export default function OnboardingFlow() {
                         const swipe = Math.abs(offset.x) * velocity.x;
                         if (swipe > 100 && step > 1) {
                             handleBack();
-                        } else if (swipe < -100 && step < 6) {
+                        } else if (swipe < -100 && step < 7) {
                             // Only allow forward swipe if allowed (e.g., they filled the input)
                             const canProceed =
                                 (step === 2 && balance.length > 0) ||
-                                (step === 3 && income.length > 0) ||
-                                (step === 4 && expense.length > 0) ||
-                                (step === 5);
+                                (step === 3 && ageRange.length > 0) ||
+                                (step === 4 && income.length > 0) ||
+                                (step === 5 && expense.length > 0) ||
+                                (step === 6);
 
                             if (canProceed || step === 1) {
                                 handleNext();
