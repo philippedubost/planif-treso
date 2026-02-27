@@ -8,6 +8,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
+import { useResetZoom } from '@/hooks/useResetZoom';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+    useResetZoom(isOpen);
     const {
         currency,
         setCurrency,

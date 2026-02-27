@@ -2,6 +2,7 @@
 
 import { Drawer } from 'vaul';
 import { ReactNode } from 'react';
+import { useResetZoom } from '@/hooks/useResetZoom';
 
 interface BottomSheetProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetProps) {
+    useResetZoom(isOpen);
     return (
         <Drawer.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <Drawer.Portal>

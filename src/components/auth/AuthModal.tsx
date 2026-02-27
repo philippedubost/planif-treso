@@ -7,6 +7,7 @@ import { Mail, Loader2, X, Chrome } from 'lucide-react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { clsx } from 'clsx';
+import { useResetZoom } from '@/hooks/useResetZoom';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -14,6 +15,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+    useResetZoom(isOpen);
     const params = useParams();
     const lang = params?.lang || 'fr';
 
