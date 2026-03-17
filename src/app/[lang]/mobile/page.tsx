@@ -347,10 +347,10 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
                         <input
                             ref={amountRef}
                             type="text"
-                            inputMode="decimal"
+                            inputMode="text"
                             autoComplete="off"
                             className={clsx(
-                                'bg-transparent text-[11px] font-black leading-none w-10 text-center outline-none border-none p-0',
+                                'bg-transparent text-[11px] font-black leading-none w-12 text-center outline-none border-none p-0',
                                 isIncome ? 'text-emerald-600' : 'text-rose-600'
                             )}
                             value={localAmount}
