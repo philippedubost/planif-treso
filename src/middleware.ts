@@ -7,7 +7,7 @@ const defaultLocale = 'fr';
 const MOBILE_UA = /android|iphone|ipod|blackberry|iemobile|opera mini|mobile/i;
 
 /** Routes that should NOT trigger the mobile redirect even on mobile devices */
-const MOBILE_EXCLUDED = ['/mobile', '/mobile-vertical', '/dashboard-mobile', '/onboarding'];
+const MOBILE_EXCLUDED = ['/mobile', '/dashboard-mobile', '/onboarding'];
 
 function getLocaleFromPath(pathname: string): string {
     for (const locale of locales) {
@@ -48,7 +48,7 @@ export function middleware(request: NextRequest) {
         const alreadyMobile = MOBILE_EXCLUDED.some(p => basePath.startsWith(p));
         if (!alreadyMobile) {
             const url = request.nextUrl.clone();
-            url.pathname = `/${locale}/mobile-vertical`;
+            url.pathname = `/${locale}/mobile`;
             return NextResponse.redirect(url);
         }
     }

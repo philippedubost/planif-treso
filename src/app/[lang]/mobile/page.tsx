@@ -7,7 +7,7 @@ import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings, Plus, Share2, Check,
-    ChevronDown, Undo2, Redo2, X
+    ChevronDown, Undo2, Redo2, X, GripVertical
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
@@ -186,7 +186,11 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
 // ────────────────────────────────────────────────────────────
 // Inline-editable one-off pill (per month column)
 // ────────────────────────────────────────────────────────────
-function OneOffPill({ transaction, isDraggingMenuIndex }: { transaction: Transaction, isDraggingMenuIndex?: number }) {
+function OneOffPill({ transaction, months, onTargetMonthChange }: {
+    transaction: Transaction;
+    months: string[];
+    onTargetMonthChange?: (month: string | null) => void;
+}) {
     const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
     const [localLabel, setLocalLabel] = useState(transaction.label);
     const [localAmount, setLocalAmount] = useState(
@@ -221,15 +225,21 @@ function OneOffPill({ transaction, isDraggingMenuIndex }: { transaction: Transac
         setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
     };
 
-    const handleDragEnd = (event: any, info: any) => {
-        // Use document.elementFromPoint to find the column under the drop
-        const element = document.elementFromPoint(info.point.x, info.point.y);
-        const col = element?.closest('[data-month]');
-        if (col) {
-            const newMonth = col.getAttribute('data-month');
-            if (newMonth && newMonth !== transaction.month) {
-                updateTransaction(transaction.id, { month: newMonth });
-            }
+    const handleDrag = (_event: any, info: any) => {
+        const offset = Math.round(info.offset.x / MOBILE_COL);
+        const currentIndex = months.indexOf(transaction.month!);
+        const nextIndex = Math.max(0, Math.min(months.length - 1, currentIndex + offset));
+        const nextMonth = months[nextIndex];
+        onTargetMonthChange?.(nextMonth !== transaction.month ? nextMonth : null);
+    };
+
+    const handleDragEnd = (_event: any, info: any) => {
+        onTargetMonthChange?.(null);
+        const offset = Math.round(info.offset.x / MOBILE_COL);
+        if (offset !== 0) {
+            const currentIndex = months.indexOf(transaction.month!);
+            const nextIndex = Math.max(0, Math.min(months.length - 1, currentIndex + offset));
+            updateTransaction(transaction.id, { month: months[nextIndex] });
         }
     };
 
@@ -237,58 +247,63 @@ function OneOffPill({ transaction, isDraggingMenuIndex }: { transaction: Transac
 
     return (
         <motion.div
-            layout // Smooth movement when other items shift
-            drag
+            layout
+            drag="x"
             dragSnapToOrigin
             dragMomentum={false}
+            dragElastic={0.1}
+            onDrag={handleDrag}
             onDragEnd={handleDragEnd}
             dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
-            whileDrag={{ scale: 1.1, zIndex: 50, opacity: 0.8 }}
-            className="relative flex flex-col items-center pointer-events-auto cursor-grab active:cursor-grabbing"
+            whileDrag={{ scale: 1.1, zIndex: 50, opacity: 0.9, cursor: 'grabbing' }}
+            className="relative flex flex-row items-center pointer-events-auto cursor-grab active:cursor-grabbing"
         >
             <div
                 className={clsx(
-                    'px-1.5 py-1.5 rounded-lg shadow-sm flex flex-col items-center justify-center w-[64px] border',
+                    'pl-0.5 pr-1.5 py-1.5 rounded-lg shadow-sm flex flex-row items-center gap-0.5 w-[64px] border',
                     isIncome ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
                 )}
             >
-                <input
-                    ref={labelRef}
-                    className="bg-transparent text-[8px] font-black italic uppercase leading-none mb-0.5 text-zinc-400 text-center w-full outline-none border-none p-0"
-                    value={localLabel}
-                    placeholder="Extra..."
-                    autoFocus={transaction.label === ''}
-                    onChange={e => setLocalLabel(e.target.value)}
-                    onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
-                    onBlur={() => { commitLabel(); setIsFocused(false); }}
-                    onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
-                />
-                <div className="flex items-center justify-center space-x-0.5">
+                <GripVertical className="w-3 h-3 text-zinc-400 opacity-70 shrink-0 pointer-events-none" />
+                <div className="flex flex-col items-center flex-1">
                     <input
-                        ref={amountRef}
-                        type="text"
-                        inputMode="text"
-                        className={clsx(
-                            'bg-transparent text-[11px] font-black leading-none w-12 text-center outline-none border-none p-0',
-                            isIncome ? 'text-emerald-600' : 'text-rose-600'
-                        )}
-                        value={localAmount}
-                        placeholder="0"
-                        onChange={e => setLocalAmount(e.target.value)}
+                        ref={labelRef}
+                        className="bg-transparent text-[8px] font-black italic uppercase leading-none mb-0.5 text-zinc-400 text-center w-full outline-none border-none p-0"
+                        value={localLabel}
+                        placeholder="Extra..."
+                        autoFocus={transaction.label === ''}
+                        onChange={e => setLocalLabel(e.target.value)}
                         onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
-                        onBlur={() => { commitAmount(); setIsFocused(false); }}
+                        onBlur={() => { commitLabel(); setIsFocused(false); }}
                         onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
                     />
-                    <span className={clsx('text-[9px] font-bold leading-none', isIncome ? 'text-emerald-300' : 'text-rose-300')}>
-                        {currency}
-                    </span>
+                    <div className="flex items-center justify-center space-x-0.5">
+                        <input
+                            ref={amountRef}
+                            type="text"
+                            inputMode="text"
+                            className={clsx(
+                                'bg-transparent text-[11px] font-black leading-none w-10 text-center outline-none border-none p-0',
+                                isIncome ? 'text-emerald-600' : 'text-rose-600'
+                            )}
+                            value={localAmount}
+                            placeholder="0"
+                            onChange={e => setLocalAmount(e.target.value)}
+                            onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
+                            onBlur={() => { commitAmount(); setIsFocused(false); }}
+                            onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                        />
+                        <span className={clsx('text-[9px] font-bold leading-none', isIncome ? 'text-emerald-300' : 'text-rose-300')}>
+                            {currency}
+                        </span>
+                    </div>
                 </div>
             </div>
             <AnimatePresence mode="wait">
                 {(isFocused || isSuccess) ? (
                     <motion.button
                         key="check"
-                        initial={{ scale: 0, opacity: .8 }}
+                        initial={{ scale: 0, opacity: 0 }}
                         animate={isSuccess
                             ? { scale: [1, 1.3, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
                             : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
@@ -344,7 +359,7 @@ function OneOffPill({ transaction, isDraggingMenuIndex }: { transaction: Transac
 // ────────────────────────────────────────────────────────────
 // Compact Graph (uses same Recharts approach as desktop)
 // ────────────────────────────────────────────────────────────
-const Y_AXIS_WIDTH = 44; // must match the YAxis width prop below
+const Y_AXIS_WIDTH = 44;
 
 function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?: number }) {
     const projection = useProjection();
@@ -357,16 +372,28 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
     const maxBal = projection.reduce((max, p) => p.balance > max ? p.balance : max, projection[0].balance);
     const range = Math.max(Math.abs(maxBal - minBal), 100);
     const threshold = range * 0.15;
+
     const yTicks = [startBal];
     if (Math.abs(minBal - startBal) > threshold) yTicks.push(minBal);
     if (Math.abs(maxBal - startBal) > threshold && Math.abs(maxBal - minBal) > threshold) yTicks.push(maxBal);
+    // Always show 0 label if range spans zero
+    if (minBal < 0 && maxBal > 0 && !yTicks.includes(0)) yTicks.push(0);
+
+    // Gradient for balance line: black above 0, red below
+    const lineHasNeg = minBal < 0;
+    const lineHasPos = maxBal > 0;
+    const zeroStopPct = lineHasNeg && lineHasPos
+        ? `${(maxBal / (maxBal - minBal)) * 100}%`
+        : lineHasNeg ? '0%' : '100%';
+    const lineAboveColor = '#0f172a';
+    const lineBelowColor = '#f43f5e';
 
     return (
         <div className="relative" style={{ height }}>
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection.map(p => ({ ...p, expense: -p.expense }))}
-                    margin={{ top: 12, right: 0, bottom: 0, left: leftPadding ? leftPadding - Y_AXIS_WIDTH : 0 }}
+                    margin={{ top: 10, right: 0, bottom: 0, left: 0 }}
                     onClick={(e: any) => e?.activePayload && setSelectedMonth(e.activePayload[0].payload.month)}
                 >
                     <defs>
@@ -377,6 +404,10 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                         <linearGradient id="mobileColorExpense" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
                             <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.8} />
+                        </linearGradient>
+                        <linearGradient id="mobileBalanceLine" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+                            <stop offset={zeroStopPct} stopColor={lineAboveColor} stopOpacity={1} />
+                            <stop offset={zeroStopPct} stopColor={lineBelowColor} stopOpacity={1} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
@@ -415,14 +446,28 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                             <Cell key={i} fill={e.month === selectedMonth ? '#10b981' : 'url(#mobileColorIncome)'} />
                         ))}
                     </Bar>
-                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[12, 12, 0, 0]} barSize={16} animationDuration={1200} activeBar={false}>
+                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[12, 12, 0, 0]} barSize={16}>
                         {projection.map((e, i) => (
                             <Cell key={i} fill={e.month === selectedMonth ? '#f43f5e' : 'url(#mobileColorExpense)'} />
                         ))}
                     </Bar>
-                    <Line type="monotone" dataKey="balance" stroke="#0f172a" strokeWidth={3}
-                        dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#fff' }}
-                        activeDot={{ r: 6, strokeWidth: 0 }} animationDuration={1800} />
+                    <Line
+                        type="monotone"
+                        dataKey="balance"
+                        stroke="url(#mobileBalanceLine)"
+                        strokeWidth={3}
+                        dot={(props: any) => {
+                            const { cx, cy, payload } = props;
+                            const color = payload.balance < 0 ? lineBelowColor : lineAboveColor;
+                            return <circle key={`dot-${payload.month}`} cx={cx} cy={cy} r={4} fill={color} stroke="#fff" strokeWidth={2} />;
+                        }}
+                        activeDot={(props: any) => {
+                            const { cx, cy, payload } = props;
+                            const color = payload.balance < 0 ? lineBelowColor : lineAboveColor;
+                            return <circle key={`adot-${payload.month}`} cx={cx} cy={cy} r={6} fill={color} strokeWidth={0} />;
+                        }}
+                        animationDuration={1800}
+                    />
                     <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="3 3" />
                     <ReferenceLine y={maxBal} stroke="#e2e8f0" strokeWidth={1} strokeDasharray="4 4" />
                 </ComposedChart>
@@ -562,7 +607,8 @@ export default function DashboardMobilePage() {
         transactions, currency, textSize,
         startingBalance, startingMonth,
         loadProject, projectionMonths, title,
-        undo, redo, undoStack, redoStack
+        undo, redo, undoStack, redoStack,
+        addTransaction
     } = useFinanceStore();
 
     const { dictionary, locale } = useTranslation();
@@ -573,7 +619,7 @@ export default function DashboardMobilePage() {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
-
+    const [dragTargetMonth, setDragTargetMonth] = useState<string | null>(null);
 
     // Editor bottom sheet
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -592,14 +638,13 @@ export default function DashboardMobilePage() {
     const oneOffTransactions = transactions.filter(t => t.recurrence === 'none');
     const recurringTransactions = transactions.filter(t => t.recurrence !== 'none');
 
-
     useEffect(() => {
         const sharedData = searchParams.get('data');
         if (sharedData) {
             try {
                 const decoded = JSON.parse(decodeURIComponent(atob(sharedData)));
                 loadProject(decoded);
-                router.replace(`/${locale}/dashboard-mobile`);
+                router.replace(`/${locale}/mobile`);
             } catch { }
         }
     }, [searchParams, loadProject, router, locale]);
@@ -651,7 +696,7 @@ export default function DashboardMobilePage() {
                                 <div className="w-1 h-1 bg-white rounded-full" />
                             </div>
                         </div>
-                        <span className="font-black italic text-sm tracking-tighter text-zinc-900">PLANIF</span>
+                        <span className="font-black italic text-sm tracking-tighter text-zinc-900">PLANIF.app</span>
                     </div>
 
                     {/* Title pill */}
@@ -675,15 +720,12 @@ export default function DashboardMobilePage() {
                         </button>
                     </div>
 
-                    {/* Share */}
-                    {/* moved to settings menu */}
-
                     {/* Settings */}
                     <button onClick={() => setIsSettingsModalOpen(true)} className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center shadow-soft active:scale-95 group">
                         <Settings className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
                     </button>
 
-                    {/* Profile — app icon only, opens login/logout menu */}
+                    {/* Profile menu */}
                     <div className="relative">
                         <button
                             onClick={() => { setIsMenuOpen(!isMenuOpen); }}
@@ -703,7 +745,6 @@ export default function DashboardMobilePage() {
                                     initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
                                     className="absolute right-0 mt-2 w-52 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
                                 >
-                                    {/* Share */}
                                     <button
                                         onClick={() => { handleShare(); setIsMenuOpen(false); }}
                                         className={clsx('w-full flex items-center space-x-2 p-3 rounded-2xl transition-all', isShared ? 'text-emerald-600 bg-emerald-50' : 'text-zinc-600 hover:bg-zinc-50')}
@@ -724,72 +765,90 @@ export default function DashboardMobilePage() {
                 {/* KPI section */}
                 <MobileKPISection />
 
-                {/* Horizontally scrollable: months axis + graph + pills */}
+                {/* Horizontally scrollable: months axis + graph + extras */}
                 <div
                     ref={scrollContainerRef}
                     className="overflow-x-auto no-scrollbar pb-4"
                 >
-                    <div style={{ minWidth: `${TOTAL_WIDTH}px` }} className="flex flex-col space-y-0">
+                    <div style={{ minWidth: `${TOTAL_WIDTH}px` }} className="flex flex-col space-y-0 relative">
 
-                        {/* Months axis */}
-                        <div className="flex border-b border-zinc-200 pb-2 pt-1 sticky top-0 bg-zinc-50/95 backdrop-blur-md z-20">
+                        {/* Months axis — alternating backgrounds */}
+                        <div className="flex border-b border-zinc-200 pb-2 pt-1 sticky top-0 z-20 backdrop-blur-md" style={{ backgroundColor: 'rgba(249,249,251,0.95)' }}>
                             <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 px-2 font-black text-[8px] uppercase tracking-widest text-zinc-400 flex items-end justify-start">
                                 Mois
                             </div>
                             <div className="flex flex-1">
-                                {months.map(m => (
-                                    <div key={m} style={{ width: MOBILE_COL, minWidth: MOBILE_COL }} className="text-center font-black italic text-[9px] text-zinc-400 capitalize shrink-0">
+                                {months.map((m, i) => (
+                                    <div
+                                        key={m}
+                                        style={{ width: MOBILE_COL, minWidth: MOBILE_COL }}
+                                        className={clsx(
+                                            'text-center font-black italic text-[9px] text-zinc-400 capitalize shrink-0',
+                                            i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'
+                                        )}
+                                    >
                                         {format(parseISO(`${m}-01`), 'MMM yy', { locale: fr })}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Graph */}
+                        {/* Graph with alternating column stripes behind it */}
                         <motion.div
-                            animate={{ height: showDetails ? 320 : 500 }}
+                            animate={{ height: showDetails ? 240 : 400 }}
                             transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-                            className="relative bg-white/70 backdrop-blur-sm rounded-[24px] mx-4 my-3 shadow-soft border border-white overflow-hidden"
+                            className="relative rounded-[24px] mx-0 my-0 overflow-hidden"
                         >
-                            <MobileGraph height={showDetails ? 320 : 500} leftPadding={LABEL_WIDTH} />
+                            {/* Alternating column background stripes */}
+                            <div className="absolute inset-0 flex pointer-events-none z-0" style={{ paddingLeft: LABEL_WIDTH }}>
+                                {months.map((m, i) => (
+                                    <div
+                                        key={m}
+                                        style={{ width: MOBILE_COL, minWidth: MOBILE_COL }}
+                                        className={clsx('shrink-0 h-full', i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]')}
+                                    />
+                                ))}
+                            </div>
+                            <div className="relative z-10 h-full">
+                                <MobileGraph height={showDetails ? 240 : 400} leftPadding={LABEL_WIDTH} />
+                            </div>
                         </motion.div>
 
-                        {/* Toggle button — controls BOTH sections together */}
-                        <button
-                            onClick={() => setShowDetails(!showDetails)}
-                            className="ml-4 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95"
-                        >
-                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                {showDetails ? 'Masquer' : 'Editer entrées / sorties'}
-                            </span>
-                            <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-                                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900" />
-                            </motion.div>
-                        </button>
-
+                        {/* Extras + CHAQUE MOIS — hidden/shown via AnimatePresence */}
                         <AnimatePresence>
                             {showDetails && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                                     className="overflow-hidden"
                                 >
-                                    {/* ── Extras (one-off) — first ── */}
+                                    {/* ── Extras (one-off) ── */}
                                     <div className="flex border-t border-zinc-100">
                                         <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 sticky left-0 bg-zinc-50/95 backdrop-blur-md z-10 px-1.5 pt-2">
                                             <span className="text-[7px] uppercase font-black tracking-widest text-zinc-500">Extras</span>
                                         </div>
                                         <div className="flex flex-1">
-                                            {months.map(m => {
+                                            {months.map((m, i) => {
                                                 const monthOneOffs = oneOffTransactions.filter(t => t.month === m);
+                                                const isDropTarget = dragTargetMonth === m;
                                                 return (
                                                     <div
                                                         key={m}
                                                         data-month={m}
                                                         style={{ width: MOBILE_COL, minWidth: MOBILE_COL }}
-                                                        className="flex flex-col items-center justify-start py-2 space-y-1.5 border-l border-zinc-100 border-dashed min-h-[90px]"
+                                                        className={clsx(
+                                                            'flex flex-col items-center justify-start py-2 space-y-1.5 border-l border-zinc-100 border-dashed min-h-[90px] transition-colors',
+                                                            isDropTarget
+                                                                ? 'bg-blue-50 ring-2 ring-inset ring-blue-300'
+                                                                : i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'
+                                                        )}
                                                     >
                                                         {monthOneOffs.map(t => (
-                                                            <OneOffPill key={t.id} transaction={t} />
+                                                            <OneOffPill
+                                                                key={t.id}
+                                                                transaction={t}
+                                                                months={months}
+                                                                onTargetMonthChange={setDragTargetMonth}
+                                                            />
                                                         ))}
                                                         <button
                                                             onClick={() => handleOpenEditor(undefined, m, 'none')}
@@ -803,7 +862,7 @@ export default function DashboardMobilePage() {
                                         </div>
                                     </div>
 
-                                    {/* ── Chaque mois (recurring) — second ── */}
+                                    {/* ── Chaque mois (recurring) ── */}
                                     <div className="flex items-start py-2 border-t border-zinc-100">
                                         <div style={{ width: LABEL_WIDTH, lineHeight: 1 }} className="flex-shrink-0 sticky left-0 bg-zinc-50/95 backdrop-blur-md z-10 px-1.5 pt-1">
                                             <span className="text-[7px] uppercase font-black tracking-widest text-zinc-500">Chaque mois</span>
@@ -823,6 +882,20 @@ export default function DashboardMobilePage() {
                                 </motion.div>
                             )}
                         </AnimatePresence>
+
+                        {/* Toggle button — at the very bottom */}
+                        <button
+                            onClick={() => setShowDetails(!showDetails)}
+                            className="mx-4 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95 self-start"
+                        >
+                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
+                                {showDetails ? 'Masquer' : 'Editer entrées / sorties'}
+                            </span>
+                            <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+                                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900" />
+                            </motion.div>
+                        </button>
+
                     </div>
                 </div>
             </main>
