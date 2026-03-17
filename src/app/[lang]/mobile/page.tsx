@@ -230,6 +230,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
         if (newAmount !== transaction.amount || newDirection !== transaction.direction) {
             updateTransaction(transaction.id, { amount: newAmount, direction: newDirection });
         }
+        // Always re-display with the correct sign so expenses show as -500
         setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
     };
 
@@ -325,7 +326,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
 
             <div
                 className={clsx(
-                    'pl-0.5 pr-1.5 py-1.5 rounded-lg shadow-sm flex flex-row items-center gap-0.5 w-[64px] border transition-shadow',
+                    'pl-0.5 pr-1.5 py-1.5 rounded-lg shadow-sm flex flex-row items-center gap-0.5 w-[76px] border transition-shadow',
                     isIncome ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100',
                     isDragActive && 'shadow-lg'
                 )}
