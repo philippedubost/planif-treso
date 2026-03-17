@@ -689,7 +689,7 @@ export default function DashboardMobilePage() {
                     {/* Profile — app icon only, opens login/logout menu */}
                     <div className="relative">
                         <button
-                            onClick={() => { setIsMenuOpen(!isMenuOpen); setIsPlanificationMenuOpen(false); setIsScenarioMenuOpen(false); }}
+                            onClick={() => { setIsMenuOpen(!isMenuOpen); }}
                             className={clsx(
                                 'w-9 h-9 rounded-xl flex items-center justify-center shadow-premium active:scale-95 transition-all',
                                 isMenuOpen ? 'bg-zinc-700' : 'bg-zinc-900'

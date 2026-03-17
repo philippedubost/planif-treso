@@ -686,7 +686,6 @@ export default function ProjectionHorizontalPage() {
                                 <button
                                     onClick={() => {
                                         setIsMenuOpen(!isMenuOpen);
-                                        if (!isMenuOpen) setIsPlanificationMenuOpen(false);
                                     }}
                                     className="px-3 py-1.5 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 rounded-full flex items-center justify-center active:scale-95 h-10 transition-colors"
                                 >
