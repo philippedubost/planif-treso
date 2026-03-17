@@ -6,7 +6,7 @@ import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Settings, Plus, Share2, Check,
+    Settings, Plus,
     ChevronDown, Undo2, Redo2, X, GripVertical
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -32,7 +32,7 @@ import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEdi
 import { SentenceTransactionEditor } from '@/components/lists/SentenceTransactionEditor';
 
 // ── Column width for mobile (narrower than desktop's 96px) ──
-const MOBILE_COL = 68; // px per month column
+const MOBILE_COL = 82; // px per month column
 const LABEL_WIDTH = 52; // sticky left label area
 
 // ────────────────────────────────────────────────────────────
@@ -111,7 +111,8 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
                 <input
                     ref={amountRef}
                     type="text"
-                    inputMode="text"
+                    inputMode="decimal"
+                    autoComplete="off"
                     className={clsx(
                         'bg-transparent font-black text-[11px] outline-none border-none p-0 w-10 text-right',
                         isIncome ? 'text-emerald-600' : 'text-rose-600'
@@ -281,7 +282,8 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
                         <input
                             ref={amountRef}
                             type="text"
-                            inputMode="text"
+                            inputMode="decimal"
+                            autoComplete="off"
                             className={clsx(
                                 'bg-transparent text-[11px] font-black leading-none w-10 text-center outline-none border-none p-0',
                                 isIncome ? 'text-emerald-600' : 'text-rose-600'
@@ -545,7 +547,8 @@ function MobileKPISection() {
                         ref={inputRef}
                         autoFocus
                         type="text"
-                        inputMode="text"
+                        inputMode="decimal"
+                        autoComplete="off"
                         value={inputValue}
                         onChange={e => setInputValue(e.target.value)}
                         onFocus={e => scrollIntoView(e.currentTarget)}
@@ -607,17 +610,14 @@ export default function DashboardMobilePage() {
         transactions, currency, textSize,
         startingBalance, startingMonth,
         loadProject, projectionMonths, title,
-        undo, redo, undoStack, redoStack,
-        addTransaction
+        undo, redo, undoStack, redoStack
     } = useFinanceStore();
 
     const { dictionary, locale } = useTranslation();
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [isShared, setIsShared] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [dragTargetMonth, setDragTargetMonth] = useState<string | null>(null);
 
@@ -661,16 +661,6 @@ export default function DashboardMobilePage() {
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [undo, redo, undoStack.length, redoStack.length]);
-
-    const handleShare = () => {
-        const state = { transactions, startingBalance, startingMonth, currency, textSize, projectionMonths };
-        const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
-        const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
-        navigator.clipboard.writeText(url).then(() => {
-            setIsShared(true);
-            setTimeout(() => setIsShared(false), 2000);
-        });
-    };
 
     const handleOpenEditor = (tx?: Transaction, month?: string, recurrence: 'monthly' | 'none' = 'none') => {
         if (tx) { setSelectedTransaction(tx); setIsAdding(false); }
@@ -725,37 +715,6 @@ export default function DashboardMobilePage() {
                         <Settings className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
                     </button>
 
-                    {/* Profile menu */}
-                    <div className="relative">
-                        <button
-                            onClick={() => { setIsMenuOpen(!isMenuOpen); }}
-                            className={clsx(
-                                'w-9 h-9 rounded-xl flex items-center justify-center shadow-premium active:scale-95 transition-all',
-                                isMenuOpen ? 'bg-zinc-700' : 'bg-zinc-900'
-                            )}
-                        >
-                            <div className="w-4 h-4 border-2 border-white rounded-md flex items-center justify-center">
-                                <div className="w-1 h-1 bg-white rounded-full" />
-                            </div>
-                        </button>
-
-                        <AnimatePresence>
-                            {isMenuOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                    className="absolute right-0 mt-2 w-52 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                >
-                                    <button
-                                        onClick={() => { handleShare(); setIsMenuOpen(false); }}
-                                        className={clsx('w-full flex items-center space-x-2 p-3 rounded-2xl transition-all', isShared ? 'text-emerald-600 bg-emerald-50' : 'text-zinc-600 hover:bg-zinc-50')}
-                                    >
-                                        {isShared ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                                        <span className="font-black italic text-sm">{isShared ? 'Lien copié !' : 'Partager'}</span>
-                                    </button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
                 </div>
             </header>
 

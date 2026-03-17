@@ -1,8 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronDown, Trash2, Check, Globe } from 'lucide-react';
+import { X, ChevronDown, Trash2, Check, Globe, Share2, Download, Upload } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { useRef } from 'react';
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -25,9 +26,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         ageRange,
         setAgeRange,
         resetSimulation,
+        transactions,
+        startingBalance,
+        startingMonth,
+        textSize,
+        projectionMonths,
+        loadProject,
     } = useFinanceStore();
     const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
     const [isAgeRangeOpen, setIsAgeRangeOpen] = useState(false);
+    const [isShared, setIsShared] = useState(false);
+    const importRef = useRef<HTMLInputElement>(null);
 
     const router = useRouter();
     const pathname = usePathname();
@@ -55,6 +64,42 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     ];
 
     const ageRanges = ['15-24', '25-34', '35-50', '51+', 'Entreprise', 'Non spécifié'];
+
+    const handleShare = () => {
+        const state = { transactions, startingBalance, startingMonth, currency, textSize, projectionMonths };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+        const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setIsShared(true);
+            setTimeout(() => setIsShared(false), 2000);
+        });
+    };
+
+    const handleExport = () => {
+        const state = { transactions, startingBalance, startingMonth, currency, textSize, projectionMonths, firstName, ageRange };
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `planif-${startingMonth}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target?.result as string);
+                loadProject(data);
+                onClose();
+            } catch { }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
 
     const handleReset = async () => {
         await resetSimulation();
@@ -268,6 +313,40 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                         )}
                                     </AnimatePresence>
                                 </div>
+                            </div>
+
+                            {/* Share / Export / Import */}
+                            <div className="pt-6 border-t border-zinc-50 space-y-3">
+                                <div className="flex items-center space-x-2 px-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Données</span>
+                                </div>
+                                <button
+                                    onClick={handleShare}
+                                    className={clsx(
+                                        "w-full flex items-center space-x-3 px-5 py-3.5 rounded-[20px] transition-all active:scale-95",
+                                        isShared ? "bg-emerald-50 text-emerald-600" : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                                    )}
+                                >
+                                    {isShared ? <Check className="w-4 h-4 shrink-0" /> : <Share2 className="w-4 h-4 shrink-0" />}
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">
+                                        {isShared ? 'Lien copié !' : 'Partager le lien'}
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={handleExport}
+                                    className="w-full flex items-center space-x-3 px-5 py-3.5 rounded-[20px] bg-zinc-50 text-zinc-700 hover:bg-zinc-100 transition-all active:scale-95"
+                                >
+                                    <Download className="w-4 h-4 shrink-0" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">Exporter en JSON</span>
+                                </button>
+                                <button
+                                    onClick={() => importRef.current?.click()}
+                                    className="w-full flex items-center space-x-3 px-5 py-3.5 rounded-[20px] bg-zinc-50 text-zinc-700 hover:bg-zinc-100 transition-all active:scale-95"
+                                >
+                                    <Upload className="w-4 h-4 shrink-0" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">Importer un fichier JSON</span>
+                                </button>
+                                <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
                             </div>
 
                             {/* Danger Zone */}
