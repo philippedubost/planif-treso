@@ -13,7 +13,7 @@ import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import Image from 'next/image';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, GripVertical } from 'lucide-react';
 
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, planName, dictionary }: any) => {
     if (!isOpen) return null;
@@ -445,6 +445,7 @@ export default function ProjectionHorizontalPage() {
                     </>
                 ) : (
                     <>
+                        <GripVertical className="w-2.5 h-2.5 opacity-25 pointer-events-none shrink-0" />
                         <span className="truncate w-full italic pointer-events-none px-0.5 text-center">{tx.label || 'Virement'}</span>
                         <span className="opacity-80 pointer-events-none tabular-nums text-center leading-none">
                             {tx.direction === 'expense' ? `-${formatCurrency(tx.amount).replace(/^-/, '')}` : formatCurrency(tx.amount)}
@@ -530,10 +531,12 @@ export default function ProjectionHorizontalPage() {
 
     // Dynamic available height for the bottom block considering keyboard
     const availableHeight = height ? height - 150 : 650;
-    const bottomSpace = isMatrixOpen ? availableHeight * 0.30 : 0; // 30% height for extras & recurring IF open
-    const paddingY = Math.min(60, Math.max(15, (availableHeight - bottomSpace) * 0.15));
-    //const paddingY = 15;
-    const canvasHeight = Math.max(availableHeight - bottomSpace, 150);
+    const EXTRAS_ROW_H = 62;
+    const MONTHLY_STRIP_H = 48;
+    const TOGGLE_BTN_H = isMatrixOpen ? 40 : 85;
+    const fixedBottomH = isMatrixOpen ? (EXTRAS_ROW_H + MONTHLY_STRIP_H + TOGGLE_BTN_H) : TOGGLE_BTN_H;
+    const canvasHeight = Math.max(availableHeight - fixedBottomH, 150);
+    const paddingY = Math.min(60, Math.max(15, canvasHeight * 0.15));
 
     const { minY, maxY, maxOneOffs } = useMemo(() => {
         let min = startingBalance;
@@ -573,9 +576,6 @@ export default function ProjectionHorizontalPage() {
         return { minY: finalMinY, maxY: finalMaxY, maxOneOffs: maxExtras };
     }, [projection, startingBalance, transactions]);
 
-    // Dynamic height for the extras tray based on maxOneOffs
-    // Base height for 1 extra is ~18vh, add more space up to a max
-    const dynamicExtrasHeight = Math.min(18 + (Math.max(0, maxOneOffs - 1) * 6), 35);
 
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
@@ -830,8 +830,8 @@ export default function ProjectionHorizontalPage() {
                         style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                         <div
-                            className="relative flex-1 shrink flex items-end pb-8"
-                            style={{ width: `${canvasWidth}px` }}
+                            className="relative shrink-0 flex items-end pb-2"
+                            style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}
                         >
                             {/* SVG Balance Curve Overlay */}
                             <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
@@ -884,14 +884,16 @@ export default function ProjectionHorizontalPage() {
 
                             {/* Month Columns */}
                             <div className="flex h-full absolute inset-0" style={{ paddingLeft: (width ? width / 3 : 120) - (colWidth / 2), paddingRight: (width ? width / 2 : 180) - (colWidth / 2) }}>
-                                {projection.map(p => {
+                                {projection.map((p, i) => {
                                     const d = parseISO(`${p.month}-01`);
+                                    const isEven = i % 2 === 0;
                                     return (
                                         <div
                                             key={p.month}
                                             data-month-col
                                             className={clsx(
-                                                "h-full shrink-0 snap-center relative flex justify-center items-end py-8 transition-colors"
+                                                "h-full shrink-0 snap-center relative flex justify-center items-end py-2 transition-colors",
+                                                isEven ? "bg-white" : "bg-[#f9f9fb]"
                                             )}
                                             style={{ width: colWidth }}
                                         >
@@ -936,114 +938,89 @@ export default function ProjectionHorizontalPage() {
                             </div>
                         </div>
 
-                        {/* EXTRAS & RECURRING Horizontal Area */}
-                        <AnimatePresence>
-                            {isMatrixOpen && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: `${bottomSpace}px`, opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    className="w-full shrink-0 flex flex-col pt-2 pb-4 relative z-10 bg-white border-t border-zinc-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
-                                    style={{ minWidth: `${canvasWidth + leftAxisLabelsWidth}px` }}
-                                >
-
-                                    {/* EXTRAS ROW */}
-                                    <div className="flex-1 flex w-full relative h-[60%]">
-                                        {/* Fixed Left Label Section */}
-                                        <div
-                                            className="sticky left-0 flex items-center justify-end z-20 pointer-events-none pr-3 w-[120px] bg-gradient-to-r from-white via-white to-transparent"
-                                            style={{ left: (width ? width / 3 : 120) - (colWidth / 2) - 80 }}
-                                        >
-                                            <span className="text-[10px] font-black tracking-widest text-zinc-400">EXTRAS</span>
-                                        </div>
-
-                                        <div className="flex w-full h-full" style={{ paddingLeft: 0, paddingRight: (width ? width / 2 : 180) - (colWidth / 2) }}>
-                                            {projection.map(p => {
-                                                const d = parseISO(`${p.month}-01`);
-                                                const oneOffs = transactions.filter(t => t.month === p.month && t.recurrence === 'none');
-                                                return (
-                                                    <div
-                                                        key={`extras-${p.month}`}
-                                                        data-droptarget="month"
-                                                        data-month={p.month}
-                                                        className={clsx(
-                                                            "h-full px-1 flex flex-col items-center transition-colors border-l border-zinc-100 border-dashed relative",
-                                                            hoveredMonth === p.month ? "bg-zinc-50" : ""
-                                                        )}
-                                                        style={{ width: colWidth, flexShrink: 0 }}
-                                                    >
-                                                        <div className="flex flex-col space-y-2 w-full px-0.5 pb-2 items-center flex-1 overflow-y-auto no-scrollbar">
-                                                            {oneOffs.map(t => renderTransactionPill(t))}
-                                                            <button
-                                                                onClick={e => {
-                                                                    e.stopPropagation();
-                                                                    e.preventDefault();
-                                                                    handleAddInlineExtra(p.month);
-                                                                }}
-                                                                className="w-[70px] min-h-[44px] h-[44px] rounded-lg border-dashed border-[1.5px] border-zinc-200 flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors bg-white/50 shrink-0 mt-2"
-                                                            >
-                                                                <Plus className="w-5 h-5 mb-0.5" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* CHAQUE MOIS ROW */}
-                                    <div className="h-[40%] flex w-full relative mt-2 border-t border-zinc-50 pt-2 pb-2">
-                                        <div
-                                            className="sticky left-0 flex items-center justify-end z-20 pointer-events-none pr-3 w-[120px] bg-gradient-to-r from-white via-white to-transparent"
-                                            style={{ left: (width ? width / 3 : 120) - (colWidth / 2) - 80 }}
-                                        >
-                                            <span className="text-[10px] font-black tracking-widest text-zinc-400">CHAQUE MOIS</span>
-                                        </div>
-
-                                        <div className="flex flex-1 h-full overflow-x-auto no-scrollbar items-center justify-start gap-1.5 px-2">
-                                            {transactions.filter(t => t.recurrence === 'monthly').map(t => renderTransactionPill(t))}
-                                            <button
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    e.preventDefault();
-                                                    handleAdd(undefined, 'monthly');
-                                                }}
-                                                className="w-[80px] min-h-[30px] h-[30px] rounded-lg border-dashed border-[1.5px] border-zinc-200 flex flex-row items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors bg-white/50 shrink-0"
+                        {/* EXTRAS ROW — directly below graph, in sync with month columns */}
+                        {isMatrixOpen && (
+                            <div
+                                className="shrink-0 border-t border-zinc-100"
+                                style={{ width: `${canvasWidth}px`, height: `${EXTRAS_ROW_H}px` }}
+                            >
+                                <div className="flex h-full" style={{ paddingLeft: (width ? width / 3 : 120) - (colWidth / 2), paddingRight: (width ? width / 2 : 180) - (colWidth / 2) }}>
+                                    {projection.map((p, i) => {
+                                        const oneOffs = transactions.filter(t => t.month === p.month && t.recurrence === 'none');
+                                        const isEven = i % 2 === 0;
+                                        return (
+                                            <div
+                                                key={`extras-${p.month}`}
+                                                data-droptarget="month"
+                                                data-month={p.month}
+                                                className={clsx(
+                                                    "h-full flex flex-col items-center px-0.5 pt-1 transition-colors",
+                                                    isEven ? "bg-white" : "bg-[#f9f9fb]",
+                                                    hoveredMonth === p.month ? "ring-inset ring-1 ring-zinc-300" : ""
+                                                )}
+                                                style={{ width: colWidth, flexShrink: 0 }}
                                             >
-                                                <Plus className="w-3.5 h-3.5 mr-0.5" />
-                                                <span className="text-[10px] font-bold italic">Mensuel</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                                <div className="flex flex-col space-y-0.5 w-full items-center overflow-y-auto no-scrollbar flex-1">
+                                                    {oneOffs.map(t => renderTransactionPill(t))}
+                                                    <button
+                                                        onClick={e => { e.stopPropagation(); e.preventDefault(); handleAddInlineExtra(p.month); }}
+                                                        className="w-[60px] min-h-[26px] h-[26px] rounded-md border-dashed border-[1.5px] border-zinc-200 flex items-center justify-center text-zinc-300 hover:text-zinc-500 hover:bg-zinc-50 transition-colors shrink-0 mt-0.5"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-                {/* Spacer padding for bottom */}
-                <motion.div
-                    className="w-full shrink-0 bg-zinc-50 pointer-events-none"
-                    initial={false}
-                    animate={{ height: isMatrixOpen ? '30vh' : '85px' }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-            </main>
 
-            {/* Floating Top Handle */}
-            <motion.div
-                className={clsx(
-                    "absolute left-0 right-0 bg-white cursor-pointer z-[50] flex flex-col justify-start items-center shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-zinc-100 rounded-t-[32px] transition-all",
-                    isMatrixOpen ? "h-[50px] border-t-0 shadow-none bg-white rounded-b-none bottom-[30vh]" : "h-[85px] border-t bottom-0"
+                {/* CHAQUE MOIS — strip fixe en dehors du scroll horizontal */}
+                {isMatrixOpen && (
+                    <div
+                        className="w-full shrink-0 bg-white border-t border-zinc-100 overflow-x-auto no-scrollbar flex items-center gap-1.5 px-4 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]"
+                        style={{ height: `${MONTHLY_STRIP_H}px` }}
+                    >
+                        <span className="text-[10px] font-black tracking-widest text-zinc-400 shrink-0 mr-1">CHAQUE MOIS</span>
+                        {transactions.filter(t => t.recurrence === 'monthly').map(t => renderTransactionPill(t))}
+                        <button
+                            onClick={e => { e.stopPropagation(); e.preventDefault(); handleAdd(undefined, 'monthly'); }}
+                            className="w-[80px] min-h-[30px] h-[30px] rounded-lg border-dashed border-[1.5px] border-zinc-200 flex flex-row items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors bg-white/50 shrink-0"
+                        >
+                            <Plus className="w-3.5 h-3.5 mr-0.5" />
+                            <span className="text-[10px] font-bold italic">Mensuel</span>
+                        </button>
+                    </div>
                 )}
-                onClick={() => setIsMatrixOpen(!isMatrixOpen)}
-            >
-                <div className="w-12 h-1.5 bg-zinc-200 rounded-full mt-3 mb-1" />
-                <div className="flex items-center space-x-2 text-zinc-900 mt-1">
-                    <span className="font-black italic tracking-tighter text-lg">Éditer Entrées et Sorties</span>
-                    {isMatrixOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5 -rotate-90" />}
+
+                {/* Bouton toggle tout en bas */}
+                <div
+                    className={clsx(
+                        "w-full shrink-0 bg-white border-t border-zinc-100 cursor-pointer flex flex-col items-center justify-start",
+                        !isMatrixOpen && "shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[32px]"
+                    )}
+                    style={{ height: `${TOGGLE_BTN_H}px` }}
+                    onClick={() => setIsMatrixOpen(!isMatrixOpen)}
+                >
+                    {isMatrixOpen ? (
+                        <div className="flex items-center justify-center w-full h-full space-x-1.5 text-zinc-400">
+                            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Masquer</span>
+                            <ChevronDown className="w-3.5 h-3.5" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mt-3 mb-1" />
+                            <div className="flex items-center space-x-2 text-zinc-900 mt-1">
+                                <span className="font-black italic tracking-tighter text-lg">Éditer Entrées et Sorties</span>
+                                <ChevronRight className="w-5 h-5 -rotate-90" />
+                            </div>
+                        </>
+                    )}
                 </div>
-            </motion.div>
+            </main>
 
             {/* Floating Trash and Duplicate Zones (visible only when dragging) */}
             <AnimatePresence>

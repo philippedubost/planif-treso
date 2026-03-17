@@ -47,13 +47,22 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
     const range = Math.max(Math.abs(maxBal - minBal), 100);
     const threshold = range * 0.15;
 
+    // Gradient stop: where y=0 falls inside the line's bounding box (top=maxBal, bottom=minBal)
+    const lineHasNeg = minBal < 0;
+    const lineHasPos = maxBal > 0;
+    const zeroStopPct = lineHasNeg && lineHasPos
+        ? `${(maxBal / (maxBal - minBal)) * 100}%`
+        : lineHasNeg ? '0%' : '100%';
+    const lineAboveColor = '#0f172a';
+    const lineBelowColor = '#f43f5e';
+
     const yTicks = [startBal];
     if (Math.abs(minBal - startBal) > threshold) yTicks.push(minBal);
     if (Math.abs(maxBal - startBal) > threshold && Math.abs(maxBal - minBal) > threshold) yTicks.push(maxBal);
 
     return (
         <div
-            className="bg-white/70 backdrop-blur-sm rounded-[32px] md:rounded-[40px] py-4 md:py-6 px-0 shadow-soft relative select-none touch-none overflow-visible group border border-white w-full"
+            className="bg-transparent rounded-[32px] md:rounded-[40px] py-4 md:py-6 px-0 relative select-none touch-none overflow-visible group w-full"
             style={{ height: height ? `${height}px` : (window.innerWidth < 768 ? '320px' : '480px') }}
         >
             <ResponsiveContainer width="100%" height="100%">
@@ -70,6 +79,10 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                         <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
                             <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.8} />
+                        </linearGradient>
+                        <linearGradient id="balanceLine" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+                            <stop offset={zeroStopPct} stopColor={lineAboveColor} stopOpacity={1} />
+                            <stop offset={zeroStopPct} stopColor={lineBelowColor} stopOpacity={1} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#f1f5f9" />
@@ -129,10 +142,18 @@ export function CashflowGraph({ width, height = 280, leftPadding = 0 }: { width?
                     <Line
                         type="monotone"
                         dataKey="balance"
-                        stroke="#0f172a"
+                        stroke="url(#balanceLine)"
                         strokeWidth={4}
-                        dot={{ r: 6, fill: '#0f172a', strokeWidth: 3, stroke: '#fff' }}
-                        activeDot={{ r: 8, strokeWidth: 0 }}
+                        dot={(props: any) => {
+                            const { cx, cy, payload } = props;
+                            const color = payload.balance < 0 ? lineBelowColor : lineAboveColor;
+                            return <circle key={`dot-${payload.month}`} cx={cx} cy={cy} r={6} fill={color} stroke="#fff" strokeWidth={3} />;
+                        }}
+                        activeDot={(props: any) => {
+                            const { cx, cy, payload } = props;
+                            const color = payload.balance < 0 ? lineBelowColor : lineAboveColor;
+                            return <circle key={`adot-${payload.month}`} cx={cx} cy={cy} r={8} fill={color} strokeWidth={0} />;
+                        }}
                         animationDuration={2000}
                     />
                     <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={2} strokeDasharray="3 3" />

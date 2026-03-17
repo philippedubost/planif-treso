@@ -277,7 +277,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                     className="w-full flex items-center justify-center space-x-3 px-6 py-4 rounded-[24px] bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all active:scale-95 group"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">Réinitialiser tout</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">Effacer toutes les données et Recommencer</span>
                                 </button>
                                 <p className="text-[9px] text-zinc-400 text-center px-4 leading-relaxed font-medium">
                                     Toutes vos recettes et dépenses seront définitivement supprimées. Cette action est irréversible.

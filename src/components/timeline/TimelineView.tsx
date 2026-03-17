@@ -6,7 +6,7 @@ import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, GripVertical } from 'lucide-react';
 import { Transaction } from '@/lib/financeEngine';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 
@@ -102,7 +102,7 @@ export function TimelineView() {
     );
 }
 
-function RecurringPill({ transaction, dictionary }: { transaction: any, dictionary: any }) {
+export function RecurringPill({ transaction, dictionary }: { transaction: any, dictionary: any }) {
     const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
     const [isHovered, setIsHovered] = useState(false);
 
@@ -189,7 +189,7 @@ function RecurringPill({ transaction, dictionary }: { transaction: any, dictiona
     );
 }
 
-function Pill({ transaction, color, months, dictionary }: { transaction: any, color: 'emerald' | 'rose', months: string[], dictionary: any }) {
+export function Pill({ transaction, color, months, dictionary, onTargetMonthChange }: { transaction: any, color: 'emerald' | 'rose', months: string[], dictionary: any, onTargetMonthChange?: (month: string | null) => void }) {
     const { updateTransaction, deleteTransaction, addTransaction, currency } = useFinanceStore();
     const [isHovered, setIsHovered] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
@@ -253,14 +253,21 @@ function Pill({ transaction, color, months, dictionary }: { transaction: any, co
         }
     };
 
+    const handleDrag = (_event: any, info: any) => {
+        const offset = Math.round(info.offset.x / COLUMN_WIDTH);
+        const currentIndex = months.indexOf(transaction.month);
+        const nextIndex = Math.max(0, Math.min(months.length - 1, currentIndex + offset));
+        const nextMonth = months[nextIndex];
+        onTargetMonthChange?.(nextMonth !== transaction.month ? nextMonth : null);
+    };
+
     const handleDragEnd = (event: any, info: any) => {
+        onTargetMonthChange?.(null);
         const offset = Math.round(info.offset.x / COLUMN_WIDTH);
         if (offset !== 0) {
             const currentIndex = months.indexOf(transaction.month);
             const nextIndex = Math.max(0, Math.min(months.length - 1, currentIndex + offset));
             const nextMonth = months[nextIndex];
-
-            // Always move the current one (it's either a simple move or the "moving copy" of a duplication)
             updateTransaction(transaction.id, { month: nextMonth });
         }
         setIsDuplicating(false);
@@ -274,6 +281,7 @@ function Pill({ transaction, color, months, dictionary }: { transaction: any, co
             dragElastic={0.1}
             dragSnapToOrigin={true}
             onDragStart={handleDragStart}
+            onDrag={handleDrag}
             onDragEnd={handleDragEnd}
             animate={{ x: 0 }}
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
@@ -282,10 +290,12 @@ function Pill({ transaction, color, months, dictionary }: { transaction: any, co
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className={clsx(
-                "px-2 py-2 rounded-xl shadow-sm flex flex-col items-center justify-center min-w-[72px] cursor-grab border active:cursor-grabbing relative group transition-colors",
+                "pl-0.5 pr-2 py-2 rounded-xl shadow-sm flex flex-row items-center gap-1 min-w-[72px] cursor-grab border active:cursor-grabbing relative group transition-colors",
                 transaction.direction === 'income' ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
             )}
         >
+            <GripVertical className="w-3.5 h-3.5 opacity-60 pointer-events-none shrink-0 text-zinc-400" />
+            <div className="flex flex-col items-center">
             <input
                 className="bg-transparent text-[9px] font-black italic uppercase leading-none mb-1 text-zinc-400 text-center w-full outline-none border-none p-0"
                 value={localLabel}
@@ -311,6 +321,7 @@ function Pill({ transaction, color, months, dictionary }: { transaction: any, co
                 <span className={clsx("text-[10px] font-bold leading-none", transaction.direction === 'income' ? "text-emerald-300" : "text-rose-300")}>
                     {currency}
                 </span>
+            </div>
             </div>
 
             {isHovered && (

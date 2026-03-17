@@ -13,7 +13,26 @@ import { calculateProjection } from '@/lib/financeEngine';
 export default function OnboardingFlow() {
     const { dictionary, locale } = useTranslation();
     const router = useRouter();
-    const { setStartingBalance, addTransaction, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange } = useFinanceStore();
+    const { setStartingBalance, addTransaction, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange, loadProject } = useFinanceStore();
+    const loadFileRef = useRef<HTMLInputElement>(null);
+
+    const handleLoadJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target?.result as string);
+                loadProject(data);
+                setHasCompletedOnboarding(true);
+                router.push(`/${locale}/dashboard`);
+            } catch {
+                alert('Fichier invalide.');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
     const [step, setStep] = useState(1);
 
     // Data
@@ -114,9 +133,10 @@ export default function OnboardingFlow() {
         }
     };
 
-    const handleSkipToFinal = () => {
+    const handleSkipToFinal = async () => {
         vibrate();
-        setStep(8);
+        await commitAndRedirect();
+        router.push(`/${locale}/dashboard`);
     };
 
     const handleBack = () => {
@@ -224,6 +244,19 @@ export default function OnboardingFlow() {
                 <p className="text-[12px] font-bold tracking-wide text-zinc-400">
                     {dictionary.onboarding.step1.disclaimer}
                 </p>
+                <button
+                    onClick={() => loadFileRef.current?.click()}
+                    className="text-[11px] font-bold text-zinc-400 hover:text-zinc-600 underline underline-offset-4 transition-colors"
+                >
+                    Charger des données existantes
+                </button>
+                <input
+                    ref={loadFileRef}
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleLoadJSON}
+                />
             </div>
         </div>
     );
