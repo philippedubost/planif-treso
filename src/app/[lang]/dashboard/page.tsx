@@ -21,6 +21,16 @@ const LABEL_WIDTH = 128;
 export default function DashboardPage() {
     const [showDetails, setShowDetails] = useState(false);
     const [dragTargetMonth, setDragTargetMonth] = useState<string | null>(null);
+    const [isAboutOpen, setIsAboutOpen] = useState(false);
+
+    const ILLUSTRATIONS = [
+        '/illustrations/mascot-onboarding-start',
+        '/illustrations/mascot-graph-overview',
+        '/illustrations/mascot-success-ready',
+        '/illustrations/mascot-balance-day',
+        '/illustrations/mascot-graph-categories',
+    ];
+    const randomIllustration = ILLUSTRATIONS[Math.floor(Math.random() * ILLUSTRATIONS.length)];
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
@@ -159,14 +169,19 @@ export default function DashboardPage() {
                 <div className="px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-3">
                     {/* Logo + Title */}
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center shadow-premium select-none">
+                        <button
+                            onClick={() => setIsAboutOpen(true)}
+                            className="flex items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
+                        >
+                            <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center shadow-premium select-none group-hover:bg-zinc-800 transition-colors">
                                 <div className="w-4 h-4 border-2 border-white rounded-md flex items-center justify-center">
                                     <div className="w-1 h-1 bg-white rounded-full" />
                                 </div>
                             </div>
-                            <span className="font-black italic text-base tracking-tighter text-zinc-900 hidden sm:block">PLANIF</span>
-                        </div>
+                            <span className="font-black italic text-base tracking-tighter text-zinc-900 hidden sm:block">
+                                PLANIF<span className="text-zinc-400 font-bold not-italic">.app</span>
+                            </span>
+                        </button>
                         <div className="w-px h-5 bg-zinc-200 shrink-0 hidden sm:block" />
                     </div>
 
@@ -389,6 +404,77 @@ export default function DashboardPage() {
             </AnimatePresence>
 
             <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+
+            {/* About / Info modal */}
+            <AnimatePresence>
+                {isAboutOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-zinc-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8"
+                        onClick={() => setIsAboutOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.92, opacity: 0, y: 24 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.92, opacity: 0, y: 16 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden"
+                        >
+                            {/* Illustration */}
+                            <div className="relative h-52 bg-zinc-50 flex items-center justify-center overflow-hidden">
+                                <Image
+                                    src={`${randomIllustration}.png`}
+                                    alt="PLANIF.app"
+                                    fill
+                                    className="object-contain p-6"
+                                />
+                            </div>
+
+                            {/* Content */}
+                            <div className="px-7 pt-5 pb-7 space-y-4">
+                                <div>
+                                    <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900 leading-tight">
+                                        PLANIF<span className="text-zinc-400 font-bold not-italic">.app</span>
+                                    </h2>
+                                    <p className="text-sm font-medium text-zinc-500 mt-2 leading-relaxed">
+                                        Visualise ton solde bancaire mois par mois, anticipe tes entrées et sorties d'argent, et prends le contrôle de ta trésorerie — sans compte, sans données stockées, sans prise de tête.
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-2xl">
+                                    <span className="text-lg">🔓</span>
+                                    <p className="text-xs font-black text-emerald-700 uppercase tracking-wide">Outil gratuit et sans inscription</p>
+                                </div>
+
+                                <p className="text-xs font-medium text-zinc-400 leading-relaxed">
+                                    Tu trouves ça utile ? Partage le lien autour de toi — à quelqu'un qui gère un budget, une boîte, un projet.
+                                </p>
+
+                                <div className="flex gap-2 pt-1">
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(window.location.origin + `/${locale}/onboarding`);
+                                            setIsAboutOpen(false);
+                                        }}
+                                        className="flex-1 py-3 bg-zinc-900 text-white rounded-[18px] font-black italic text-sm active:scale-95 transition-transform shadow-premium"
+                                    >
+                                        Copier le lien
+                                    </button>
+                                    <button
+                                        onClick={() => setIsAboutOpen(false)}
+                                        className="py-3 px-4 bg-zinc-100 text-zinc-500 rounded-[18px] font-black italic text-sm active:scale-95 transition-transform"
+                                    >
+                                        Fermer
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
