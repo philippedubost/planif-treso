@@ -16,7 +16,6 @@ export default function MobileDashboard6() {
         startingBalance,
         currency,
         transactions,
-        user
     } = useFinanceStore();
     const projection = useProjection();
 
