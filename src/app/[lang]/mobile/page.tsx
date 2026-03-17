@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import {
     Settings, Plus,
     ChevronDown, Undo2, Redo2, X, GripVertical
@@ -226,23 +226,26 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
         setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
     };
 
-    const handleDrag = (_event: any, info: any) => {
-        const offset = Math.round(info.offset.x / MOBILE_COL);
-        const currentIndex = months.indexOf(transaction.month!);
-        const nextIndex = Math.max(0, Math.min(months.length - 1, currentIndex + offset));
-        const nextMonth = months[nextIndex];
-        onTargetMonthChange?.(nextMonth !== transaction.month ? nextMonth : null);
-    };
+    const dragX = useMotionValue(0);
 
-    const handleDragEnd = (_event: any, info: any) => {
+    const getMonthFromPoint = useCallback((x: number, y: number): string | null => {
+        const el = document.elementFromPoint(x, y);
+        return el?.closest('[data-month]')?.getAttribute('data-month') ?? null;
+    }, []);
+
+    const handleDrag = useCallback((_event: any, info: any) => {
+        const month = getMonthFromPoint(info.point.x, info.point.y);
+        onTargetMonthChange?.(month && month !== transaction.month ? month : null);
+    }, [getMonthFromPoint, onTargetMonthChange, transaction.month]);
+
+    const handleDragEnd = useCallback((_event: any, info: any) => {
         onTargetMonthChange?.(null);
-        const offset = Math.round(info.offset.x / MOBILE_COL);
-        if (offset !== 0) {
-            const currentIndex = months.indexOf(transaction.month!);
-            const nextIndex = Math.max(0, Math.min(months.length - 1, currentIndex + offset));
-            updateTransaction(transaction.id, { month: months[nextIndex] });
+        const month = getMonthFromPoint(info.point.x, info.point.y);
+        if (month && month !== transaction.month) {
+            updateTransaction(transaction.id, { month });
         }
-    };
+        animate(dragX, 0, { type: 'spring', stiffness: 500, damping: 30 });
+    }, [getMonthFromPoint, onTargetMonthChange, transaction.month, transaction.id, updateTransaction, dragX]);
 
     const isIncome = transaction.direction === 'income';
 
@@ -250,13 +253,13 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
         <motion.div
             layout
             drag="x"
-            dragSnapToOrigin
             dragMomentum={false}
             dragElastic={0.1}
             onDrag={handleDrag}
             onDragEnd={handleDragEnd}
-            dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
-            whileDrag={{ scale: 1.1, zIndex: 50, opacity: 0.9, cursor: 'grabbing' }}
+            onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+            whileDrag={{ scale: 1.1, zIndex: 50, opacity: 0.9, cursor: 'grabbing', pointerEvents: 'none' }}
+            style={{ x: dragX, touchAction: 'none' }}
             className="relative flex flex-row items-center pointer-events-auto cursor-grab active:cursor-grabbing"
         >
             <div
@@ -686,7 +689,6 @@ export default function DashboardMobilePage() {
                                 <div className="w-1 h-1 bg-white rounded-full" />
                             </div>
                         </div>
-                        <span className="font-black italic text-sm tracking-tighter text-zinc-900">PLANIF.app</span>
                     </div>
 
                     {/* Title pill */}
