@@ -244,7 +244,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
     };
 
     const cancelDrag = () => {
-        clearTimeout(longPressTimer.current);
+        if (longPressTimer.current !== null) clearTimeout(longPressTimer.current);
         setIsLongPressing(false);
         setIsDragActive(false);
         onTargetMonthChange?.(null);
@@ -272,7 +272,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
         if (!isDragActive) {
             // Cancel long-press if finger drifts
             if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                clearTimeout(longPressTimer.current);
+                if (longPressTimer.current !== null) clearTimeout(longPressTimer.current);
                 setIsLongPressing(false);
             }
             return;
@@ -283,7 +283,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
     };
 
     const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-        clearTimeout(longPressTimer.current);
+        if (longPressTimer.current !== null) clearTimeout(longPressTimer.current);
         setIsLongPressing(false);
         if (!isDragActive) return;
         onTargetMonthChange?.(null);
