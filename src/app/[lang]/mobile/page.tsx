@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
@@ -205,7 +205,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
     const [isLongPressing, setIsLongPressing] = useState(false);
     const labelRef = useRef<HTMLInputElement>(null);
     const amountRef = useRef<HTMLInputElement>(null);
-    const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
+    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pointerStart = useRef({ x: 0, y: 0 });
     const pillRef = useRef<HTMLDivElement>(null);
     const motionX = useMotionValue(0);
