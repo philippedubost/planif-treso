@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, X, ChevronDown, Trash2, Type, Layers, Plus, EyeOff, Eye, Check, Globe } from 'lucide-react';
+import { X, ChevronDown, Trash2, Check, Globe } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { clsx } from 'clsx';
 import { useState } from 'react';
@@ -25,14 +25,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         ageRange,
         setAgeRange,
         resetSimulation,
-        scenarios,
-        currentScenarioId,
-        addScenario,
-        setCurrentScenario,
-        deleteScenario,
-        showScenarioBadge,
-        setShowScenarioBadge,
-        user
     } = useFinanceStore();
     const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
     const [isAgeRangeOpen, setIsAgeRangeOpen] = useState(false);
@@ -62,12 +54,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         { label: 'CAD', symbol: 'CA$', code: 'CAD' }
     ];
 
-    const ageRanges = ['15-24', '25-34', '35-50', '51+', 'Non spécifié'];
+    const ageRanges = ['15-24', '25-34', '35-50', '51+', 'Entreprise', 'Non spécifié'];
 
     const handleReset = async () => {
         await resetSimulation();
         onClose();
-        window.location.href = '/assistant';
+        window.location.href = `/${locale}/onboarding`;
     };
 
     return (
@@ -180,7 +172,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                     {/* Age Range Dropdown */}
                                     <div className="space-y-2">
                                         <div className="flex items-center space-x-2 px-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Tranche d'âge</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Profil</span>
                                         </div>
                                         <div className="relative">
                                             <button

@@ -8,7 +8,7 @@ export default function Home() {
   const router = useRouter();
   const params = useParams();
 
-  const { hasCompletedOnboarding, setHasCompletedOnboarding, transactions, planifications, user } = useFinanceStore();
+  const { hasCompletedOnboarding, setHasCompletedOnboarding, transactions } = useFinanceStore();
 
   useEffect(() => {
     // Redirect to Dashboard or Onboarding depending on state.
@@ -18,13 +18,13 @@ export default function Home() {
 
     if (hasCompletedOnboarding) {
       router.push(`/${lang}/dashboard`);
-    } else if (transactions.length > 5 || planifications.length > 0) {
+    } else if (transactions.length > 5) {
       setHasCompletedOnboarding(true);
       router.push(`/${lang}/dashboard`);
     } else {
       router.push(`/${lang}/onboarding`);
     }
-  }, [router, params, hasCompletedOnboarding, setHasCompletedOnboarding, transactions.length, planifications.length]);
+  }, [router, params, hasCompletedOnboarding, setHasCompletedOnboarding, transactions.length]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-zinc-50">

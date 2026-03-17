@@ -13,7 +13,7 @@ import { calculateProjection } from '@/lib/financeEngine';
 export default function OnboardingFlow() {
     const { dictionary, locale } = useTranslation();
     const router = useRouter();
-    const { setStartingBalance, addTransaction, setCurrentScenario, addScenario, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange } = useFinanceStore();
+    const { setStartingBalance, addTransaction, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange } = useFinanceStore();
     const [step, setStep] = useState(1);
 
     // Data
@@ -51,7 +51,7 @@ export default function OnboardingFlow() {
             setTimeout(() => incomeRef.current?.focus(), 300);
         } else if (step === 5) {
             setTimeout(() => expenseRef.current?.focus(), 300);
-        } else if (step === 6) {
+        } else if (step === 7) {
             setTimeout(() => extraRef.current?.focus(), 300);
         }
     }, [step]);
@@ -73,7 +73,7 @@ export default function OnboardingFlow() {
 
     // Precompute step 7 results when reaching step 7
     useEffect(() => {
-        if (step === 7) {
+        if (step === 8) {
             const numBalance = parseFloat(balance) || 0;
             const numIncome = parseFloat(income) || 0;
             const numExpense = parseFloat(expense) || 0;
@@ -109,9 +109,14 @@ export default function OnboardingFlow() {
     // Flow controls
     const handleNext = () => {
         vibrate();
-        if (step < 7) {
+        if (step < 8) {
             setStep(prev => prev + 1);
         }
+    };
+
+    const handleSkipToFinal = () => {
+        vibrate();
+        setStep(8);
     };
 
     const handleBack = () => {
@@ -136,6 +141,7 @@ export default function OnboardingFlow() {
 
         setStartingBalance(numBalance);
         setStoreAgeRange(ageRange);
+
         await addTransaction({
             label: 'Entrée 1',
             categoryId: 'cat-salary',
@@ -164,13 +170,29 @@ export default function OnboardingFlow() {
             });
         }
 
-        const id = await addScenario('Mon profil');
-        if (id) {
-            setCurrentScenario(id);
-        }
-
         setHasCompletedOnboarding(true);
     };
+
+    // Shared CTA Renderer
+    const renderCTA = (label: string, enabled: boolean) => (
+        <div className="pt-4 w-full z-20">
+            <button
+                disabled={!enabled}
+                onClick={handleNext}
+                className={clsx(
+                    "w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] flex items-center justify-center space-x-2",
+                    enabled
+                        ? "bg-zinc-900 text-white shadow-premium"
+                        : "bg-zinc-200 text-zinc-400 cursor-not-allowed opacity-70"
+                )}
+            >
+                <span>{label}</span>
+                {enabled && <ChevronRight className="w-4 h-4" />}
+            </button>
+            {/* Safe area spacer for iPhones */}
+            <div className="h-[env(safe-area-inset-bottom)]" />
+        </div>
+    );
 
     // Render Steps
     // -------------------------------------------------------------
@@ -207,7 +229,7 @@ export default function OnboardingFlow() {
     );
 
     const renderStep2 = () => {
-        const canProceed = balance.length > 0;
+        const canProceed = true; // 0 is a valid balance
 
         return (
             <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
@@ -224,7 +246,7 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-2 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Combien as-tu aujourd'hui ?
+                            Combien as-tu sur ton compte aujourd'hui ?
                         </h2>
                         <div className="relative mt-8 max-w-xs mx-auto">
                             <input
@@ -262,7 +284,7 @@ export default function OnboardingFlow() {
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-overview.webp"
                             srcPng="/illustrations/mascot-graph-overview.png"
-                            alt="Age Range"
+                            alt="Profil"
                             fill
                             priority
                             className="object-contain"
@@ -270,10 +292,10 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-4 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Quel est ton âge ?
+                            Quel est ton profil ?
                         </h2>
                         <p className="text-sm font-medium text-zinc-400 max-w-[250px] mx-auto balance-text">
-                            Pour t'aider à budgéter selon ta situation.
+                            Pour adapter les suggestions à ta situation.
                         </p>
                         <div className="grid grid-cols-2 gap-3 mt-8 w-full">
                             {ages.map((range) => (
@@ -294,13 +316,28 @@ export default function OnboardingFlow() {
                                 </button>
                             ))}
                         </div>
+                        {/* Entreprise option — full width */}
+                        <button
+                            onClick={() => {
+                                setAgeRange('Entreprise');
+                                setTimeout(() => handleNext(), 300);
+                            }}
+                            className={clsx(
+                                "w-full py-4 rounded-2xl font-black text-[17px] transition-all flex items-center justify-center gap-2",
+                                ageRange === 'Entreprise'
+                                    ? "bg-zinc-900 text-white shadow-premium border-2 border-zinc-900"
+                                    : "bg-white text-zinc-600 border-2 border-zinc-100 hover:border-zinc-200 active:scale-95"
+                            )}
+                        >
+                            🏢 Entreprise / Pro
+                        </button>
                         <button
                             onClick={() => {
                                 setAgeRange('Non spécifié');
                                 setTimeout(() => handleNext(), 300);
                             }}
                             className={clsx(
-                                "mt-6 text-[11px] font-black uppercase tracking-widest underline underline-offset-4 transition-all",
+                                "mt-2 text-[11px] font-black uppercase tracking-widest underline underline-offset-4 transition-all",
                                 ageRange === 'Non spécifié' ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
                             )}
                         >
@@ -313,7 +350,7 @@ export default function OnboardingFlow() {
     };
 
     const renderStep4 = () => {
-        const canProceed = income.length > 0;
+        const canProceed = true; // 0 is a valid income
 
         return (
             <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
@@ -358,7 +395,7 @@ export default function OnboardingFlow() {
     };
 
     const renderStep5 = () => {
-        const canProceed = expense.length > 0;
+        const canProceed = true; // 0 is a valid expense
 
         return (
             <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
@@ -403,15 +440,92 @@ export default function OnboardingFlow() {
     };
 
     const renderStep6 = () => {
+        const numIncome = parseFloat(income) || 0;
+        const numExpense = parseFloat(expense) || 0;
+        const cashflow = numIncome - numExpense;
+        const isPositive = cashflow >= 0;
+        const showWarning = numIncome > 0 && numExpense > 0 && numExpense >= numIncome;
+
+        return (
+            <div className="flex flex-col pt-[8vh] px-6 space-y-6 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-5 w-full max-w-sm mx-auto">
+                    <div className="h-[13vh] w-full max-w-[120px]">
+                        <ImageWithFallback
+                            srcWebp="/illustrations/mascot-graph-overview.webp"
+                            srcPng="/illustrations/mascot-graph-overview.png"
+                            alt="Bilan mensuel"
+                            fill
+                            priority
+                            className="object-contain"
+                        />
+                    </div>
+                    <div className="text-center space-y-1 w-full">
+                        <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
+                            Ton bilan mensuel
+                        </h2>
+                        <p className="text-sm font-medium text-zinc-400">
+                            Voici ce que tu m'as indiqué pour l'instant.
+                        </p>
+                    </div>
+
+                    {/* Summary card */}
+                    <div className="w-full bg-white rounded-3xl p-5 shadow-soft border border-zinc-100 space-y-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold text-zinc-500">Entrées mensuelles</span>
+                            <span className="font-black text-emerald-500">+{numIncome} €</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold text-zinc-500">Sorties mensuelles</span>
+                            <span className="font-black text-rose-500">−{numExpense} €</span>
+                        </div>
+                        <div className="h-px bg-zinc-100" />
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-black text-zinc-700">Bilan mensuel</span>
+                            <span className={clsx("font-black text-lg", isPositive ? "text-emerald-500" : "text-rose-500")}>
+                                {isPositive ? "+" : "−"}{Math.abs(cashflow)} €
+                            </span>
+                        </div>
+                        {showWarning && (
+                            <div className="mt-1 p-3 rounded-2xl bg-amber-50 text-amber-600 text-[13px] font-bold leading-snug">
+                                ⚠ Tes dépenses dépassent tes revenus. Ton solde s'érodera chaque mois.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="w-full max-w-sm mx-auto flex flex-col items-center space-y-4">
+                    <button
+                        onClick={handleNext}
+                        className="w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] bg-zinc-900 text-white shadow-premium flex items-center justify-center space-x-2"
+                    >
+                        <span>J'ajoute un revenu ou dépense ponctuel</span>
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={handleSkipToFinal}
+                        className="text-[11px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-600 underline underline-offset-4 transition-all"
+                    >
+                        Non merci, voir mon bilan annuel
+                    </button>
+                    <div className="h-[env(safe-area-inset-bottom)]" />
+                </div>
+            </div>
+        );
+    };
+
+    const renderStep7 = () => {
         const canProceed = true; // Optional step
         const isFilled = parseFloat(extra) > 0 && extraLabel.trim().length > 0;
 
         const labelOptions = extraDirection === 'income'
-            ? (ageRange === '15-24' ? ['Cadeau', 'Petit boulot', 'Vente'] : ['Prime', 'Cadeau', 'Remboursement'])
+            ? (ageRange === '15-24' ? ['Cadeau', 'Petit boulot', 'Vente']
+                : ageRange === 'Entreprise' ? ['Facturation client', 'Subvention', 'Remboursement TVA']
+                    : ['Prime', 'Cadeau', 'Remboursement'])
             : (ageRange === '15-24' ? ['Sortie', 'Voyage', 'Cadeau']
                 : ageRange === '35-50' ? ['Voyage', 'Réparation', 'Impôts']
                     : ageRange === '51+' ? ['Voyage', 'Santé', 'Vacances']
-                        : ['Voyage', 'Shopping', 'Cadeau']);
+                        : ageRange === 'Entreprise' ? ['Fournisseur', 'Charges sociales', 'Logiciels']
+                            : ['Voyage', 'Shopping', 'Cadeau']);
 
         return (
             <div className="flex flex-col pt-[8vh] px-6 space-y-6 items-center h-full no-scrollbar overflow-y-auto">
@@ -425,6 +539,15 @@ export default function OnboardingFlow() {
                             priority
                             className="object-contain"
                         />
+                    </div>
+
+                    <div className="text-center space-y-1 w-full">
+                        <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
+                            Ajouter un Extra
+                        </h2>
+                        <p className="text-sm font-medium text-zinc-400">
+                            Un revenu ou dépense qui n'arrivera qu'une seule fois.
+                        </p>
                     </div>
 
                     {/* Sentence card */}
@@ -563,21 +686,36 @@ export default function OnboardingFlow() {
         );
     };
 
-    const renderStep7 = () => {
-        let headline = "Tu es tranquille pour l'instant";
+    const renderStep8 = () => {
+        const numIncome = parseFloat(income) || 0;
+        const numExpense = parseFloat(expense) || 0;
+        const monthlyCashflow = numIncome - numExpense;
+
+        let headline = "Tu es sur la bonne voie";
         let colorClass = "text-emerald-500";
         let bgClass = "bg-emerald-50";
+        let subMessage: string | null = null;
 
-        if (previewMonthsToZero !== null) {
+        // Primary check: expenses >= income (even if balance stays positive)
+        if (numIncome > 0 && numExpense >= numIncome) {
+            headline = "Tes dépenses dépassent tes revenus";
+            colorClass = "text-rose-500";
+            bgClass = "bg-rose-50";
+            subMessage = `Tu perds environ ${Math.abs(Math.round(monthlyCashflow))} € par mois. Pense à rééquilibrer.`;
+        } else if (previewMonthsToZero !== null) {
             if (previewMonthsToZero <= 3) {
                 headline = "Attention, ton solde va passer sous zéro";
                 colorClass = "text-rose-500";
                 bgClass = "bg-rose-50";
-            } else if (previewMonthsToZero <= 6) {
+                subMessage = `Sans changement, tu seras à découvert dans ${previewMonthsToZero} mois.`;
+            } else {
                 headline = "Ça va être serré bientôt";
                 colorClass = "text-amber-500";
                 bgClass = "bg-amber-50";
+                subMessage = `Sans changement, tu seras à découvert dans ${previewMonthsToZero} mois.`;
             }
+        } else {
+            subMessage = "Ton capital augmente mois après mois !";
         }
 
         const { format } = require('date-fns');
@@ -633,18 +771,18 @@ export default function OnboardingFlow() {
                                 </div>
                             </div>
 
-                            {previewMonthsToZero !== null ? (
-                                <p className="text-sm font-medium text-zinc-600">
-                                    Sans changement, tu es à découvert dans <span className="font-black">{previewMonthsToZero} mois</span>.
-                                </p>
-                            ) : (
-                                <p className="text-sm font-medium text-emerald-600">
-                                    Ton capital augmente mois après mois !
+                            {subMessage && (
+                                <p className={clsx("text-sm font-medium",
+                                    colorClass === "text-rose-500" ? "text-rose-600"
+                                        : colorClass === "text-amber-500" ? "text-amber-600"
+                                            : "text-emerald-600"
+                                )}>
+                                    {subMessage}
                                 </p>
                             )}
                         </div>
 
-                        {/* Custom CTA block placed directly under summary box */}
+                        {/* CTA */}
                         <div className="pt-2 w-full z-20">
                             <button
                                 onClick={handleSaveProfile}
@@ -666,27 +804,6 @@ export default function OnboardingFlow() {
         );
     };
 
-    // Shared CTA Renderer
-    const renderCTA = (label: string, enabled: boolean) => (
-        <div className="pt-4 w-full z-20">
-            <button
-                disabled={!enabled}
-                onClick={handleNext}
-                className={clsx(
-                    "w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] flex items-center justify-center space-x-2",
-                    enabled
-                        ? "bg-zinc-900 text-white shadow-premium"
-                        : "bg-zinc-200 text-zinc-400 cursor-not-allowed opacity-70"
-                )}
-            >
-                <span>{label}</span>
-                {enabled && <ChevronRight className="w-4 h-4" />}
-            </button>
-            {/* Safe area spacer for iPhones */}
-            <div className="h-[env(safe-area-inset-bottom)]" />
-        </div>
-    );
-
     // Screens map
     const stepsData = [
         { id: 1, content: renderStep1() },
@@ -696,6 +813,7 @@ export default function OnboardingFlow() {
         { id: 5, content: renderStep5() },
         { id: 6, content: renderStep6() },
         { id: 7, content: renderStep7() },
+        { id: 8, content: renderStep8() },
     ];
 
     return (
@@ -709,7 +827,7 @@ export default function OnboardingFlow() {
                 <motion.div
                     className="h-full bg-zinc-900"
                     initial={{ width: '16%' }}
-                    animate={{ width: `${(step / 7) * 100}%` }}
+                    animate={{ width: `${(step / 8) * 100}%` }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
                 />
             </div>
@@ -738,14 +856,15 @@ export default function OnboardingFlow() {
                         const swipe = Math.abs(offset.x) * velocity.x;
                         if (swipe > 100 && step > 1) {
                             handleBack();
-                        } else if (swipe < -100 && step < 7) {
+                        } else if (swipe < -100 && step < 8) {
                             // Only allow forward swipe if allowed (e.g., they filled the input)
                             const canProceed =
                                 (step === 2 && balance.length > 0) ||
                                 (step === 3 && ageRange.length > 0) ||
                                 (step === 4 && income.length > 0) ||
                                 (step === 5 && expense.length > 0) ||
-                                (step === 6);
+                                (step === 6) ||
+                                (step === 7);
 
                             if (canProceed || step === 1) {
                                 handleNext();

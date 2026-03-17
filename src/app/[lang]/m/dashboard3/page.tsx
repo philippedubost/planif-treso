@@ -18,10 +18,6 @@ export default function MobileDashboard3() {
         currency,
         startingMonth,
         transactions,
-        showScenarioBadge,
-        scenarios,
-        currentScenarioId,
-        user
     } = useFinanceStore();
     const projection = useProjection();
 
@@ -49,8 +45,6 @@ export default function MobileDashboard3() {
         setIsEditorOpen(true);
     };
 
-    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
-    const isScenarioVisible = showScenarioBadge && (user || scenarios.length > 0);
 
     // Compute Mensuel totals
     const recurringIncomes = transactions.filter(t => t.direction === 'income' && t.recurrence !== 'none');
@@ -90,11 +84,6 @@ export default function MobileDashboard3() {
                         </Link>
                         <div>
                             <h1 className="text-xl font-black italic tracking-tighter text-zinc-900 leading-none">Dashboard 3</h1>
-                            {isScenarioVisible && (
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1">
-                                    {currentScenario?.name || 'Principal'}
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>

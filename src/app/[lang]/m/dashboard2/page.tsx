@@ -19,10 +19,6 @@ export default function MobileDashboard2() {
         startingMonth,
         projectionMonths,
         transactions,
-        showScenarioBadge,
-        scenarios,
-        currentScenarioId,
-        user
     } = useFinanceStore();
     const projection = useProjection();
 
@@ -62,8 +58,6 @@ export default function MobileDashboard2() {
         setIsEditorOpen(true);
     };
 
-    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
-    const isScenarioVisible = showScenarioBadge && (user || scenarios.length > 0);
 
     return (
         <div className="min-h-screen bg-zinc-50 font-sans flex flex-col relative pb-24">
@@ -76,11 +70,6 @@ export default function MobileDashboard2() {
                         </Link>
                         <div>
                             <h1 className="text-xl font-black italic tracking-tighter text-zinc-900 leading-none">Dashboard 2</h1>
-                            {isScenarioVisible && (
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1">
-                                    {currentScenario?.name || 'Principal'}
-                                </p>
-                            )}
                         </div>
                     </div>
                 </div>

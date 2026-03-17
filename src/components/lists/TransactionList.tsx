@@ -49,12 +49,6 @@ export function TransactionList() {
                         className="w-full pl-12 pr-6 py-4 bg-zinc-50 border-none rounded-2xl focus:ring-4 focus:ring-zinc-900/5 transition-all text-sm font-bold text-zinc-900 placeholder:text-zinc-300"
                     />
                 </div>
-                {!useFinanceStore.getState().user && (
-                    <div className="px-4 py-2 bg-zinc-50 border border-zinc-100 rounded-xl flex flex-col items-center justify-center">
-                        <span className="text-[10px] font-black italic text-zinc-900 leading-none">{transactions.length}/8</span>
-                        <span className="text-[7px] font-bold text-zinc-300 uppercase tracking-tighter">Opérations</span>
-                    </div>
-                )}
             </div>
 
             <div className="flex-1 overflow-y-auto px-8 pb-32 no-scrollbar">

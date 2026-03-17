@@ -8,156 +8,26 @@ import { CashflowGraph } from '@/components/graph/CashflowGraph';
 import { TransactionList } from '@/components/lists/TransactionList';
 import { TimelineView } from '@/components/timeline/TimelineView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Settings, Plus, LogIn, LogOut, User as UserIcon, Share2, Check, Layers, Trash2, Home, ChevronRight, Pencil, Undo2, Redo2, History, HelpCircle } from 'lucide-react';
+import { ChevronDown, Settings, Share2, Check, Download, Upload, Undo2, Redo2, Pencil, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
-import { AuthModal } from '@/components/auth/AuthModal';
 import { SettingsModal } from '@/components/settings/SettingsModal';
-import { VersionHistoryModal } from '@/components/settings/VersionHistoryModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import Image from 'next/image';
 
-// --- Delete Planification Modal Component ---
-const DeletePlanificationModal = ({ isOpen, onClose, onConfirm, planName }: any) => {
-    const { dictionary } = useTranslation();
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="bg-white rounded-[32px] p-6 w-full max-w-sm shadow-2xl"
-            >
-                <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="w-24 h-24 md:w-32 md:h-32 mx-auto relative mb-2">
-                        <Image
-                            src="/illustrations/mascot-expense-oneoff.png"
-                            alt="Mascotte suppression"
-                            fill
-                            className="object-contain filter drop-shadow-xl"
-                        />
-                    </div>
-                    <h2 className="text-xl font-black text-zinc-900">
-                        Supprimer la planification ?
-                    </h2>
-                    <p className="text-sm text-zinc-500 font-medium">
-                        Êtes-vous sûr de vouloir supprimer définitivement <strong>{planName}</strong> ? Cette action effacera tous les scénarios et transactions associés.
-                    </p>
-                    <div className="flex w-full space-x-3 pt-4 inline-flex">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 py-3 px-4 rounded-xl font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
-                        >
-                            {dictionary.common.cancel}
-                        </button>
-                        <button
-                            onClick={onConfirm}
-                            className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95"
-                        >
-                            Supprimer
-                        </button>
-                    </div>
-                </div>
-            </motion.div>
-        </div>
-    );
-};
-// ------------------------------------------
-
-export const EditableMenuItem = ({ item, isSelected, onSelect, onEdit, onDelete }: any) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editName, setEditName] = useState(item.name);
-
-    if (isEditing) {
-        return (
-            <div className="w-full flex items-center justify-between px-2 py-2 rounded-xl bg-white text-zinc-900 border border-zinc-200">
-                <input
-                    autoFocus
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            if (editName.trim()) onEdit(item.id, editName.trim());
-                            setIsEditing(false);
-                        } else if (e.key === 'Escape') {
-                            setIsEditing(false);
-                            setEditName(item.name);
-                        }
-                    }}
-                    onBlur={() => {
-                        if (editName.trim()) onEdit(item.id, editName.trim());
-                        setIsEditing(false);
-                    }}
-                    className="flex-1 bg-transparent text-sm font-bold focus:outline-none"
-                />
-            </div>
-        );
-    }
-
-    return (
-        <div className="relative group flex items-center w-full">
-            <button
-                onClick={() => onSelect(item.id)}
-                className={clsx(
-                    "flex-1 flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all text-left",
-                    (onEdit || onDelete) ? "pr-14" : "pr-4",
-                    isSelected
-                        ? "bg-zinc-900 text-white"
-                        : "bg-white text-zinc-600 hover:bg-zinc-50"
-                )}
-            >
-                <div className="flex flex-col items-start truncate w-full">
-                    <span className="truncate w-full" style={{ paddingRight: isSelected ? '16px' : '0' }}>{item.name}</span>
-                    {item.subtitle && <span className="text-[8px] uppercase tracking-wider opacity-60 font-black mt-0.5">{item.subtitle}</span>}
-                </div>
-                {isSelected && <Check className="absolute right-4 w-4 h-4 text-emerald-400" />}
-            </button>
-            <div className="absolute right-2 flex items-center space-x-1 opacity-0 group-[.group:hover]:opacity-100 transition-opacity z-10 pointer-events-none group-[.group:hover]:pointer-events-auto">
-                {onEdit && (
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsEditing(true);
-                        }}
-                        className="p-1 text-zinc-400 hover:text-zinc-900 bg-white rounded-md hover:bg-zinc-100 shadow-sm border border-zinc-100"
-                    >
-                        <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                )}
-                {onDelete && (
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onDelete(item.id);
-                        }}
-                        className="p-1 text-rose-500 hover:text-rose-600 bg-white rounded-md hover:bg-rose-50 shadow-sm border border-zinc-100"
-                    >
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                )}
-            </div>
-        </div>
-    );
-};
-
 export default function DashboardPage() {
     const [showDetails, setShowDetails] = useState(false);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [titleDraft, setTitleDraft] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const titleInputRef = useRef<HTMLInputElement>(null);
+
     const {
-        initAuth,
-        user,
         transactions,
         currency,
         textSize,
@@ -166,92 +36,38 @@ export default function DashboardPage() {
         startingMonth,
         context,
         loadProject,
-        planifications,
-        currentPlanificationId,
-        addPlanification,
-        updatePlanification,
-        setCurrentPlanification,
-        deletePlanification,
-        currentScenarioId,
-        scenarios,
-        showScenarioBadge,
         projectionMonths,
-        addScenario,
-        updateScenario,
-        setCurrentScenario,
-        deleteScenario,
         undo,
         redo,
         undoStack,
-        redoStack
+        redoStack,
+        title,
+        setTitle,
     } = useFinanceStore();
 
     const { dictionary, locale } = useTranslation();
-
-    // Data load tracking
-    const [isLoading, setIsLoading] = useState(true);
-    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
-    const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
-    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
-    const [newPlanificationName, setNewPlanificationName] = useState('');
-
-    const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false);
-
-    const [isScenarioMenuOpen, setIsScenarioMenuOpen] = useState(false);
-    const [isAddingScenario, setIsAddingScenario] = useState(false);
-    const [newScenarioName, setNewScenarioName] = useState('');
-
-    const handleAddPlanification = async () => {
-        if (!newPlanificationName.trim()) return;
-        const id = await addPlanification(newPlanificationName);
-        if (id) {
-            setCurrentPlanification(id);
-            setNewPlanificationName('');
-            setIsAddingPlanification(false);
-            setIsPlanificationMenuOpen(false);
-        }
-    };
-
-    const handleAddScenario = async () => {
-        if (!newScenarioName.trim()) return;
-        const id = await addScenario(newScenarioName);
-        if (id) {
-            setCurrentScenario(id);
-            setNewScenarioName('');
-            setIsAddingScenario(false);
-            setIsScenarioMenuOpen(false);
-        }
-    };
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
     const months = Array.from({ length: projectionMonths }).map((_, i) => {
         const date = addMonths(parseISO(`${startingMonth}-01`), i);
         return format(date, 'yyyy-MM');
     });
 
-    const currentPlanification = planifications.find(p => p.id === currentPlanificationId);
-    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
-    const isScenarioVisible = showScenarioBadge && (user || scenarios.length > 0);
-    const router = useRouter();
-    const searchParams = useSearchParams();
-
     useEffect(() => {
-        initAuth();
-
-        // Handle shared data from URL
         const sharedData = searchParams.get('data');
         if (sharedData) {
             try {
                 const decoded = JSON.parse(decodeURIComponent(atob(sharedData)));
                 loadProject(decoded);
-                // Clear the URL parameter after loading
                 router.replace(`/${locale}/dashboard`);
             } catch (e) {
                 console.error("Failed to load shared data", e);
             }
         }
-    }, [initAuth, searchParams, loadProject, router]);
+    }, [searchParams, loadProject, router, locale]);
 
-    // Redirect to mobile dashboard if viewed in portrait mode on a mobile device
+    // Redirect to mobile if needed
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const checkMobile = () => {
@@ -261,16 +77,13 @@ export default function DashboardPage() {
                     router.replace(`/${locale}/mobile`);
                 }
             };
-
             checkMobile();
-
-            // Re-check on orientation change or resize
             window.addEventListener('resize', checkMobile);
             return () => window.removeEventListener('resize', checkMobile);
         }
-    }, [router]);
+    }, [router, locale]);
 
-    // Keybindings pour Undo/Redo
+    // Undo/Redo keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
@@ -283,10 +96,17 @@ export default function DashboardPage() {
                 }
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [undo, redo, undoStack.length, redoStack.length]);
+
+    // Focus title input when editing
+    useEffect(() => {
+        if (isEditingTitle && titleInputRef.current) {
+            titleInputRef.current.focus();
+            titleInputRef.current.select();
+        }
+    }, [isEditingTitle]);
 
     const handleShare = () => {
         const state = {
@@ -296,24 +116,52 @@ export default function DashboardPage() {
             currency,
             context,
             textSize,
-            projectionMonths
+            projectionMonths,
+            title,
         };
         const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
         const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
-
         navigator.clipboard.writeText(url).then(() => {
             setIsShared(true);
             setTimeout(() => setIsShared(false), 2000);
         });
     };
 
-    const handleLogin = () => {
-        setIsAuthModalOpen(true);
-        setIsMenuOpen(false);
+    const handleSaveJSON = () => {
+        const state = {
+            transactions,
+            startingBalance,
+            startingMonth,
+            currency,
+            context,
+            textSize,
+            projectionMonths,
+            title,
+        };
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title.replace(/\s+/g, '_')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
+    const handleLoadJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target?.result as string);
+                loadProject(data);
+            } catch {
+                console.error('Invalid file');
+            }
+        };
+        reader.readAsText(file);
+        // Reset input so same file can be re-loaded
+        e.target.value = '';
     };
 
     const handleReset = async () => {
@@ -321,9 +169,13 @@ export default function DashboardPage() {
         router.push(`/${locale}/assistant`);
     };
 
-    const COLUMN_WIDTH = 96; // w-24
-    const LABEL_WIDTH = 128; // w-32
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const handleTitleSave = () => {
+        if (titleDraft.trim()) setTitle(titleDraft.trim());
+        setIsEditingTitle(false);
+    };
+
+    const COLUMN_WIDTH = 96;
+    const LABEL_WIDTH = 128;
     const TOTAL_WIDTH = LABEL_WIDTH + (projectionMonths * COLUMN_WIDTH);
 
     return (
@@ -332,9 +184,10 @@ export default function DashboardPage() {
             textSize === 'small' && "scale-[0.98]",
             textSize === 'large' && "scale-[1.02]"
         )}>
-            {/* Premium Header */}
+            {/* Header */}
             <header className="fixed top-0 left-0 right-0 h-16 md:h-20 bg-white/80 backdrop-blur-xl z-50 border-b border-zinc-100 px-4 md:px-8 flex items-center justify-between">
                 <div className="flex items-center space-x-3 md:space-x-6">
+                    {/* Logo */}
                     <div className="flex items-center space-x-2">
                         <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-900 rounded-xl md:rounded-2xl flex items-center justify-center shadow-premium">
                             <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white rounded-lg flex items-center justify-center">
@@ -344,217 +197,53 @@ export default function DashboardPage() {
                         <span className="font-black italic text-lg md:text-xl tracking-tighter text-zinc-900 line-clamp-1">PLANIF.app</span>
                     </div>
 
-                    <div className="flex items-center space-x-1 md:space-x-2">
-                        {/* Planification Switcher (Breadcrumb Step 1) */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsPlanificationMenuOpen(!isPlanificationMenuOpen)}
-                                className={clsx(
-                                    "hidden md:flex items-center rounded-2xl px-4 py-2 border transition-all active:scale-95 space-x-3",
-                                    isPlanificationMenuOpen ? "bg-zinc-100 border-zinc-200" : "bg-zinc-50 border-zinc-100 hover:bg-zinc-100 hover:border-zinc-200"
-                                )}
-                            >
-                                <Home className="w-4 h-4 text-zinc-400" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 truncate max-w-[120px]">
-                                    {currentPlanification?.name || 'Home'}
-                                </span>
-                            </button>
-
-                            <AnimatePresence>
-                                {isPlanificationMenuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute left-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                    >
-                                        <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
-                                            {planifications.map((p) => (
-                                                <EditableMenuItem
-                                                    key={p.id}
-                                                    item={p}
-                                                    isSelected={currentPlanificationId === p.id}
-                                                    onSelect={(id: string) => {
-                                                        setCurrentPlanification(id);
-                                                        setIsPlanificationMenuOpen(false);
-                                                    }}
-                                                    onEdit={user ? async (id: string, newName: string) => {
-                                                        await updatePlanification(id, { name: newName });
-                                                    } : undefined}
-                                                    onDelete={user && planifications.length > 1 ? async (id: string) => {
-                                                        setDeletingPlanificationId(id);
-                                                    } : undefined}
-                                                />
-                                            ))}
-
-                                            {user ? (
-                                                <div className="pt-2 mt-2 border-t border-zinc-50">
-                                                    {!isAddingPlanification ? (
-                                                        <button
-                                                            onClick={() => setIsAddingPlanification(true)}
-                                                            className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                            <span>{dictionary.common.add} Planification</span>
-                                                        </button>
-                                                    ) : (
-                                                        <div className="flex items-center space-x-2 p-1">
-                                                            <input
-                                                                autoFocus
-                                                                type="text"
-                                                                value={newPlanificationName}
-                                                                onChange={(e) => setNewPlanificationName(e.target.value)}
-                                                                placeholder="Nom..."
-                                                                className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
-                                                                onKeyDown={(e) => e.key === 'Enter' && handleAddPlanification()}
-                                                            />
-                                                            <button
-                                                                onClick={handleAddPlanification}
-                                                                className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
-                                                            >
-                                                                <Check className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
-                                                    <p className="text-xs text-zinc-500 font-medium mb-3">
-                                                        {dictionary.auth.planificationPrompt}
-                                                    </p>
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsPlanificationMenuOpen(false);
-                                                            handleLogin();
-                                                        }}
-                                                        className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
-                                                    >
-                                                        {dictionary.auth.login}
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        {isScenarioVisible && (
-                            <>
-                                <ChevronRight className="hidden md:block w-4 h-4 text-zinc-300" />
-
-                                {/* Scenario Switcher (Breadcrumb Step 2) */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsScenarioMenuOpen(!isScenarioMenuOpen)}
-                                        className={clsx(
-                                            "hidden md:flex items-center rounded-2xl px-4 py-2 border transition-all active:scale-95 space-x-3",
-                                            isScenarioMenuOpen ? "bg-zinc-100 border-zinc-200" : "bg-zinc-50 border-zinc-100 hover:bg-zinc-100 hover:border-zinc-200"
-                                        )}
-                                    >
-                                        <Layers className="w-4 h-4 text-zinc-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 truncate max-w-[120px]">
-                                            {currentScenario?.name || 'Principal'}
-                                        </span>
-                                    </button>
-
-                                    <AnimatePresence>
-                                        {isScenarioMenuOpen && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className="absolute left-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                            >
-                                                <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
-                                                    <EditableMenuItem
-                                                        item={{ id: null, name: 'Principal', subtitle: 'Scénario de base' }}
-                                                        isSelected={currentScenarioId === null}
-                                                        onSelect={() => {
-                                                            setCurrentScenario(null);
-                                                            setIsScenarioMenuOpen(false);
-                                                        }}
-                                                    />
-
-                                                    {scenarios.map((s) => (
-                                                        <EditableMenuItem
-                                                            key={s.id}
-                                                            item={s}
-                                                            isSelected={currentScenarioId === s.id}
-                                                            onSelect={(id: string) => {
-                                                                setCurrentScenario(id);
-                                                                setIsScenarioMenuOpen(false);
-                                                            }}
-                                                            onEdit={user ? async (id: string, newName: string) => {
-                                                                await updateScenario(id, { name: newName });
-                                                            } : undefined}
-                                                            onDelete={user ? (id: string) => deleteScenario(id) : undefined}
-                                                        />
-                                                    ))}
-
-                                                    {user ? (
-                                                        <div className="pt-2 mt-2 border-t border-zinc-50">
-                                                            {!isAddingScenario ? (
-                                                                <button
-                                                                    onClick={() => setIsAddingScenario(true)}
-                                                                    className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
-                                                                >
-                                                                    <Plus className="w-4 h-4" />
-                                                                    <span>{dictionary.common.add} Scénario</span>
-                                                                </button>
-                                                            ) : (
-                                                                <div className="flex items-center space-x-2 p-1">
-                                                                    <input
-                                                                        autoFocus
-                                                                        type="text"
-                                                                        value={newScenarioName}
-                                                                        onChange={(e) => setNewScenarioName(e.target.value)}
-                                                                        placeholder="Nom..."
-                                                                        className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
-                                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddScenario()}
-                                                                    />
-                                                                    <button
-                                                                        onClick={handleAddScenario}
-                                                                        className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
-                                                                    >
-                                                                        <Check className="w-4 h-4" />
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
-                                                            <p className="text-xs text-zinc-500 font-medium mb-3">
-                                                                {dictionary.auth.scenarioPrompt}
-                                                            </p>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setIsScenarioMenuOpen(false);
-                                                                    handleLogin();
-                                                                }}
-                                                                className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
-                                                            >
-                                                                {dictionary.auth.login}
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            </>
-                        )}
-                    </div>
-
                     <div className="hidden md:block h-4 w-px bg-zinc-200" />
 
-                    <div className="flex items-center space-x-3">
+                    {/* Editable Title */}
+                    <div className="hidden md:flex items-center">
+                        {isEditingTitle ? (
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    ref={titleInputRef}
+                                    type="text"
+                                    value={titleDraft}
+                                    onChange={(e) => setTitleDraft(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleTitleSave();
+                                        if (e.key === 'Escape') setIsEditingTitle(false);
+                                    }}
+                                    onBlur={handleTitleSave}
+                                    className="h-9 px-3 bg-zinc-50 border-2 border-zinc-200 rounded-xl text-sm font-bold text-zinc-900 focus:outline-none focus:border-zinc-900 transition-all w-48"
+                                />
+                                <button
+                                    onMouseDown={(e) => { e.preventDefault(); handleTitleSave(); }}
+                                    className="p-1.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"
+                                >
+                                    <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onMouseDown={(e) => { e.preventDefault(); setIsEditingTitle(false); }}
+                                    className="p-1.5 rounded-lg bg-zinc-100 text-zinc-400 hover:bg-zinc-200 transition-colors"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => { setTitleDraft(title); setIsEditingTitle(true); }}
+                                className="flex items-center space-x-2 px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-100 hover:bg-zinc-100 hover:border-zinc-200 transition-all group"
+                            >
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 truncate max-w-[180px]">
+                                    {title}
+                                </span>
+                                <Pencil className="w-3 h-3 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex items-center space-x-2 md:space-x-4">
-                    {/* Undo / Redo controls */}
+                    {/* Undo / Redo */}
                     <div className="hidden md:flex items-center bg-zinc-50 border border-zinc-100 rounded-2xl p-1 space-x-1 mr-2">
                         <button
                             onClick={() => undo()}
@@ -585,14 +274,39 @@ export default function DashboardPage() {
                         </button>
                     </div>
 
-                    {/* Share Button */}
+                    {/* Save JSON */}
+                    <button
+                        onClick={handleSaveJSON}
+                        className="w-10 h-10 md:w-12 md:h-12 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center justify-center shadow-soft hover:shadow-premium transition-all active:scale-95 group"
+                        title="Enregistrer (JSON)"
+                    >
+                        <Download className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
+                    </button>
+
+                    {/* Load JSON */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-10 h-10 md:w-12 md:h-12 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center justify-center shadow-soft hover:shadow-premium transition-all active:scale-95 group"
+                        title="Charger (JSON)"
+                    >
+                        <Upload className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json"
+                        onChange={handleLoadJSON}
+                        className="hidden"
+                    />
+
+                    {/* Share */}
                     <button
                         onClick={handleShare}
                         className={clsx(
                             "w-10 h-10 md:w-12 md:h-12 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center justify-center shadow-soft hover:shadow-premium transition-all active:scale-95 group relative",
                             isShared && "border-emerald-500 bg-emerald-50"
                         )}
-                        title="Partager mon dashboard"
+                        title="Partager via URL"
                     >
                         {isShared ? (
                             <Check className="w-5 h-5 text-emerald-500" />
@@ -605,7 +319,7 @@ export default function DashboardPage() {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-zinc-900 text-white text-[9px] font-black italic uppercase tracking-widest rounded-lg pointer-events-none"
+                                    className="absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-zinc-900 text-white text-[9px] font-black italic uppercase tracking-widest rounded-lg pointer-events-none whitespace-nowrap"
                                 >
                                     Copié !
                                 </motion.div>
@@ -613,7 +327,7 @@ export default function DashboardPage() {
                         </AnimatePresence>
                     </button>
 
-                    {/* Settings Gear Button */}
+                    {/* Settings */}
                     <button
                         onClick={() => setIsSettingsModalOpen(true)}
                         className="w-10 h-10 md:w-12 md:h-12 bg-white border border-zinc-100 rounded-xl md:rounded-2xl flex items-center justify-center shadow-soft hover:shadow-premium transition-all active:scale-95 group"
@@ -621,59 +335,14 @@ export default function DashboardPage() {
                         <Settings className="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
                     </button>
 
-                    <div className="h-4 md:h-6 w-px bg-zinc-100" />
-
-                    {/* Profile Menu */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="px-3 py-1.5 md:px-4 md:py-2 bg-zinc-900 text-white rounded-xl md:rounded-2xl flex items-center space-x-2 md:space-x-3 shadow-premium hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-95"
-                        >
-                            <span className="font-black italic text-xs md:text-sm tracking-tight">{user?.email?.split('@')[0] || dictionary.auth.guestMode}</span>
-                            <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                                <ChevronDown className={clsx("w-2.5 h-2.5 md:w-3 md:h-3 transition-transform", isMenuOpen && "rotate-180")} />
-                            </div>
-                        </button>
-
-                        <AnimatePresence>
-                            {isMenuOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute right-0 mt-2 w-56 bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-3 z-[60]"
-                                >
-                                    <button
-                                        onClick={() => { setIsResetModalOpen(true); setIsMenuOpen(false); }}
-                                        className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-600 hover:bg-zinc-50 transition-colors"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        <span className="font-black italic text-sm">{dictionary.common.delete} Data</span>
-                                    </button>
-                                    <div className="h-px bg-zinc-50 my-2" />
-                                    {user ? (
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-400 hover:text-zinc-900 transition-colors"
-                                        >
-                                            <LogOut className="w-4 h-4" />
-                                            <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={handleLogin}
-                                            className="w-full flex items-center space-x-3 p-4 rounded-2xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-                                        >
-                                            <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center">
-                                                <Plus className="w-2 h-2 text-white" />
-                                            </div>
-                                            <span className="font-black italic text-sm">{dictionary.auth.login}</span>
-                                        </button>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                    {/* Reset menu */}
+                    <button
+                        onClick={() => setIsResetModalOpen(true)}
+                        className="hidden md:flex px-3 py-1.5 md:px-4 md:py-2 bg-zinc-900 text-white rounded-xl md:rounded-2xl items-center space-x-2 md:space-x-3 shadow-premium hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all active:scale-95"
+                    >
+                        <span className="font-black italic text-xs md:text-sm tracking-tight">Reset</span>
+                        <ChevronDown className="w-3 h-3" />
+                    </button>
                 </div>
             </header>
 
@@ -687,7 +356,7 @@ export default function DashboardPage() {
                         className="overflow-x-auto no-scrollbar pb-8 -mx-4 md:-mx-6 px-4 md:px-6"
                     >
                         <div style={{ minWidth: `${TOTAL_WIDTH}px`, width: '100%' }} className="space-y-4">
-                            {/* Unique Months Axis shared by Graph and Timeline */}
+                            {/* Month axis */}
                             <div className="flex border-b border-zinc-200 pb-3 pt-2">
                                 <div className="w-32 flex-shrink-0 sticky left-0 bg-zinc-50/90 backdrop-blur-md z-20 px-4 font-black text-[10px] uppercase tracking-widest text-zinc-400 flex items-end justify-start">
                                     Mois
@@ -708,7 +377,6 @@ export default function DashboardPage() {
                                 />
                             </div>
 
-                            {/* Light Toggle Button on the left */}
                             <div className="flex justify-start">
                                 <button
                                     onClick={() => setShowDetails(!showDetails)}
@@ -788,35 +456,11 @@ export default function DashboardPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <AuthModal
-                isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
-            />
+
             <SettingsModal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}
             />
-            <VersionHistoryModal
-                isOpen={isVersionHistoryModalOpen}
-                onClose={() => setIsVersionHistoryModalOpen(false)}
-            />
-            {/* Modal for Deleting Planification */}
-            <AnimatePresence>
-                {deletingPlanificationId && (
-                    <DeletePlanificationModal
-                        isOpen={!!deletingPlanificationId}
-                        onClose={() => setDeletingPlanificationId(null)}
-                        planName={planifications.find(p => p.id === deletingPlanificationId)?.name || 'cette planification'}
-                        onConfirm={async () => {
-                            await deletePlanification(deletingPlanificationId);
-                            if (currentPlanificationId === deletingPlanificationId) {
-                                setIsPlanificationMenuOpen(false);
-                            }
-                            setDeletingPlanificationId(null);
-                        }}
-                    />
-                )}
-            </AnimatePresence>
         </div>
     );
 }

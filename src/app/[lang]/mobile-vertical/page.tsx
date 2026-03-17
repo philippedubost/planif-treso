@@ -6,15 +6,13 @@ import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Settings, Plus, LogIn, LogOut, Share2, Check, Layers,
-    ChevronDown, Home, Undo2, Redo2, X
+    Settings, Plus, Share2, Check,
+    ChevronDown, Undo2, Redo2, X
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
-import { AuthModal } from '@/components/auth/AuthModal';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
-import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import {
@@ -565,12 +563,9 @@ function MobileKPISection() {
 // ────────────────────────────────────────────────────────────
 export default function DashboardMobilePage() {
     const {
-        initAuth, user, transactions, currency, textSize,
+        transactions, currency, textSize,
         startingBalance, startingMonth,
-        loadProject, planifications, currentPlanificationId,
-        addPlanification, setCurrentPlanification,
-        currentScenarioId, scenarios, showScenarioBadge, projectionMonths,
-        addScenario, setCurrentScenario,
+        loadProject, projectionMonths, title,
         undo, redo, undoStack, redoStack
     } = useFinanceStore();
 
@@ -580,16 +575,8 @@ export default function DashboardMobilePage() {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
-
-    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
-    const [isScenarioMenuOpen, setIsScenarioMenuOpen] = useState(false);
-    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
-    const [newPlanificationName, setNewPlanificationName] = useState('');
-    const [isAddingScenario, setIsAddingScenario] = useState(false);
-    const [newScenarioName, setNewScenarioName] = useState('');
 
     // Editor bottom sheet
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -608,11 +595,6 @@ export default function DashboardMobilePage() {
     const oneOffTransactions = transactions.filter(t => t.recurrence === 'none');
     const recurringTransactions = transactions.filter(t => t.recurrence !== 'none');
 
-    const currentPlanification = planifications.find(p => p.id === currentPlanificationId);
-    const currentScenario = scenarios.find(s => s.id === currentScenarioId);
-    const isScenarioVisible = showScenarioBadge && (user || scenarios.length > 0);
-
-    useEffect(() => { initAuth(); }, [initAuth]);
 
     useEffect(() => {
         const sharedData = searchParams.get('data');
@@ -648,18 +630,6 @@ export default function DashboardMobilePage() {
         });
     };
 
-    const handleAddPlanification = async () => {
-        if (!newPlanificationName.trim()) return;
-        const id = await addPlanification(newPlanificationName);
-        if (id) { setCurrentPlanification(id); setNewPlanificationName(''); setIsAddingPlanification(false); setIsPlanificationMenuOpen(false); }
-    };
-
-    const handleAddScenario = async () => {
-        if (!newScenarioName.trim()) return;
-        const id = await addScenario(newScenarioName);
-        if (id) { setCurrentScenario(id); setNewScenarioName(''); setIsAddingScenario(false); setIsScenarioMenuOpen(false); }
-    };
-
     const handleOpenEditor = (tx?: Transaction, month?: string, recurrence: 'monthly' | 'none' = 'none') => {
         if (tx) { setSelectedTransaction(tx); setIsAdding(false); }
         else { setSelectedTransaction(null); setAddMonth(month); setAddRecurrence(recurrence); setIsAdding(true); }
@@ -687,90 +657,10 @@ export default function DashboardMobilePage() {
                         <span className="font-black italic text-sm tracking-tighter text-zinc-900">PLANIF</span>
                     </div>
 
-                    {/* Planification pill */}
-                    <div className="relative">
-                        <button
-                            onClick={() => { setIsPlanificationMenuOpen(!isPlanificationMenuOpen); setIsScenarioMenuOpen(false); setIsMenuOpen(false); }}
-                            className={clsx(
-                                'flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider',
-                                isPlanificationMenuOpen ? 'bg-zinc-100 border-zinc-200 text-zinc-900' : 'bg-zinc-50 border-zinc-100 text-zinc-600 hover:bg-zinc-100'
-                            )}
-                        >
-                            <Home className="w-3 h-3" />
-                            <span className="truncate max-w-[70px]">{currentPlanification?.name || 'Home'}</span>
-                        </button>
-
-                        <AnimatePresence>
-                            {isPlanificationMenuOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                    className="absolute left-0 mt-2 w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                >
-                                    <div className="space-y-1 max-h-52 overflow-y-auto no-scrollbar">
-                                        {planifications.map(p => (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => { setCurrentPlanification(p.id); setIsPlanificationMenuOpen(false); }}
-                                                className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all', currentPlanificationId === p.id ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50')}
-                                            >
-                                                {p.name}
-                                            </button>
-                                        ))}
-                                        {user && (
-                                            <div className="pt-2 mt-1 border-t border-zinc-50">
-                                                {!isAddingPlanification ? (
-                                                    <button onClick={() => setIsAddingPlanification(true)} className="w-full flex items-center justify-center space-x-1.5 py-2 text-zinc-400 hover:text-zinc-600 text-xs font-bold">
-                                                        <Plus className="w-3.5 h-3.5" /><span>Nouvelle Planification</span>
-                                                    </button>
-                                                ) : (
-                                                    <div className="flex items-center space-x-2 p-1">
-                                                        <input autoFocus value={newPlanificationName} onChange={e => setNewPlanificationName(e.target.value)} placeholder="Nom..." className="flex-1 h-8 px-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none" onKeyDown={e => e.key === 'Enter' && handleAddPlanification()} />
-                                                        <button onClick={handleAddPlanification} className="w-8 h-8 bg-zinc-900 text-white rounded-lg flex items-center justify-center active:scale-95"><Check className="w-3.5 h-3.5" /></button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                    {/* Title pill */}
+                    <div className="flex items-center px-2.5 py-1 rounded-xl border bg-zinc-50 border-zinc-100">
+                        <span className="truncate max-w-[120px] text-[10px] font-black uppercase tracking-wider text-zinc-600">{title}</span>
                     </div>
-
-                    {/* Scenario pill */}
-                    {isScenarioVisible && (
-                        <div className="relative">
-                            <button
-                                onClick={() => { setIsScenarioMenuOpen(!isScenarioMenuOpen); setIsPlanificationMenuOpen(false); setIsMenuOpen(false); }}
-                                className={clsx(
-                                    'flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border transition-all active:scale-95 text-[10px] font-black uppercase tracking-wider',
-                                    isScenarioMenuOpen ? 'bg-zinc-100 border-zinc-200 text-zinc-900' : 'bg-zinc-50 border-zinc-100 text-zinc-600'
-                                )}
-                            >
-                                <Layers className="w-3 h-3" />
-                                <span className="truncate max-w-[60px]">{currentScenario?.name || 'Principal'}</span>
-                            </button>
-
-                            <AnimatePresence>
-                                {isScenarioMenuOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        className="absolute left-0 mt-2 w-64 bg-white rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                    >
-                                        <div className="space-y-1 max-h-52 overflow-y-auto no-scrollbar">
-                                            <button onClick={() => { setCurrentScenario(null); setIsScenarioMenuOpen(false); }} className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm font-bold', !currentScenarioId ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600')}>
-                                                Principal
-                                            </button>
-                                            {scenarios.map(s => (
-                                                <button key={s.id} onClick={() => { setCurrentScenario(s.id); setIsScenarioMenuOpen(false); }} className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm font-bold', currentScenarioId === s.id ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600')}>
-                                                    {s.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )}
                 </div>
 
                 {/* Right: undo/redo + share + settings + profile */}
@@ -824,16 +714,6 @@ export default function DashboardMobilePage() {
                                         {isShared ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                                         <span className="font-black italic text-sm">{isShared ? 'Lien copié !' : 'Partager'}</span>
                                     </button>
-                                    {/* Login / Logout */}
-                                    {user ? (
-                                        <button onClick={() => supabase.auth.signOut()} className="w-full flex items-center space-x-2 p-3 rounded-2xl text-zinc-400 hover:text-zinc-900">
-                                            <LogOut className="w-4 h-4" /><span className="font-black italic text-sm">{dictionary.auth.logout}</span>
-                                        </button>
-                                    ) : (
-                                        <button onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }} className="w-full flex items-center space-x-2 p-3 rounded-2xl text-zinc-900 bg-zinc-50">
-                                            <LogIn className="w-4 h-4" /><span className="font-black italic text-sm">{dictionary.auth.login}</span>
-                                        </button>
-                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -972,7 +852,6 @@ export default function DashboardMobilePage() {
             </BottomSheet>
 
             {/* -- Modals -- */}
-            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
             <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
         </div>
     );

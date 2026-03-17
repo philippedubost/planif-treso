@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronDown, Share2, Settings, LogOut, Plus, Check, Edit2, AlertTriangle, Info, X, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { ChevronDown, Share2, Settings, Plus, Check, Edit2, AlertTriangle, Info, X, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
@@ -12,8 +12,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
 import { SettingsModal } from '@/components/settings/SettingsModal';
-import { AuthModal } from '@/components/auth/AuthModal';
-import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 import { Pencil, Trash2 } from 'lucide-react';
 
@@ -170,17 +168,11 @@ export default function ProjectionHorizontalPage() {
         startingBalance,
         setStartingBalance,
         currency,
-        planifications,
-        currentPlanificationId,
-        addPlanification,
-        updatePlanification,
-        setCurrentPlanification,
-        deletePlanification,
+        title,
         transactions,
         updateTransaction,
         deleteTransaction,
         addTransaction,
-        user
     } = useFinanceStore();
     const projection = useProjection();
     const { width, height } = useWindowSize();
@@ -189,15 +181,9 @@ export default function ProjectionHorizontalPage() {
     const { dictionary } = useTranslation();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isPlanificationMenuOpen, setIsPlanificationMenuOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
-
-    const [deletingPlanificationId, setDeletingPlanificationId] = useState<string | null>(null);
-    const [isAddingPlanification, setIsAddingPlanification] = useState(false);
-    const [newPlanificationName, setNewPlanificationName] = useState('');
 
     const [isEditingBalance, setIsEditingBalance] = useState(false);
     const [tempBalance, setTempBalance] = useState('');
@@ -537,22 +523,6 @@ export default function ProjectionHorizontalPage() {
         });
     };
 
-    const handleLogin = () => {
-        setIsAuthModalOpen(true);
-    };
-
-    const handleAddPlanification = async () => {
-        if (!newPlanificationName.trim()) return;
-        const id = await addPlanification(newPlanificationName.trim());
-        if (id) {
-            setCurrentPlanification(id);
-            setNewPlanificationName('');
-            setIsAddingPlanification(false);
-            setIsPlanificationMenuOpen(false);
-        }
-    };
-
-
     // --- Timeline Graph Calculations ---
     const colWidth = 80; // width of each month column
     const canvasWidth = projection.length * colWidth + (width || 375); // padding for scrolling past ends
@@ -758,140 +728,16 @@ export default function ProjectionHorizontalPage() {
                                                 </button>
                                             </div>
 
-                                            <div className="h-px bg-zinc-100 my-1 mx-2" />
-
-                                            {user ? (
-                                                <>
-                                                    <div className="px-3 py-2 text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-                                                        {user.email || 'Mode invité'}
-                                                    </div>
-                                                    <div className="p-1">
-                                                        <button
-                                                            onClick={async () => {
-                                                                await supabase.auth.signOut();
-                                                            }}
-                                                            className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                                        >
-                                                            <LogOut className="w-4 h-4" />
-                                                            <span className="font-black italic text-sm">{dictionary.auth.logout}</span>
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="p-1">
-                                                    <button
-                                                        onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                                                        className="w-full flex items-center space-x-3 p-2 rounded-xl text-zinc-900 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-                                                    >
-                                                        <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
-                                                            <Plus className="w-3 h-3 text-white" />
-                                                        </div>
-                                                        <div className="flex flex-col items-start pr-2">
-                                                            <span className="font-black italic text-sm leading-tight">Sauvegarder</span>
-                                                            <span className="text-[10px] font-medium text-zinc-500 leading-tight">mon profil</span>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            )}
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
 
-                            {/* App Logo / Planification Menu */}
-                            <div className="relative">
-                                <button
-                                    onClick={() => {
-                                        setIsPlanificationMenuOpen(!isPlanificationMenuOpen);
-                                        if (!isPlanificationMenuOpen) setIsMenuOpen(false);
-                                    }}
-                                    className={clsx(
-                                        "w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-premium active:scale-95 transition-all select-none",
-                                        isPlanificationMenuOpen && "scale-95 ring-2 ring-zinc-900 ring-offset-2"
-                                    )}
-                                >
-                                    <div className="w-5 h-5 border-2 border-white rounded-lg flex items-center justify-center">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                    </div>
-                                </button>
-
-                                <AnimatePresence>
-                                    {isPlanificationMenuOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute right-0 mt-2 w-72 bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-zinc-50 p-2 z-[60]"
-                                        >
-                                            <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
-                                                {planifications.map((p) => (
-                                                    <EditableMenuItem
-                                                        key={p.id}
-                                                        item={p}
-                                                        isSelected={currentPlanificationId === p.id}
-                                                        onSelect={(id: string) => {
-                                                            setCurrentPlanification(id);
-                                                            setIsPlanificationMenuOpen(false);
-                                                        }}
-                                                        onEdit={user ? async (id: string, newName: string) => {
-                                                            await updatePlanification(id, { name: newName });
-                                                        } : undefined}
-                                                        onDelete={user && planifications.length > 1 ? async (id: string) => {
-                                                            setDeletingPlanificationId(id);
-                                                        } : undefined}
-                                                    />
-                                                ))}
-
-                                                {user ? (
-                                                    <div className="pt-2 mt-2 border-t border-zinc-50">
-                                                        {!isAddingPlanification ? (
-                                                            <button
-                                                                onClick={() => setIsAddingPlanification(true)}
-                                                                className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-sm font-bold"
-                                                            >
-                                                                <Plus className="w-4 h-4" />
-                                                                <span>{dictionary.common.add} Planification</span>
-                                                            </button>
-                                                        ) : (
-                                                            <div className="flex items-center space-x-2 p-1">
-                                                                <input
-                                                                    autoFocus
-                                                                    type="text"
-                                                                    value={newPlanificationName}
-                                                                    onChange={(e) => setNewPlanificationName(e.target.value)}
-                                                                    placeholder="Nom..."
-                                                                    className="flex-1 h-10 px-3 bg-zinc-50 border border-zinc-100 rounded-lg text-sm font-bold focus:outline-none focus:border-zinc-900 transition-all"
-                                                                    onKeyDown={(e) => e.key === 'Enter' && handleAddPlanification()}
-                                                                />
-                                                                <button
-                                                                    onClick={handleAddPlanification}
-                                                                    className="w-10 h-10 bg-zinc-900 text-white rounded-lg flex items-center justify-center shadow-premium active:scale-95"
-                                                                >
-                                                                    <Check className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="pt-2 mt-2 border-t border-zinc-50 p-2 text-center">
-                                                        <p className="text-xs text-zinc-500 font-medium mb-3">
-                                                            {dictionary.auth.planificationPrompt}
-                                                        </p>
-                                                        <button
-                                                            onClick={() => {
-                                                                setIsPlanificationMenuOpen(false);
-                                                                handleLogin();
-                                                            }}
-                                                            className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold shadow-premium active:scale-95 transition-all"
-                                                        >
-                                                            {dictionary.auth.login}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                            {/* App Logo */}
+                            <div className="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-premium select-none">
+                                <div className="w-5 h-5 border-2 border-white rounded-lg flex items-center justify-center">
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1246,28 +1092,6 @@ export default function ProjectionHorizontalPage() {
             <SettingsModal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}
-            />
-
-            <AuthModal
-                isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
-            />
-
-            <ConfirmDeleteModal
-                isOpen={!!deletingPlanificationId}
-                planName={planifications.find(p => p.id === deletingPlanificationId)?.name}
-                onClose={() => setDeletingPlanificationId(null)}
-                dictionary={dictionary}
-                onConfirm={async () => {
-                    if (deletingPlanificationId) {
-                        const newPlanificationList = planifications.filter(p => p.id !== deletingPlanificationId);
-                        await deletePlanification(deletingPlanificationId);
-                        setDeletingPlanificationId(null);
-                        if (currentPlanificationId === deletingPlanificationId && newPlanificationList.length > 0) {
-                            setCurrentPlanification(newPlanificationList[0].id);
-                        }
-                    }
-                }}
             />
 
             {/* Share Success Toast */}
