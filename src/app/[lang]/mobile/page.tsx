@@ -6,7 +6,7 @@ import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import {
-    Settings, Plus,
+    Settings, Plus, Check,
     ChevronDown, Undo2, Redo2, X, GripVertical
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -186,6 +186,7 @@ function RecurringPill({ transaction }: { transaction: Transaction }) {
 
 // ────────────────────────────────────────────────────────────
 // Inline-editable one-off pill (per month column)
+// Long-press to activate drag, then slide to target month
 // ────────────────────────────────────────────────────────────
 function OneOffPill({ transaction, months, onTargetMonthChange }: {
     transaction: Transaction;
@@ -200,8 +201,14 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
     const [showDelete, setShowDelete] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [isDragActive, setIsDragActive] = useState(false);
+    const [isLongPressing, setIsLongPressing] = useState(false);
     const labelRef = useRef<HTMLInputElement>(null);
     const amountRef = useRef<HTMLInputElement>(null);
+    const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
+    const pointerStart = useRef({ x: 0, y: 0 });
+    const pillRef = useRef<HTMLDivElement>(null);
+    const motionX = useMotionValue(0);
 
     useEffect(() => {
         setLocalLabel(transaction.label);
@@ -226,49 +233,104 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
         setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
     };
 
-    const dragX = useMotionValue(0);
+    // Use elementsFromPoint (plural) so the pill itself doesn't block column detection
+    const getMonthFromPoint = (x: number, y: number): string | null => {
+        const els = document.elementsFromPoint(x, y);
+        for (const el of els) {
+            const month = (el as HTMLElement).closest?.('[data-month]')?.getAttribute('data-month');
+            if (month) return month;
+        }
+        return null;
+    };
 
-    const getMonthFromPoint = useCallback((x: number, y: number): string | null => {
-        const el = document.elementFromPoint(x, y);
-        return el?.closest('[data-month]')?.getAttribute('data-month') ?? null;
-    }, []);
-
-    const handleDrag = useCallback((_event: any, info: any) => {
-        const month = getMonthFromPoint(info.point.x, info.point.y);
-        onTargetMonthChange?.(month && month !== transaction.month ? month : null);
-    }, [getMonthFromPoint, onTargetMonthChange, transaction.month]);
-
-    const handleDragEnd = useCallback((_event: any, info: any) => {
+    const cancelDrag = () => {
+        clearTimeout(longPressTimer.current);
+        setIsLongPressing(false);
+        setIsDragActive(false);
         onTargetMonthChange?.(null);
-        const month = getMonthFromPoint(info.point.x, info.point.y);
+        animate(motionX, 0, { type: 'spring', stiffness: 500, damping: 30 });
+    };
+
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        // Don't intercept taps on inputs
+        if ((e.target as HTMLElement).tagName === 'INPUT') return;
+        if (isFocused) return;
+        pointerStart.current = { x: e.clientX, y: e.clientY };
+        setIsLongPressing(true);
+        longPressTimer.current = setTimeout(() => {
+            setIsLongPressing(false);
+            setIsDragActive(true);
+            if (navigator.vibrate) navigator.vibrate(40);
+            // capture so pointer move/up fire on this element even outside bounds
+            try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+        }, 380);
+    };
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        const dx = e.clientX - pointerStart.current.x;
+        const dy = e.clientY - pointerStart.current.y;
+        if (!isDragActive) {
+            // Cancel long-press if finger drifts
+            if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                clearTimeout(longPressTimer.current);
+                setIsLongPressing(false);
+            }
+            return;
+        }
+        motionX.set(dx);
+        const month = getMonthFromPoint(e.clientX, e.clientY);
+        onTargetMonthChange?.(month && month !== transaction.month ? month : null);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        clearTimeout(longPressTimer.current);
+        setIsLongPressing(false);
+        if (!isDragActive) return;
+        onTargetMonthChange?.(null);
+        const month = getMonthFromPoint(e.clientX, e.clientY);
         if (month && month !== transaction.month) {
             updateTransaction(transaction.id, { month });
         }
-        animate(dragX, 0, { type: 'spring', stiffness: 500, damping: 30 });
-    }, [getMonthFromPoint, onTargetMonthChange, transaction.month, transaction.id, updateTransaction, dragX]);
+        setIsDragActive(false);
+        animate(motionX, 0, { type: 'spring', stiffness: 500, damping: 30 });
+    };
 
     const isIncome = transaction.direction === 'income';
 
     return (
         <motion.div
+            ref={pillRef}
             layout
-            drag="x"
-            dragMomentum={false}
-            dragElastic={0.1}
-            onDrag={handleDrag}
-            onDragEnd={handleDragEnd}
-            onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
-            whileDrag={{ scale: 1.1, zIndex: 50, opacity: 0.9, cursor: 'grabbing', pointerEvents: 'none' }}
-            style={{ x: dragX, touchAction: 'none' }}
-            className="relative flex flex-row items-center pointer-events-auto cursor-grab active:cursor-grabbing"
+            animate={{ scale: isDragActive ? 1.12 : 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={cancelDrag}
+            style={{ x: motionX, touchAction: 'none', zIndex: isDragActive ? 50 : 1, cursor: isDragActive ? 'grabbing' : 'default' }}
+            className="relative flex flex-row items-center select-none"
         >
+            {/* Long-press charging ring */}
+            <AnimatePresence>
+                {isLongPressing && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1.35 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ duration: 0.38 }}
+                        className="absolute inset-0 rounded-lg border-2 border-zinc-400 pointer-events-none"
+                    />
+                )}
+            </AnimatePresence>
+
             <div
                 className={clsx(
-                    'pl-0.5 pr-1.5 py-1.5 rounded-lg shadow-sm flex flex-row items-center gap-0.5 w-[64px] border',
-                    isIncome ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
+                    'pl-0.5 pr-1.5 py-1.5 rounded-lg shadow-sm flex flex-row items-center gap-0.5 w-[64px] border transition-shadow',
+                    isIncome ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100',
+                    isDragActive && 'shadow-lg'
                 )}
             >
-                <GripVertical className="w-3 h-3 text-zinc-400 opacity-70 shrink-0 pointer-events-none" />
+                <GripVertical className={clsx('w-3 h-3 shrink-0 pointer-events-none transition-opacity', isDragActive ? 'opacity-100 text-zinc-600' : 'opacity-40 text-zinc-400')} />
                 <div className="flex flex-col items-center flex-1">
                     <input
                         ref={labelRef}
@@ -313,10 +375,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
                             ? { scale: [1, 1.3, 0], opacity: [1, 1, 0], backgroundColor: '#10b981' }
                             : { scale: 1, opacity: 1, backgroundColor: '#18181b' }
                         }
-                        transition={isSuccess
-                            ? { duration: 0.4 }
-                            : { duration: 0.2 }
-                        }
+                        transition={isSuccess ? { duration: 0.4 } : { duration: 0.2 }}
                         exit={{ scale: 0, opacity: 0 }}
                         onPointerDown={(e) => {
                             e.preventDefault();
