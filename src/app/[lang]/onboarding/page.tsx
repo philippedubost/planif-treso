@@ -295,7 +295,7 @@ export default function OnboardingFlow() {
                             <span className="absolute right-4 bottom-4 text-2xl font-black text-zinc-400">€</span>
                         </div>
                         <p className="text-sm font-medium text-zinc-400 mt-4 leading-relaxed">
-                            Montant à peu près, tu pourras l'ajuster plus tard.{' '}
+                            Montant à peu près, tu pourras l'ajuster plus tard.<br />
                             <span className="bg-zinc-900 text-white font-black rounded-md px-1.5 py-0.5 text-xs">Aucune donnée n'est enregistrée</span>
                             , c'est juste pour démarrer ta simulation perso.
                         </p>
