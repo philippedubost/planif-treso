@@ -51,20 +51,12 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       type: "website",
       images: [
         {
-          url: "/images/card5.png",
-          width: 2752,
-          height: 1536,
+          url: "/images/card1.png",
+          width: 473,
+          height: 316,
           alt: isFr
             ? "Planif.app — Anticipe le futur de ton compte bancaire"
             : "Planif.app — Anticipate the future of your bank account",
-        },
-        {
-          url: "/images/card6.png",
-          width: 2528,
-          height: 1696,
-          alt: isFr
-            ? "Planif.app — Simulation financière en 30 secondes"
-            : "Planif.app — Financial simulation in 30 seconds",
         },
       ],
     },
@@ -72,7 +64,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       card: "summary_large_image",
       title,
       description,
-      images: ["/images/card5.png"],
+      images: ["/images/card1.png"],
       creator: "@planifapp",
     },
     icons: {
