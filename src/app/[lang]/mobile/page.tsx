@@ -6,7 +6,7 @@ import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import {
-    Settings, Plus, Check,
+    Settings, Plus, Check, Share2,
     ChevronDown, Undo2, Redo2, X, GripVertical
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -196,7 +196,9 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
     const { updateTransaction, deleteTransaction, currency } = useFinanceStore();
     const [localLabel, setLocalLabel] = useState(transaction.label);
     const [localAmount, setLocalAmount] = useState(
-        transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString()
+        transaction.direction === 'expense'
+            ? (transaction.amount === 0 ? '-' : (-transaction.amount).toString())
+            : (transaction.amount === 0 ? '' : transaction.amount.toString())
     );
     const [showDelete, setShowDelete] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -210,9 +212,14 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
     const pillRef = useRef<HTMLDivElement>(null);
     const motionX = useMotionValue(0);
 
+    const formatAmount = (amount: number, direction: TransactionDirection) =>
+        direction === 'expense'
+            ? (amount === 0 ? '-' : (-amount).toString())
+            : (amount === 0 ? '' : amount.toString());
+
     useEffect(() => {
         setLocalLabel(transaction.label);
-        setLocalAmount(transaction.amount === 0 ? '' : (transaction.direction === 'expense' ? -transaction.amount : transaction.amount).toString());
+        setLocalAmount(formatAmount(transaction.amount, transaction.direction));
     }, [transaction.label, transaction.amount, transaction.direction]);
 
     const scrollIntoView = (el: HTMLElement | null) => {
@@ -224,14 +231,18 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
         if (localLabel !== transaction.label) updateTransaction(transaction.id, { label: localLabel });
     };
     const commitAmount = () => {
-        const val = parseFloat(localAmount) || 0;
+        const val = parseFloat(localAmount);
+        // Bare '-' or empty or NaN → keep direction, set amount to 0
+        if (isNaN(val) || localAmount === '-') {
+            setLocalAmount(transaction.direction === 'expense' ? '-' : '');
+            return;
+        }
         const newAmount = Math.abs(val);
         const newDirection: TransactionDirection = val < 0 ? 'expense' : 'income';
         if (newAmount !== transaction.amount || newDirection !== transaction.direction) {
             updateTransaction(transaction.id, { amount: newAmount, direction: newDirection });
         }
-        // Always re-display with the correct sign so expenses show as -500
-        setLocalAmount(newAmount === 0 ? '' : (newDirection === 'expense' ? -newAmount : newAmount).toString());
+        setLocalAmount(formatAmount(newAmount, newDirection));
     };
 
     // Use elementsFromPoint (plural) so the pill itself doesn't block column detection
@@ -681,6 +692,7 @@ export default function DashboardMobilePage() {
     const searchParams = useSearchParams();
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isShared, setIsShared] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [dragTargetMonth, setDragTargetMonth] = useState<string | null>(null);
 
@@ -724,6 +736,24 @@ export default function DashboardMobilePage() {
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [undo, redo, undoStack.length, redoStack.length]);
+
+    const handleShare = async () => {
+        const state = { transactions, startingBalance, startingMonth, currency, textSize, projectionMonths };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+        const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: 'Ma simulation PLANIF', url });
+                setIsShared(true);
+                setTimeout(() => setIsShared(false), 2000);
+            } catch { /* user cancelled */ }
+        } else {
+            navigator.clipboard.writeText(url).then(() => {
+                setIsShared(true);
+                setTimeout(() => setIsShared(false), 2000);
+            });
+        }
+    };
 
     const handleOpenEditor = (tx?: Transaction, month?: string, recurrence: 'monthly' | 'none' = 'none') => {
         if (tx) { setSelectedTransaction(tx); setIsAdding(false); }
@@ -771,6 +801,19 @@ export default function DashboardMobilePage() {
                             <Redo2 className="w-3.5 h-3.5" />
                         </button>
                     </div>
+
+                    {/* Share */}
+                    <button
+                        onClick={handleShare}
+                        className={clsx('w-9 h-9 border rounded-xl flex items-center justify-center shadow-soft active:scale-95 transition-all',
+                            isShared ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-zinc-100'
+                        )}
+                    >
+                        {isShared
+                            ? <Check className="w-4 h-4 text-emerald-500" />
+                            : <Share2 className="w-4 h-4 text-zinc-400" />
+                        }
+                    </button>
 
                     {/* Settings */}
                     <button onClick={() => setIsSettingsModalOpen(true)} className="w-9 h-9 bg-white border border-zinc-100 rounded-xl flex items-center justify-center shadow-soft active:scale-95 group">

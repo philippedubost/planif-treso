@@ -279,7 +279,7 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-2 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Combien as-tu sur ton compte aujourd'hui ?
+                            Combien as-tu sur ton compte aujourd'hui environ ?
                         </h2>
                         <div className="relative mt-8 max-w-xs mx-auto">
                             <input
@@ -294,8 +294,10 @@ export default function OnboardingFlow() {
                             />
                             <span className="absolute right-4 bottom-4 text-2xl font-black text-zinc-400">€</span>
                         </div>
-                        <p className="text-sm font-medium text-zinc-400 mt-4">
-                            Regarde simplement ton compte principal
+                        <p className="text-sm font-medium text-zinc-400 mt-4 leading-relaxed">
+                            Montant à peu près, tu pourras l'ajuster plus tard.{' '}
+                            <span className="bg-zinc-900 text-white font-black rounded-md px-1.5 py-0.5 text-xs">Aucune donnée n'est enregistrée</span>
+                            , c'est juste pour démarrer ta simulation perso.
                         </p>
                     </div>
                 </div>
