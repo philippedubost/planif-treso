@@ -78,8 +78,8 @@
         "cat-other": "Other"
     },
     "metadata": {
-        "title": "Planif.app - Anticipate the future of your bank account!",
-        "description": "A simple tool to anticipate your personal or business cash flow."
+        "title": "Planif.app — See your bank account 12 months ahead",
+        "description": "Anticipate the future of your bank account. Enter your income, recurring expenses and one-offs — we project the next 12 months. Free, no signup, in 30 seconds."
     },
     "scenarios": {
         "defaultName": "Main scenario",

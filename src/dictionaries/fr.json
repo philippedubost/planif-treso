@@ -78,8 +78,8 @@
         "catOther": "Autre"
     },
     "metadata": {
-        "title": "Planif.app - Anticipe le futur de ton compte bancaire !",
-        "description": "Un outil simple pour anticiper ta trésorerie personnelle ou professionnelle."
+        "title": "Planif.app — Vois ton compte dans 12 mois",
+        "description": "Anticipe le futur de ton compte bancaire. Saisis tes revenus, tes dépenses récurrentes et tes imprévus — on projette les 12 prochains mois. Gratuit, sans inscription, en 30 secondes."
     },
     "scenarios": {
         "defaultName": "Scénario principal",
