@@ -69,10 +69,20 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
     },
     icons: {
       icon: [
-        { url: "/images/favicon.png", type: "image/png" },
+        { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+        { url: "/favicon.ico",       sizes: "any" },
       ],
-      apple: "/images/favicon.png",
-      shortcut: "/images/favicon.png",
+      apple: [
+        { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      ],
+      shortcut: "/favicon.ico",
+      other: [
+        { rel: "mask-icon", url: "/favicon-32x32.png", color: "#18181b" },
+        { rel: "manifest", url: "/site.webmanifest" },
+        { rel: "msapplication-TileImage", url: "/mstile-150x150.png" },
+      ],
     },
     robots: {
       index: true,

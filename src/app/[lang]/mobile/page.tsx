@@ -14,6 +14,7 @@ import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 
 import {
     ResponsiveContainer,
@@ -774,11 +775,13 @@ export default function DashboardMobilePage() {
                 {/* Left: logo + planification */}
                 <div className="flex items-center space-x-2">
                     <div className="flex items-center space-x-1.5">
-                        <div className="w-7 h-7 bg-zinc-900 rounded-xl flex items-center justify-center shadow-premium">
-                            <div className="w-3.5 h-3.5 border-2 border-white rounded-md flex items-center justify-center">
-                                <div className="w-1 h-1 bg-white rounded-full" />
-                            </div>
-                        </div>
+                        <Image
+                            src="/images/favicon.png"
+                            alt="Planif.app"
+                            width={28}
+                            height={28}
+                            className="w-7 h-7 rounded-xl shadow-premium"
+                        />
                     </div>
 
                     {/* Title pill */}

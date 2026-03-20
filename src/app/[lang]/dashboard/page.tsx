@@ -173,11 +173,13 @@ export default function DashboardPage() {
                             onClick={() => setIsAboutOpen(true)}
                             className="flex items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
                         >
-                            <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center shadow-premium select-none group-hover:bg-zinc-800 transition-colors">
-                                <div className="w-4 h-4 border-2 border-white rounded-md flex items-center justify-center">
-                                    <div className="w-1 h-1 bg-white rounded-full" />
-                                </div>
-                            </div>
+                            <Image
+                                src="/images/favicon.png"
+                                alt="Planif.app"
+                                width={32}
+                                height={32}
+                                className="w-8 h-8 rounded-xl shadow-premium select-none"
+                            />
                             <span className="font-black italic text-base tracking-tighter text-zinc-900 hidden sm:block">
                                 PLANIF<span className="text-zinc-400 font-bold not-italic">.app</span>
                             </span>
