@@ -81,6 +81,12 @@ export default function LandingPage() {
 
     const hasSession = hasCompletedOnboarding || transactions.length > 0;
 
+    // Prefetch next routes so clicks feel instant
+    useEffect(() => {
+        router.prefetch(`/${lang}/onboarding`);
+        router.prefetch(`/${lang}/dashboard`);
+    }, [lang, router]);
+
     const handleDemo = () => {
         loadProject(makeDemoProject());
         router.push(`/${lang}/dashboard?demo=true`);

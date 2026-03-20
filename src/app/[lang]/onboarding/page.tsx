@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
@@ -15,6 +15,8 @@ export default function OnboardingFlow() {
     const router = useRouter();
     const { setStartingBalance, addTransaction, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange } = useFinanceStore();
     const [step, setStep] = useState(2);
+    const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
+    const reducedMotion = useReducedMotion();
 
     // Data
     const [balance, setBalance] = useState<string>('');
@@ -110,6 +112,7 @@ export default function OnboardingFlow() {
     const handleNext = () => {
         vibrate();
         if (step < 8) {
+            setDirection(1);
             setStep(prev => prev + 1);
         }
     };
@@ -123,6 +126,7 @@ export default function OnboardingFlow() {
     const handleBack = () => {
         if (step > 2) {
             vibrate();
+            setDirection(-1);
             setStep(prev => prev - 1);
         }
     };
@@ -815,13 +819,14 @@ export default function OnboardingFlow() {
                 </div>
             )}
 
-            <AnimatePresence mode="popLayout" initial={false}>
+            <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                 <motion.div
                     key={step}
-                    initial={{ opacity: 0, x: 50, scale: 0.98 }}
+                    custom={direction}
+                    initial={{ opacity: 0, x: reducedMotion ? 0 : direction * 48, scale: reducedMotion ? 1 : 0.97 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -50, scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    exit={{ opacity: 0, x: reducedMotion ? 0 : direction * -48, scale: reducedMotion ? 1 : 0.97 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 36, mass: 0.8 }}
                     drag={step > 2 ? "x" : false}
                     dragConstraints={{ left: 0, right: 0 }}
                     dragElastic={0.2}
