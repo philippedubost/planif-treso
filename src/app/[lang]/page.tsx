@@ -5,7 +5,30 @@ import { useParams, useRouter } from 'next/navigation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight, RotateCcw, Eye } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
+
+function makeDemoProject() {
+    const m = (offset: number) => format(addMonths(new Date(), offset), 'yyyy-MM');
+    return {
+        title: 'Exemple — Planif.app',
+        startingBalance: 2850,
+        startingMonth: m(0),
+        currency: '€',
+        projectionMonths: 12,
+        context: 'perso',
+        textSize: 'medium',
+        transactions: [
+            { id: 'demo-1', label: 'Salaire', amount: 2800, direction: 'income', recurrence: 'monthly', month: m(0), categoryId: 'cat-salary' },
+            { id: 'demo-2', label: 'Loyer', amount: 950, direction: 'expense', recurrence: 'monthly', month: m(0), categoryId: 'cat-rent' },
+            { id: 'demo-3', label: 'Courses', amount: 380, direction: 'expense', recurrence: 'monthly', month: m(0), categoryId: 'cat-groceries' },
+            { id: 'demo-4', label: 'Abonnements', amount: 65, direction: 'expense', recurrence: 'monthly', month: m(0), categoryId: 'cat-subscriptions' },
+            { id: 'demo-5', label: 'Vacances', amount: 1200, direction: 'expense', recurrence: 'none', month: m(3), categoryId: 'cat-travel' },
+            { id: 'demo-6', label: 'Prime', amount: 800, direction: 'income', recurrence: 'none', month: m(2), categoryId: 'cat-salary' },
+            { id: 'demo-7', label: 'Réparation voiture', amount: 450, direction: 'expense', recurrence: 'none', month: m(5), categoryId: 'cat-transport' },
+        ],
+    };
+}
 
 // ── Decorative confetti shapes ────────────────────────────────
 const SHAPES = [
@@ -53,10 +76,15 @@ function Confetti() {
 export default function LandingPage() {
     const router = useRouter();
     const params = useParams();
-    const { hasCompletedOnboarding, transactions } = useFinanceStore();
+    const { hasCompletedOnboarding, transactions, loadProject } = useFinanceStore();
     const lang = (params?.lang as string) || 'fr';
 
     const hasSession = hasCompletedOnboarding || transactions.length > 0;
+
+    const handleDemo = () => {
+        loadProject(makeDemoProject());
+        router.push(`/${lang}/dashboard?demo=true`);
+    };
 
     const isFr = lang === 'fr';
 
@@ -115,11 +143,27 @@ export default function LandingPage() {
                     {isFr ? 'Entre quelques chiffres. On fait le reste.' : 'Enter a few numbers. We do the rest.'}
                 </motion.p>
 
+                {/* Steps — inline text, above the fold */}
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.25 }}
+                    className="mt-5 flex items-center justify-center gap-3 md:gap-6 flex-wrap"
+                >
+                    {steps.map((s, i) => (
+                        <span key={i} className="flex items-center gap-1.5 text-sm md:text-base font-bold text-zinc-700">
+                            <span>{s.icon}</span>
+                            <span>{s.label}</span>
+                            {i < steps.length - 1 && <span className="text-violet-300 ml-1 md:ml-2">›</span>}
+                        </span>
+                    ))}
+                </motion.div>
+
                 {/* CTAs */}
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
+                    transition={{ duration: 0.5, delay: 0.35 }}
                     className="mt-7 flex flex-col items-center gap-3 w-full max-w-xs md:flex-row md:justify-center md:max-w-none"
                 >
                     <button
@@ -130,13 +174,21 @@ export default function LandingPage() {
                         <ArrowRight className="w-5 h-5" />
                     </button>
 
-                    {hasSession && (
+                    {hasSession ? (
                         <button
                             onClick={() => router.push(`/${lang}/dashboard`)}
                             className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-white/70 hover:bg-white active:scale-95 text-violet-700 font-black italic text-base md:text-lg rounded-2xl border border-violet-200 shadow transition-all backdrop-blur-sm"
                         >
                             <RotateCcw className="w-4 h-4" />
                             {isFr ? 'Reprendre ma session' : 'Resume my session'}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleDemo}
+                            className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-white/70 hover:bg-white active:scale-95 text-violet-700 font-black italic text-base md:text-lg rounded-2xl border border-violet-200 shadow transition-all backdrop-blur-sm"
+                        >
+                            <Eye className="w-4 h-4" />
+                            {isFr ? 'Voir un exemple' : 'See an example'}
                         </button>
                     )}
                 </motion.div>
@@ -145,7 +197,7 @@ export default function LandingPage() {
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.45 }}
+                    transition={{ delay: 0.5 }}
                     className="mt-3 text-xs text-violet-500 font-medium tracking-wide"
                 >
                     {isFr ? 'sans inscription • gratuit' : 'no signup • free'}
@@ -155,8 +207,8 @@ export default function LandingPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.6, delay: 0.35 }}
-                    className="mt-8 md:mt-10 w-64 h-64 md:w-96 md:h-96 relative"
+                    transition={{ duration: 0.6, delay: 0.45 }}
+                    className="mt-6 md:mt-8 w-64 h-64 md:w-96 md:h-96 relative"
                 >
                     <picture>
                         <source srcSet="/images/hero3.webp" type="image/webp" />
@@ -168,40 +220,6 @@ export default function LandingPage() {
                             priority
                         />
                     </picture>
-                </motion.div>
-
-                {/* Steps */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.55 }}
-                    className="mt-8 w-full max-w-2xl"
-                >
-                    {/* Desktop: row */}
-                    <div className="hidden md:flex gap-3 justify-center">
-                        {steps.map((s, i) => (
-                            <div key={i} className="flex-1 max-w-[220px] flex items-center gap-3 bg-white/70 backdrop-blur-sm rounded-2xl px-5 py-4 shadow-sm border border-white">
-                                <span className="text-2xl">{s.icon}</span>
-                                <span className="text-sm font-black text-zinc-800">
-                                    <span className="text-violet-400 font-black">{i + 1}. </span>
-                                    {s.label}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Mobile: list */}
-                    <div className="flex md:hidden flex-col gap-2.5">
-                        {steps.map((s, i) => (
-                            <div key={i} className="flex items-center gap-4 bg-white/70 backdrop-blur-sm rounded-2xl px-5 py-3.5 shadow-sm border border-white">
-                                <span className="text-xl w-8 text-center">{s.icon}</span>
-                                <span className="text-sm font-black text-zinc-800">
-                                    <span className="text-violet-400">{i + 1}. </span>
-                                    {s.label}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
                 </motion.div>
             </div>
         </div>

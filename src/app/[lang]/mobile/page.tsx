@@ -7,7 +7,7 @@ import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import {
     Settings, Plus, Check, Share2,
-    ChevronDown, Undo2, Redo2, X, GripVertical
+    ChevronDown, Undo2, Redo2, X, GripVertical, ArrowRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BottomSheet } from '@/components/bottom-sheet/BottomSheet';
@@ -834,8 +834,22 @@ export default function DashboardMobilePage() {
                 </div>
             </header>
 
+            {/* Demo banner */}
+            {searchParams.get('demo') === 'true' && (
+                <div className="fixed top-14 left-0 right-0 z-40 bg-violet-600 text-white px-3 py-2 flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold leading-tight">👀 Exemple — tes données seront différentes.</span>
+                    <button
+                        onClick={() => router.push(`/${locale}/onboarding`)}
+                        className="shrink-0 flex items-center gap-1 bg-white text-violet-700 font-black italic text-[11px] px-2.5 py-1.5 rounded-xl active:scale-95 transition-transform"
+                    >
+                        Essayer
+                        <ArrowRight className="w-3 h-3" />
+                    </button>
+                </div>
+            )}
+
             {/* ── Main scroll area ── */}
-            <main ref={mainScrollRef} className="flex-1 overflow-y-auto pt-14 pb-8 no-scrollbar">
+            <main ref={mainScrollRef} className={`flex-1 overflow-y-auto pb-8 no-scrollbar ${searchParams.get('demo') === 'true' ? 'pt-24' : 'pt-14'}`}>
 
                 {/* KPI section */}
                 <MobileKPISection />

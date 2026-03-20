@@ -7,7 +7,7 @@ import { KPISection } from '@/components/kpi/KPISection';
 import { CashflowGraph } from '@/components/graph/CashflowGraph';
 import { Pill, RecurringPill } from '@/components/timeline/TimelineView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronRight, Settings, Share2, Check, Download, Upload, Undo2, Redo2, Pencil, X, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ArrowRight, Settings, Share2, Check, Download, Upload, Undo2, Redo2, Pencil, X, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -234,8 +234,24 @@ export default function DashboardPage() {
                 </div>
             </header>
 
+            {/* Demo banner */}
+            {searchParams.get('demo') === 'true' && (
+                <div className="fixed top-16 md:top-20 left-0 right-0 z-40 bg-violet-600 text-white px-4 py-2.5 flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold">
+                        👀 Ceci est un exemple — tes données seront différentes.
+                    </span>
+                    <button
+                        onClick={() => router.push(`/${locale}/onboarding`)}
+                        className="shrink-0 flex items-center gap-1.5 bg-white text-violet-700 font-black italic text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-transform"
+                    >
+                        Essayer gratuitement en 30 sec
+                        <ArrowRight className="w-3 h-3" />
+                    </button>
+                </div>
+            )}
+
             {/* Main content — pb-[80px] leaves room for fixed bottom button */}
-            <main className="flex-1 overflow-y-auto px-4 md:px-6 pt-20 md:pt-24 pb-[80px] no-scrollbar">
+            <main className={`flex-1 overflow-y-auto px-4 md:px-6 pb-[80px] no-scrollbar ${searchParams.get('demo') === 'true' ? 'pt-28 md:pt-32' : 'pt-20 md:pt-24'}`}>
                 <KPISection />
 
                 {/* Horizontal scroll area: month axis + graph + extras */}

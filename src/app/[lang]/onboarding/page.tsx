@@ -216,9 +216,12 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-2 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Combien as-tu sur ton compte aujourd'hui environ ?
+                            Ton solde aujourd'hui, environ ?
                         </h2>
-                        <div className="relative mt-8 max-w-xs mx-auto">
+                        <p className="text-sm font-medium text-zinc-400">
+                            À peu près, c'est suffisant — zéro marche aussi !
+                        </p>
+                        <div className="relative mt-6 max-w-xs mx-auto">
                             <input
                                 ref={balanceRef}
                                 type="number"
@@ -231,10 +234,9 @@ export default function OnboardingFlow() {
                             />
                             <span className="absolute right-4 bottom-4 text-2xl font-black text-zinc-400">€</span>
                         </div>
-                        <p className="text-sm font-medium text-zinc-400 mt-4 leading-relaxed">
-                            Montant à peu près, tu pourras l'ajuster plus tard.<br />
-                            <span className="bg-zinc-900 text-white font-black rounded-md px-1.5 py-0.5 text-xs">Aucune donnée n'est enregistrée</span>
-                            , c'est juste pour démarrer ta simulation perso.
+                        <p className="text-xs font-medium text-zinc-400 mt-3 leading-relaxed">
+                            <span className="bg-zinc-900 text-white font-black rounded-md px-1.5 py-0.5">Aucune donnée n'est enregistrée</span>
+                            {' '}— simulation 100% locale.
                         </p>
                     </div>
                 </div>
@@ -264,10 +266,10 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-4 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Quel est ton profil ?
+                            Tu as quel âge, à peu près ?
                         </h2>
                         <p className="text-sm font-medium text-zinc-400 max-w-[250px] mx-auto balance-text">
-                            Pour adapter les suggestions à ta situation.
+                            Optionnel — juste pour personnaliser les suggestions.
                         </p>
                         <div className="grid grid-cols-2 gap-3 mt-8 w-full">
                             {ages.map((range) => (
@@ -339,9 +341,9 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-2 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Ce qui rentre chaque mois
+                            Tu touches environ combien par mois ?
                         </h2>
-                        <div className="relative mt-8 max-w-xs mx-auto">
+                        <div className="relative mt-6 max-w-xs mx-auto">
                             <input
                                 ref={incomeRef}
                                 type="number"
@@ -354,8 +356,8 @@ export default function OnboardingFlow() {
                             />
                             <span className="absolute right-4 bottom-4 text-2xl font-black text-emerald-300">€</span>
                         </div>
-                        <p className="text-sm font-medium text-zinc-400 mt-4 max-w-[250px] mx-auto balance-text">
-                            Salaire, pension, aides... même approximatif
+                        <p className="text-sm font-medium text-zinc-400 mt-3 max-w-[250px] mx-auto balance-text">
+                            Salaire, pension, aides... une idée générale suffit
                         </p>
                     </div>
                 </div>
@@ -384,9 +386,9 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-2 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Ce qui sort chaque mois
+                            Et tes dépenses, environ ?
                         </h2>
-                        <div className="relative mt-8 max-w-xs mx-auto">
+                        <div className="relative mt-6 max-w-xs mx-auto">
                             <input
                                 ref={expenseRef}
                                 type="number"
@@ -399,8 +401,8 @@ export default function OnboardingFlow() {
                             />
                             <span className="absolute right-4 bottom-4 text-2xl font-black text-rose-300">€</span>
                         </div>
-                        <p className="text-sm font-medium text-zinc-400 mt-4 max-w-[250px] mx-auto balance-text">
-                            Loyer, abonnements, impôts... une estimation suffit
+                        <p className="text-sm font-medium text-zinc-400 mt-3 max-w-[250px] mx-auto balance-text">
+                            Loyer, courses, abonnements... même en gros
                         </p>
                     </div>
                 </div>
@@ -433,10 +435,10 @@ export default function OnboardingFlow() {
                     </div>
                     <div className="text-center space-y-1 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Ton bilan mensuel
+                            C'est déjà bien !
                         </h2>
                         <p className="text-sm font-medium text-zinc-400">
-                            Voici ce que tu m'as indiqué pour l'instant.
+                            Voilà ce que j'ai retenu — tu pourras tout affiner après.
                         </p>
                     </div>
 
@@ -465,19 +467,19 @@ export default function OnboardingFlow() {
                     </div>
                 </div>
 
-                <div className="w-full max-w-sm mx-auto flex flex-col items-center space-y-4">
+                <div className="w-full max-w-sm mx-auto flex flex-col items-center space-y-3">
                     <button
-                        onClick={handleNext}
+                        onClick={handleSkipToFinal}
                         className="w-full py-[18px] rounded-[24px] font-black italic text-[15px] transition-all active:scale-[0.98] bg-zinc-900 text-white shadow-premium flex items-center justify-center space-x-2"
                     >
-                        <span>J'ajoute un revenu ou dépense ponctuel</span>
+                        <span>Voir mon compte sur l'année</span>
                         <ChevronRight className="w-4 h-4" />
                     </button>
                     <button
-                        onClick={handleSkipToFinal}
-                        className="text-[11px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-600 underline underline-offset-4 transition-all"
+                        onClick={handleNext}
+                        className="w-full py-3.5 rounded-[24px] font-black italic text-[13px] transition-all active:scale-[0.98] bg-zinc-100 text-zinc-500 flex items-center justify-center space-x-2"
                     >
-                        Non merci, voir mon bilan annuel
+                        <span>+ Ajouter un extra ponctuel d'abord</span>
                     </button>
                     <div className="h-[env(safe-area-inset-bottom)]" />
                 </div>
@@ -515,10 +517,10 @@ export default function OnboardingFlow() {
 
                     <div className="text-center space-y-1 w-full">
                         <h2 className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Ajouter un Extra
+                            Un extra prévu ? (facultatif)
                         </h2>
                         <p className="text-sm font-medium text-zinc-400">
-                            Un revenu ou dépense qui n'arrivera qu'une seule fois.
+                            Voyage, prime, réparation... tu peux aussi passer.
                         </p>
                     </div>
 
@@ -648,10 +650,10 @@ export default function OnboardingFlow() {
 
                 <div className="w-full max-w-sm mx-auto flex flex-col items-center">
                     <div className="w-full">
-                        {renderCTA(isFilled ? "Ajouter l'extra" : "Passer cette étape", canProceed)}
+                        {renderCTA(isFilled ? "Ajouter et continuer" : "Non merci, continuer →", canProceed)}
                     </div>
                     <p className="text-zinc-400 font-medium text-xs mt-3 pb-8 text-center px-4">
-                        Tu pourras en ajouter d'autres plus tard dans ton espace personnel.
+                        Tu pourras en ajouter autant que tu veux ensuite.
                     </p>
                 </div>
             </div>
@@ -764,7 +766,7 @@ export default function OnboardingFlow() {
                                 <ChevronRight className="w-4 h-4" />
                             </button>
                             <p className="text-center text-xs font-medium text-zinc-400 mt-4 leading-relaxed max-w-[280px] mx-auto">
-                                Tu pourras tout éditer et ajuster par la suite et ajouter de nouvelles entrées et sorties.
+                                Rien n'est gravé dans le marbre — tu ajustes tout en temps réel dans ton tableau.
                             </p>
                             {/* Safe area spacer for iPhones */}
                             <div className="h-[env(safe-area-inset-bottom)]" />
