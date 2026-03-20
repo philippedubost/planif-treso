@@ -156,15 +156,18 @@ export default function LandingPage() {
                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.35 }}
-                    className="mt-8 md:mt-10 w-52 h-52 md:w-72 md:h-72 relative"
+                    className="mt-8 md:mt-10 w-64 h-64 md:w-96 md:h-96 relative"
                 >
-                    <Image
-                        src="/illustrations/mascot-success-ready.png"
-                        alt="Planif mascot"
-                        fill
-                        className="object-contain drop-shadow-xl"
-                        priority
-                    />
+                    <picture>
+                        <source srcSet="/images/hero.webp" type="image/webp" />
+                        <Image
+                            src="/images/hero.png"
+                            alt="Planif app preview"
+                            fill
+                            className="object-contain drop-shadow-2xl"
+                            priority
+                        />
+                    </picture>
                 </motion.div>
 
                 {/* Steps */}

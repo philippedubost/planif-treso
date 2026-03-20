@@ -633,7 +633,7 @@ function MobileKPISection() {
                     />
                 ) : (
                     <div className="flex items-center justify-between w-full">
-                        <div className="text-sm font-black tracking-tighter text-zinc-900">{fmt(currentBalance)}</div>
+                        <div className={clsx("text-sm font-black tracking-tighter", currentBalance < 0 ? "text-rose-500" : "text-zinc-900")}>{fmt(currentBalance)}</div>
                         <AnimatePresence mode="wait">
                             {(isEditing || isSuccess) ? (
                                 <motion.button
@@ -671,7 +671,7 @@ function MobileKPISection() {
                 <span className="text-zinc-400 font-bold text-[7px] uppercase tracking-widest leading-tight">
                     {dictionary.kpi.simulation.replace('{months}', projectionMonths.toString())}
                 </span>
-                <div className="text-sm font-black tracking-tighter text-zinc-900">{fmt(targetBalance)}</div>
+                <div className={clsx("text-sm font-black tracking-tighter", targetBalance < 0 ? "text-rose-500" : "text-zinc-900")}>{fmt(targetBalance)}</div>
             </div>
         </div>
     );
@@ -705,6 +705,12 @@ export default function DashboardMobilePage() {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const mainScrollRef = useRef<HTMLElement>(null);
+
+    // Scroll to top on mount
+    useEffect(() => {
+        mainScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+    }, []);
 
     const months = Array.from({ length: projectionMonths }).map((_, i) => {
         const date = addMonths(parseISO(`${startingMonth}-01`), i);
@@ -829,7 +835,7 @@ export default function DashboardMobilePage() {
             </header>
 
             {/* ── Main scroll area ── */}
-            <main className="flex-1 overflow-y-auto pt-14 pb-8 no-scrollbar">
+            <main ref={mainScrollRef} className="flex-1 overflow-y-auto pt-14 pb-8 no-scrollbar">
 
                 {/* KPI section */}
                 <MobileKPISection />
