@@ -17,6 +17,16 @@ export default function OnboardingFlow() {
     const [step, setStep] = useState(2);
     const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
     const reducedMotion = useReducedMotion();
+    const [peekReady, setPeekReady] = useState(false);
+
+    // Reset peek on step change; non-input steps show peek after a delay
+    useEffect(() => {
+        setPeekReady(false);
+        if (step === 3 || step === 6 || step === 7) {
+            const t = setTimeout(() => setPeekReady(true), 900);
+            return () => clearTimeout(t);
+        }
+    }, [step]);
 
     // Data
     const [balance, setBalance] = useState<string>('');
@@ -232,7 +242,8 @@ export default function OnboardingFlow() {
                                 inputMode="decimal"
                                 value={balance}
                                 onChange={(e) => setBalance(e.target.value)}
-                                className="w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 border-zinc-200 pb-2 focus:outline-none focus:border-zinc-900 transition-colors"
+                                onFocus={() => setPeekReady(true)}
+                                className="w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 border-zinc-200 pb-2 focus:outline-none focus:border-violet-500 transition-colors"
                                 placeholder="0"
                                 onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
                             />
@@ -354,6 +365,7 @@ export default function OnboardingFlow() {
                                 inputMode="decimal"
                                 value={income}
                                 onChange={(e) => setIncome(e.target.value)}
+                                onFocus={() => setPeekReady(true)}
                                 className="w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 border-emerald-200 pb-2 focus:outline-none focus:border-emerald-500 transition-colors text-emerald-600"
                                 placeholder="0"
                                 onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
@@ -399,6 +411,7 @@ export default function OnboardingFlow() {
                                 inputMode="decimal"
                                 value={expense}
                                 onChange={(e) => setExpense(e.target.value)}
+                                onFocus={() => setPeekReady(true)}
                                 className="w-full text-center text-4xl font-black tabular-nums bg-transparent border-b-2 border-rose-200 pb-2 focus:outline-none focus:border-rose-500 transition-colors text-rose-600"
                                 placeholder="0"
                                 onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
@@ -795,14 +808,13 @@ export default function OnboardingFlow() {
 
     return (
         <div
-            className="fixed inset-0 bg-zinc-50 overflow-hidden text-zinc-900 font-sans"
-            // Use dvh to match dynamic viewport (ignoring navbars)
-            style={{ height: '100dvh', width: '100dvw' }}
+            className="fixed inset-0 overflow-hidden text-zinc-900 font-sans"
+            style={{ height: '100dvh', width: '100dvw', background: 'linear-gradient(155deg, #f5f3ff 0%, #fdfcff 55%, #f8f9ff 100%)' }}
         >
             {/* Progress Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-200 z-50">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-violet-100 z-50">
                 <motion.div
-                    className="h-full bg-zinc-900"
+                    className="h-full bg-violet-500"
                     initial={{ width: '14%' }}
                     animate={{ width: `${((step - 1) / 7) * 100}%` }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
@@ -818,6 +830,30 @@ export default function OnboardingFlow() {
                     <ChevronLeft className="w-8 h-8 text-zinc-400" strokeWidth={2.5} />
                 </div>
             )}
+
+            {/* Next-slide peek — right edge hint */}
+            <AnimatePresence>
+                {peekReady && step < 8 && !reducedMotion && (
+                    <motion.div
+                        key="peek"
+                        initial={{ x: 56, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: 56, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                        onClick={handleNext}
+                        className="fixed right-0 top-0 bottom-0 w-14 z-40 cursor-pointer"
+                        style={{
+                            background: 'linear-gradient(to left, rgba(237,233,254,0.95) 0%, rgba(245,243,255,0.7) 60%, transparent 100%)',
+                            boxShadow: '-6px 0 24px rgba(139,92,246,0.12)',
+                            borderRadius: '20px 0 0 20px',
+                        }}
+                    >
+                        <div className="h-full flex items-center justify-center">
+                            <ChevronRight className="w-5 h-5 text-violet-400 opacity-70" />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                 <motion.div
