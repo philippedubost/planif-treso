@@ -170,7 +170,7 @@ export default function DashboardPage() {
                     {/* Logo + Title */}
                     <div className="flex items-center gap-3 min-w-0">
                         <button
-                            onClick={() => setIsAboutOpen(true)}
+                            onClick={() => router.push(`/${locale}`)}
                             className="flex items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
                         >
                             <Image

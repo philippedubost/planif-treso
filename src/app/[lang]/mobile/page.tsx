@@ -775,13 +775,15 @@ export default function DashboardMobilePage() {
                 {/* Left: logo + planification */}
                 <div className="flex items-center space-x-2">
                     <div className="flex items-center space-x-1.5">
-                        <Image
-                            src="/images/favicon.png"
-                            alt="Planif.app"
-                            width={28}
-                            height={28}
-                            className="w-7 h-7 rounded-xl shadow-premium"
-                        />
+                        <button onClick={() => router.push(`/${locale}`)} className="active:scale-95 transition-transform">
+                            <Image
+                                src="/images/favicon.png"
+                                alt="Planif.app"
+                                width={28}
+                                height={28}
+                                className="w-7 h-7 rounded-xl shadow-premium"
+                            />
+                        </button>
                     </div>
 
                     {/* Title pill */}

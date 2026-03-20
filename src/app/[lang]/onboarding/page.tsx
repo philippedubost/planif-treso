@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { useRouter } from 'next/navigation';
@@ -11,29 +11,10 @@ import { ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 import { calculateProjection } from '@/lib/financeEngine';
 
 export default function OnboardingFlow() {
-    const { dictionary, locale } = useTranslation();
+    const { locale } = useTranslation();
     const router = useRouter();
-    const { setStartingBalance, addTransaction, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange, loadProject } = useFinanceStore();
-    const loadFileRef = useRef<HTMLInputElement>(null);
-
-    const handleLoadJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const data = JSON.parse(ev.target?.result as string);
-                loadProject(data);
-                setHasCompletedOnboarding(true);
-                router.push(`/${locale}/dashboard`);
-            } catch {
-                alert('Fichier invalide.');
-            }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
-    const [step, setStep] = useState(1);
+    const { setStartingBalance, addTransaction, resetSimulation, setHasCompletedOnboarding, setAgeRange: setStoreAgeRange } = useFinanceStore();
+    const [step, setStep] = useState(2);
 
     // Data
     const [balance, setBalance] = useState<string>('');
@@ -140,7 +121,7 @@ export default function OnboardingFlow() {
     };
 
     const handleBack = () => {
-        if (step > 1) {
+        if (step > 2) {
             vibrate();
             setStep(prev => prev - 1);
         }
@@ -216,50 +197,6 @@ export default function OnboardingFlow() {
 
     // Render Steps
     // -------------------------------------------------------------
-
-    const renderStep1 = () => (
-        <div className="flex flex-col pt-[8vh] px-6 space-y-8 items-center h-full no-scrollbar overflow-y-auto">
-            <div className="flex flex-col items-center space-y-8 w-full max-w-sm mx-auto">
-                <div className="h-[15vh] w-full max-w-[140px]">
-                    <ImageWithFallback
-                        srcWebp="/illustrations/mascot-onboarding-start.webp"
-                        srcPng="/illustrations/mascot-onboarding-start.png"
-                        alt="Bienvenue"
-                        fill
-                        priority
-                        className="object-contain"
-                    />
-                </div>
-                <div className="text-center space-y-3">
-                    <h1 className="text-3xl font-black italic tracking-tighter text-zinc-900 leading-tight">
-                        {dictionary.onboarding.step1.title}
-                    </h1>
-                    <p className="text-[15px] font-medium text-zinc-500 leading-relaxed balance-text">
-                        {dictionary.onboarding.step1.subtitle}
-                    </p>
-                </div>
-            </div>
-            <div className="w-full max-w-sm mx-auto text-center space-y-3">
-                {renderCTA(dictionary.onboarding.step1.cta, true)}
-                <p className="text-[12px] font-bold tracking-wide text-zinc-400">
-                    {dictionary.onboarding.step1.disclaimer}
-                </p>
-                <button
-                    onClick={() => loadFileRef.current?.click()}
-                    className="text-[11px] font-bold text-zinc-400 hover:text-zinc-600 underline underline-offset-4 transition-colors"
-                >
-                    Charger des données existantes
-                </button>
-                <input
-                    ref={loadFileRef}
-                    type="file"
-                    accept=".json"
-                    className="hidden"
-                    onChange={handleLoadJSON}
-                />
-            </div>
-        </div>
-    );
 
     const renderStep2 = () => {
         const canProceed = true; // 0 is a valid balance
@@ -841,7 +778,6 @@ export default function OnboardingFlow() {
 
     // Screens map
     const stepsData = [
-        { id: 1, content: renderStep1() },
         { id: 2, content: renderStep2() },
         { id: 3, content: renderStep3() },
         { id: 4, content: renderStep4() },
@@ -861,14 +797,14 @@ export default function OnboardingFlow() {
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-200 z-50">
                 <motion.div
                     className="h-full bg-zinc-900"
-                    initial={{ width: '16%' }}
-                    animate={{ width: `${(step / 8) * 100}%` }}
+                    initial={{ width: '14%' }}
+                    animate={{ width: `${((step - 1) / 7) * 100}%` }}
                     transition={{ ease: "easeInOut", duration: 0.3 }}
                 />
             </div>
 
             {/* Back button (invisible area for swiping back / small hit target) */}
-            {step > 1 && (
+            {step > 2 && (
                 <div
                     className="absolute top-4 left-4 z-50 w-12 h-12 flex items-center justify-center cursor-pointer"
                     onClick={handleBack}
@@ -884,12 +820,12 @@ export default function OnboardingFlow() {
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: -50, scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    drag={step > 1 ? "x" : false}
+                    drag={step > 2 ? "x" : false}
                     dragConstraints={{ left: 0, right: 0 }}
                     dragElastic={0.2}
                     onDragEnd={(e, { offset, velocity }) => {
                         const swipe = Math.abs(offset.x) * velocity.x;
-                        if (swipe > 100 && step > 1) {
+                        if (swipe > 100 && step > 2) {
                             handleBack();
                         } else if (swipe < -100 && step < 8) {
                             // Only allow forward swipe if allowed (e.g., they filled the input)
@@ -901,7 +837,7 @@ export default function OnboardingFlow() {
                                 (step === 6) ||
                                 (step === 7);
 
-                            if (canProceed || step === 1) {
+                            if (canProceed) {
                                 handleNext();
                             }
                         }
