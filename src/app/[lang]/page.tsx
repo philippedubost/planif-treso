@@ -159,9 +159,9 @@ export default function LandingPage() {
                     className="mt-8 md:mt-10 w-64 h-64 md:w-96 md:h-96 relative"
                 >
                     <picture>
-                        <source srcSet="/images/hero.webp" type="image/webp" />
+                        <source srcSet="/images/hero3.webp" type="image/webp" />
                         <Image
-                            src="/images/hero.png"
+                            src="/images/hero3.png"
                             alt="Planif app preview"
                             fill
                             className="object-contain drop-shadow-2xl"
