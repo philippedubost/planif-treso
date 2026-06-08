@@ -1,18 +1,18 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, type TargetAndTransition, type Transition } from 'framer-motion';
 import { clsx } from 'clsx';
 import type { BilanSeverity, OnboardingBilan } from '@/lib/onboardingBilan';
 import { stampVariants, stampRingVariants, SPRING_SNAPPY } from './onboardingMotion';
 
-const EMOJI_MOTION: Record<BilanSeverity, object> = {
+const EMOJI_MOTION: Record<BilanSeverity, TargetAndTransition> = {
     success: { scale: [1, 1.18, 1], rotate: [0, 8, -6, 0] },
     warning: { rotate: [0, -10, 10, -5, 0] },
     danger: { x: [0, -4, 4, -3, 3, 0] },
     neutral: { y: [0, -5, 0] },
 };
 
-const EMOJI_TRANSITION: Record<BilanSeverity, object> = {
+const EMOJI_TRANSITION: Record<BilanSeverity, Transition> = {
     success: { duration: 0.7, repeat: Infinity, repeatDelay: 2.2, ease: 'easeInOut' },
     warning: { duration: 0.55, repeat: Infinity, repeatDelay: 2.8, ease: 'easeInOut' },
     danger: { duration: 0.45, repeat: Infinity, repeatDelay: 1.6, ease: 'easeInOut' },
