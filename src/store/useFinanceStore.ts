@@ -125,8 +125,8 @@ export const getAgeBasedSuggestions = (ageRange: string) => {
             };
         default:
             return {
-                income: ['Salaire', 'Aides'],
-                expense: ['Loyer', 'Abonnements'],
+                income: ['Salaire', 'Aides', 'Prime'],
+                expense: ['Loyer', 'Abonnements', 'Courses'],
                 extra: ['Vente', 'Cadeau', 'Shopping', 'Restaurant']
             };
     }

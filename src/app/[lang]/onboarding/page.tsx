@@ -17,7 +17,6 @@ import {
     OnboardingStagger,
     OnboardingStaggerItem,
     OnboardingFieldCard,
-    OnboardingChip,
     OnboardingCTAButton,
     OnboardingPopButton,
 } from '@/components/onboarding/OnboardingStepParts';
@@ -192,7 +191,7 @@ export default function OnboardingFlow() {
                     </OnboardingMascot>
                     <div className="text-center space-y-2 w-full">
                         <OnboardingTitle className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Ton solde aujourd&apos;hui, environ ? 💰
+                            Ton solde aujourd&apos;hui, environ ?
                         </OnboardingTitle>
                         <OnboardingSubtitle className="text-sm font-medium text-zinc-400">
                             À peu près, c&apos;est suffisant — zéro marche aussi !
@@ -231,9 +230,9 @@ export default function OnboardingFlow() {
         const canProceed = true;
 
         return (
-            <div className="flex flex-col pt-[6vh] px-6 space-y-6 items-center h-full no-scrollbar overflow-y-auto">
-                <div className="flex flex-col items-center space-y-5 w-full max-w-sm mx-auto">
-                    <OnboardingMascot className="h-[12vh] w-full max-w-[120px] relative">
+            <div className="flex flex-col pt-[4vh] px-6 space-y-4 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-3 w-full max-w-sm mx-auto">
+                    <OnboardingMascot className="h-[10vh] max-h-24 w-full max-w-[100px] relative">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-overview.webp"
                             srcPng="/illustrations/mascot-graph-overview.png"
@@ -243,18 +242,27 @@ export default function OnboardingFlow() {
                             className="object-contain"
                         />
                     </OnboardingMascot>
-                    <div className="text-center space-y-1 w-full">
-                        <OnboardingTitle className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Tes entrées et sorties par mois 📊
+                    <div className="text-center space-y-0.5 w-full">
+                        <OnboardingTitle className="text-xl font-black italic tracking-tighter text-zinc-900">
+                            Tes entrées et sorties par mois
                         </OnboardingTitle>
-                        <OnboardingSubtitle className="text-sm font-medium text-zinc-400">
-                            Une estimation suffit — tu affineras après.
+                        <OnboardingSubtitle className="text-xs font-medium text-zinc-400">
+                            Une estimation suffit.
                         </OnboardingSubtitle>
                     </div>
 
-                    <div className="w-full space-y-5">
-                        <OnboardingFieldCard className="w-full bg-white rounded-3xl p-4 shadow-soft border-2 border-emerald-100 space-y-3">
-                            <p className="text-sm font-black text-emerald-600">↑ Entrées / mois</p>
+                    <div className="w-full space-y-3">
+                        <OnboardingFieldCard className="w-full bg-white rounded-2xl p-3 shadow-soft border-2 border-emerald-100 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-black text-emerald-600 shrink-0">Entrées / mois</p>
+                                <div className="flex flex-wrap justify-end gap-1">
+                                    {suggestions.income.slice(0, 3).map((s) => (
+                                        <span key={s} className="px-2 py-0.5 rounded-full text-[10px] font-medium text-zinc-400 bg-zinc-50 border border-zinc-100 whitespace-nowrap">
+                                            {s}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="relative">
                                 <input
                                     ref={incomeRef}
@@ -262,23 +270,25 @@ export default function OnboardingFlow() {
                                     inputMode="decimal"
                                     value={income}
                                     onChange={(e) => setIncome(e.target.value)}
-                                    className="w-full text-center text-3xl font-black tabular-nums bg-emerald-50/50 rounded-xl border-2 border-emerald-100 py-2 focus:outline-none focus:border-emerald-400 transition-all text-emerald-600"
+                                    className="w-full text-center text-2xl font-black tabular-nums bg-emerald-50/50 rounded-xl border-2 border-emerald-100 py-1.5 focus:outline-none focus:border-emerald-400 transition-all text-emerald-600"
                                     placeholder="0"
                                     onKeyDown={(e) => e.key === 'Enter' && expenseRef.current?.focus()}
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xl font-black text-emerald-300">€</span>
-                            </div>
-                            <div className="flex flex-wrap justify-center gap-1.5">
-                                {suggestions.income.map((s, i) => (
-                                    <OnboardingChip key={s} delay={0.3 + i * 0.05} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-zinc-400 bg-zinc-50 border border-zinc-100">
-                                        {s}
-                                    </OnboardingChip>
-                                ))}
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-black text-emerald-300">€</span>
                             </div>
                         </OnboardingFieldCard>
 
-                        <OnboardingFieldCard fromRight className="w-full bg-white rounded-3xl p-4 shadow-soft border-2 border-rose-100 space-y-3">
-                            <p className="text-sm font-black text-rose-600">↓ Sorties / mois</p>
+                        <OnboardingFieldCard fromRight className="w-full bg-white rounded-2xl p-3 shadow-soft border-2 border-rose-100 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-black text-rose-600 shrink-0">Sorties / mois</p>
+                                <div className="flex flex-wrap justify-end gap-1">
+                                    {suggestions.expense.slice(0, 3).map((s) => (
+                                        <span key={s} className="px-2 py-0.5 rounded-full text-[10px] font-medium text-zinc-400 bg-zinc-50 border border-zinc-100 whitespace-nowrap">
+                                            {s}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="relative">
                                 <input
                                     ref={expenseRef}
@@ -286,18 +296,11 @@ export default function OnboardingFlow() {
                                     inputMode="decimal"
                                     value={expense}
                                     onChange={(e) => setExpense(e.target.value)}
-                                    className="w-full text-center text-3xl font-black tabular-nums bg-rose-50/50 rounded-xl border-2 border-rose-100 py-2 focus:outline-none focus:border-rose-400 transition-all text-rose-600"
+                                    className="w-full text-center text-2xl font-black tabular-nums bg-rose-50/50 rounded-xl border-2 border-rose-100 py-1.5 focus:outline-none focus:border-rose-400 transition-all text-rose-600"
                                     placeholder="0"
                                     onKeyDown={(e) => e.key === 'Enter' && canProceed && handleNext()}
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xl font-black text-rose-300">€</span>
-                            </div>
-                            <div className="flex flex-wrap justify-center gap-1.5">
-                                {suggestions.expense.map((s, i) => (
-                                    <OnboardingChip key={s} delay={0.38 + i * 0.05} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-zinc-400 bg-zinc-50 border border-zinc-100">
-                                        {s}
-                                    </OnboardingChip>
-                                ))}
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-black text-rose-300">€</span>
                             </div>
                         </OnboardingFieldCard>
                     </div>
@@ -331,7 +334,7 @@ export default function OnboardingFlow() {
                     </OnboardingMascot>
                     <div className="text-center space-y-1 w-full">
                         <OnboardingTitle className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Ton micro-bilan 🔍
+                            Ton micro-bilan
                         </OnboardingTitle>
                         <OnboardingSubtitle className="text-sm font-medium text-zinc-400">
                             Voilà ce que j&apos;ai retenu — tu pourras tout affiner après.
@@ -409,7 +412,7 @@ export default function OnboardingFlow() {
 
                     <div className="text-center space-y-1 w-full">
                         <OnboardingTitle className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Un extra prévu ? ✨
+                            Un extra prévu ?
                         </OnboardingTitle>
                         <OnboardingSubtitle className="text-sm font-medium text-zinc-400">
                             Facultatif — voyage, prime, réparation...
@@ -604,7 +607,7 @@ export default function OnboardingFlow() {
 
                         <div className="pt-2 w-full z-20">
                             <OnboardingCTAButton onClick={handleSaveProfile}>
-                                <span>Voir mon compte sur l&apos;année 🎯</span>
+                                <span>Voir mon compte sur l&apos;année</span>
                                 <ChevronRight className="w-4 h-4" />
                             </OnboardingCTAButton>
                             <OnboardingSubtitle className="text-center text-xs font-medium text-zinc-400 mt-4 leading-relaxed max-w-[280px] mx-auto">
@@ -644,7 +647,7 @@ export default function OnboardingFlow() {
                 </div>
             </div>
 
-            {/* Back button (invisible area for swiping back / small hit target) */}
+            {/* Back button */}
             {step > 2 && (
                 <motion.button
                     initial={{ opacity: 0, x: -8 }}
@@ -665,17 +668,6 @@ export default function OnboardingFlow() {
                     animate={{ opacity: 1, x: 0, scale: 1, rotate: 0 }}
                     exit={{ opacity: 0, x: reducedMotion ? 0 : direction * -56, scale: reducedMotion ? 1 : 0.92, rotate: reducedMotion ? 0 : direction * -2 }}
                     transition={{ type: "spring", stiffness: 380, damping: 26, mass: 0.75 }}
-                    drag={step > 2 ? "x" : false}
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.2}
-                    onDragEnd={(e, { offset, velocity }) => {
-                        const swipe = Math.abs(offset.x) * velocity.x;
-                        if (swipe > 100 && step > 2) {
-                            handleBack();
-                        } else if (swipe < -100 && step < 6) {
-                            handleNext();
-                        }
-                    }}
                     className="h-full w-full absolute inset-0"
                 >
                     {stepsData.find(s => s.id === step)?.content}

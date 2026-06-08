@@ -436,7 +436,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
 // ────────────────────────────────────────────────────────────
 // Compact Graph (uses same Recharts approach as desktop)
 // ────────────────────────────────────────────────────────────
-const Y_AXIS_WIDTH = 44;
+const Y_AXIS_WIDTH = 52;
 
 function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?: number }) {
     const projection = useProjection();
@@ -450,11 +450,38 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
     const range = Math.max(Math.abs(maxBal - minBal), 100);
     const threshold = range * 0.15;
 
+    const maxIncome = projection.reduce((max, p) => (p.income > max ? p.income : max), 0);
+    const maxExpense = projection.reduce((max, p) => (p.expense > max ? p.expense : max), 0);
+    const incomeRefY = maxIncome;
+    const expenseRefY = -maxExpense;
+
     const yTicks = [startBal];
     if (Math.abs(minBal - startBal) > threshold) yTicks.push(minBal);
     if (Math.abs(maxBal - startBal) > threshold && Math.abs(maxBal - minBal) > threshold) yTicks.push(maxBal);
-    // Always show 0 label if range spans zero
     if (minBal < 0 && maxBal > 0 && !yTicks.includes(0)) yTicks.push(0);
+    if (incomeRefY > 0) yTicks.push(incomeRefY);
+    if (expenseRefY < 0) yTicks.push(expenseRefY);
+
+    const uniqueYTicks = Array.from(new Set(yTicks)).sort((a, b) => a - b);
+
+    const formatAxisTick = (val: number) =>
+        `${new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(val)}€`;
+
+    const renderYAxisTick = (props: { x?: string | number; y?: string | number; payload?: { value: string | number } }) => {
+        const x = Number(props.x ?? 0);
+        const y = Number(props.y ?? 0);
+        const { payload } = props;
+        if (!payload) return <g />;
+        const val = typeof payload.value === 'number' ? payload.value : Number(payload.value);
+        const isIncome = incomeRefY > 0 && Math.abs(val - incomeRefY) < 1;
+        const isExpense = expenseRefY < 0 && Math.abs(val - expenseRefY) < 1;
+        const color = isIncome ? '#10b981' : isExpense ? '#f43f5e' : '#64748b';
+        return (
+            <text x={x} y={y} dy={4} textAnchor="end" fill={color} fontSize={isIncome || isExpense ? 11 : 10} fontWeight={900}>
+                {formatAxisTick(val)}
+            </text>
+        );
+    };
 
     // Gradient for balance line: black above 0, red below
     const lineHasNeg = minBal < 0;
@@ -470,35 +497,52 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                     data={projection.map(p => ({ ...p, expense: -p.expense }))}
-                    margin={{ top: 10, right: 0, bottom: 0, left: 0 }}
+                    margin={{ top: 14, right: 4, bottom: 4, left: 0 }}
                     onClick={(e: any) => e?.activePayload && setSelectedMonth(e.activePayload[0].payload.month)}
                 >
                     <defs>
                         <linearGradient id="mobileColorIncome" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#16a34a" stopOpacity={0.75} />
                         </linearGradient>
-                        <linearGradient id="mobileColorExpense" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.8} />
+                        <linearGradient id="mobileColorExpense" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.75} />
                         </linearGradient>
                         <linearGradient id="mobileBalanceLine" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
                             <stop offset={zeroStopPct} stopColor={lineAboveColor} stopOpacity={1} />
                             <stop offset={zeroStopPct} stopColor={lineBelowColor} stopOpacity={1} />
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={false} height={1} />
                     <YAxis
                         orientation="left"
                         axisLine={false}
                         tickLine={false}
-                        ticks={yTicks}
-                        tickFormatter={val => `${new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(val)}€`}
-                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
-                        width={44}
+                        ticks={uniqueYTicks}
+                        tick={renderYAxisTick}
+                        width={Y_AXIS_WIDTH}
                         domain={['auto', 'auto']}
                     />
+                    {incomeRefY > 0 && (
+                        <ReferenceLine
+                            y={incomeRefY}
+                            stroke="#22c55e"
+                            strokeWidth={1.5}
+                            strokeDasharray="5 5"
+                            strokeOpacity={0.55}
+                        />
+                    )}
+                    {maxExpense > 0 && (
+                        <ReferenceLine
+                            y={expenseRefY}
+                            stroke="#ef4444"
+                            strokeWidth={1.5}
+                            strokeDasharray="5 5"
+                            strokeOpacity={0.55}
+                        />
+                    )}
                     <Tooltip
                         content={({ active, payload }) => {
                             if (!active || !payload?.length) return null;
@@ -518,21 +562,21 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                         }}
                         cursor={false}
                     />
-                    <Bar dataKey="income" fill="url(#mobileColorIncome)" radius={[8, 8, 0, 0]} barSize={16} animationDuration={1200} activeBar={false}>
+                    <Bar dataKey="income" fill="url(#mobileColorIncome)" radius={[10, 10, 4, 4]} barSize={26} animationDuration={900} activeBar={{ fill: '#16a34a', opacity: 1 }}>
                         {projection.map((e, i) => (
-                            <Cell key={i} fill={e.month === selectedMonth ? '#10b981' : 'url(#mobileColorIncome)'} />
+                            <Cell key={i} fill={e.month === selectedMonth ? '#15803d' : 'url(#mobileColorIncome)'} />
                         ))}
                     </Bar>
-                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[12, 12, 0, 0]} barSize={16}>
+                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[10, 10, 4, 4]} barSize={26} animationDuration={900}>
                         {projection.map((e, i) => (
-                            <Cell key={i} fill={e.month === selectedMonth ? '#f43f5e' : 'url(#mobileColorExpense)'} />
+                            <Cell key={i} fill={e.month === selectedMonth ? '#dc2626' : 'url(#mobileColorExpense)'} />
                         ))}
                     </Bar>
                     <Line
                         type="monotone"
                         dataKey="balance"
                         stroke="url(#mobileBalanceLine)"
-                        strokeWidth={3}
+                        strokeWidth={3.5}
                         dot={(props: any) => {
                             const { cx, cy, payload } = props;
                             const color = payload.balance < 0 ? lineBelowColor : lineAboveColor;
@@ -706,11 +750,20 @@ export default function DashboardMobilePage() {
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const mainScrollRef = useRef<HTMLElement>(null);
+    const detailsRef = useRef<HTMLDivElement>(null);
 
     // Scroll to top on mount
     useEffect(() => {
         mainScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
     }, []);
+
+    useEffect(() => {
+        if (!showDetails) return;
+        const t = setTimeout(() => {
+            detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
+        return () => clearTimeout(t);
+    }, [showDetails]);
 
     const months = Array.from({ length: projectionMonths }).map((_, i) => {
         const date = addMonths(parseISO(`${startingMonth}-01`), i);
@@ -857,8 +910,8 @@ export default function DashboardMobilePage() {
                     <div style={{ minWidth: `${TOTAL_WIDTH}px` }} className="flex flex-col space-y-0 relative">
 
                         {/* Months axis — alternating backgrounds */}
-                        <div className="flex border-b border-zinc-200 pb-2 pt-1 sticky top-0 z-20 backdrop-blur-md" style={{ backgroundColor: 'rgba(249,249,251,0.95)' }}>
-                            <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 px-2 font-black text-[8px] uppercase tracking-widest text-zinc-400 flex items-end justify-start">
+                        <div className="flex border-b-2 border-zinc-100 pb-2.5 pt-1.5 sticky top-0 z-20 backdrop-blur-md" style={{ backgroundColor: 'rgba(249,249,251,0.95)' }}>
+                            <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 px-2 font-black text-[10px] uppercase tracking-widest text-zinc-400 flex items-end justify-start">
                                 Mois
                             </div>
                             <div className="flex flex-1">
@@ -867,7 +920,7 @@ export default function DashboardMobilePage() {
                                         key={m}
                                         style={{ width: MOBILE_COL, minWidth: MOBILE_COL }}
                                         className={clsx(
-                                            'text-center font-black italic text-[9px] text-zinc-400 capitalize shrink-0',
+                                            'text-center font-black italic text-base text-zinc-800 capitalize shrink-0 py-1',
                                             i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'
                                         )}
                                     >
@@ -879,9 +932,9 @@ export default function DashboardMobilePage() {
 
                         {/* Graph with alternating column stripes behind it */}
                         <motion.div
-                            animate={{ height: showDetails ? 240 : 400 }}
+                            animate={{ height: showDetails ? 200 : 360 }}
                             transition={{ type: 'spring', stiffness: 280, damping: 30 }}
-                            className="relative rounded-[24px] mx-0 my-0 overflow-hidden"
+                            className="relative rounded-[28px] mx-1 my-1 overflow-hidden border-2 border-violet-100/80 shadow-md bg-white"
                         >
                             {/* Alternating column background stripes */}
                             <div className="absolute inset-0 flex pointer-events-none z-0" style={{ paddingLeft: LABEL_WIDTH }}>
@@ -894,16 +947,39 @@ export default function DashboardMobilePage() {
                                 ))}
                             </div>
                             <div className="relative z-10 h-full">
-                                <MobileGraph height={showDetails ? 240 : 400} leftPadding={LABEL_WIDTH} />
+                                <MobileGraph height={showDetails ? 200 : 360} leftPadding={LABEL_WIDTH} />
                             </div>
                         </motion.div>
 
-                        {/* Extras + CHAQUE MOIS — hidden/shown via AnimatePresence */}
-                        <AnimatePresence>
-                            {showDetails && (
+                        {/* Toggle — sticky viewport width (parent is wider than screen) */}
+                        <div className="sticky left-0 z-30 w-screen max-w-full px-3 py-2 box-border">
+                            <motion.button
+                                onClick={() => setShowDetails(!showDetails)}
+                                whileTap={{ scale: 0.97 }}
+                                className={clsx(
+                                    'w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-black italic transition-all',
+                                    showDetails
+                                        ? 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                                        : 'bg-gradient-to-r from-violet-600 to-violet-500 text-white border border-violet-400/40 shadow-md shadow-violet-300/30'
+                                )}
+                            >
+                                <span className="text-[11px] leading-tight text-center">
+                                    {showDetails ? 'Masquer' : dictionary.dashboard.title}
+                                </span>
                                 <motion.div
-                                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                                    className="overflow-hidden"
+                                    animate={{ rotate: showDetails ? 180 : 0 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                                >
+                                    <ChevronDown className={clsx('w-4 h-4 shrink-0', showDetails ? 'text-zinc-400' : 'text-white/90')} />
+                                </motion.div>
+                            </motion.button>
+                        </div>
+
+                        {/* Extras + CHAQUE MOIS */}
+                        {showDetails && (
+                                <motion.div
+                                    ref={detailsRef}
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 >
                                     {/* ── Extras (one-off) ── */}
                                     <div className="flex border-t border-zinc-100">
@@ -964,21 +1040,7 @@ export default function DashboardMobilePage() {
                                         </div>
                                     </div>
                                 </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Toggle button — at the very bottom */}
-                        <button
-                            onClick={() => setShowDetails(!showDetails)}
-                            className="mx-4 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95 self-start"
-                        >
-                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                {showDetails ? 'Masquer' : dictionary.dashboard.title}
-                            </span>
-                            <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-                                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900" />
-                            </motion.div>
-                        </button>
+                        )}
 
                     </div>
                 </div>
