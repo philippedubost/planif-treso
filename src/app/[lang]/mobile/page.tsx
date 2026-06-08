@@ -909,16 +909,16 @@ export default function DashboardMobilePage() {
                 {/* KPI section */}
                 <MobileKPISection />
 
+                <div className="px-4 mb-1.5 w-full max-w-full min-w-0">
+                    <InterpretationRecapBanner bilan={bilan} />
+                </div>
+
                 {/* Horizontally scrollable: months axis + graph + extras */}
                 <div
                     ref={scrollContainerRef}
                     className="overflow-x-auto no-scrollbar pb-4"
                 >
                     <div style={{ minWidth: `${TOTAL_WIDTH}px` }} className="flex flex-col space-y-0 relative">
-
-                        <div className="sticky left-0 z-30 w-screen max-w-full px-1 mb-1.5 box-border">
-                            <InterpretationRecapBanner bilan={bilan} />
-                        </div>
 
                         {/* Months axis — alternating backgrounds */}
                         <div className="flex border-b-2 border-zinc-100 pb-2.5 pt-1.5 sticky top-0 z-20 backdrop-blur-md" style={{ backgroundColor: 'rgba(249,249,251,0.95)' }}>

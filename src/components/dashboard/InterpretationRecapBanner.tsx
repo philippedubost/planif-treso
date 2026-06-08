@@ -60,7 +60,7 @@ export function InterpretationRecapBanner({ bilan, className }: InterpretationRe
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 28 }}
                 className={clsx(
-                    'flex items-start gap-2 pl-2.5 pr-1.5 py-2 rounded-xl border border-dashed backdrop-blur-sm',
+                    'flex items-start gap-2 pl-2.5 pr-2 py-2 rounded-xl border border-dashed backdrop-blur-sm w-full max-w-full min-w-0 overflow-hidden box-border',
                     LIGHT_SURFACE[bilan.severity],
                     LIGHT_BORDER[bilan.severity],
                     className

@@ -224,13 +224,13 @@ export default function DashboardPage() {
             <main className={`flex-1 overflow-y-auto px-4 md:px-6 pb-[80px] no-scrollbar ${searchParams.get('demo') === 'true' ? 'pt-28 md:pt-32' : 'pt-20 md:pt-24'}`}>
                 <KPISection />
 
-                {/* Horizontal scroll area: month axis + graph + extras */}
-                <div className="overflow-x-auto no-scrollbar -mx-4 md:-mx-6 px-4 md:px-6 mt-6">
-                    <div style={{ minWidth: `${TOTAL_WIDTH}px` }}>
+                <div className="mt-4 mb-2 w-full max-w-full min-w-0">
+                    <InterpretationRecapBanner bilan={bilan} />
+                </div>
 
-                        <div className="sticky left-0 z-30 w-full max-w-full mb-2 box-border">
-                            <InterpretationRecapBanner bilan={bilan} />
-                        </div>
+                {/* Horizontal scroll area: month axis + graph + extras */}
+                <div className="overflow-x-auto no-scrollbar -mx-4 md:-mx-6 px-4 md:px-6 mt-2">
+                    <div style={{ minWidth: `${TOTAL_WIDTH}px` }}>
 
                         {/* Month axis with alternating backgrounds */}
                         <div className="flex border-b border-zinc-200 pb-3 pt-2">
