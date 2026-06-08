@@ -450,11 +450,6 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
         if (month) setSelectedMonth(month);
     };
 
-    const selectMonthFromChart = (e: { activePayload?: { payload?: { month?: string } }[] }) => {
-        const month = e?.activePayload?.[0]?.payload?.month;
-        if (month) setSelectedMonth(month);
-    };
-
     if (projection.length === 0) return null;
 
     const selectedPoint = selectedMonth ? projection.find(p => p.month === selectedMonth) : null;
@@ -513,7 +508,6 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                 <ComposedChart
                     data={projection.map(p => ({ ...p, expense: -p.expense }))}
                     margin={{ top: 14, right: 4, bottom: 4, left: 0 }}
-                    onClick={selectMonthFromChart}
                 >
                     <defs>
                         <linearGradient id="mobileColorIncome" x1="0" y1="0" x2="0" y2="1">
