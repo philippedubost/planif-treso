@@ -214,8 +214,8 @@ export default function OnboardingFlow() {
                             </OnboardingStaggerItem>
                         </OnboardingStagger>
                         <OnboardingSubtitle className="text-xs font-medium text-zinc-400 mt-3 leading-relaxed">
-                            <span className="bg-zinc-900 text-white font-black rounded-lg px-2 py-0.5">Aucune donnée n&apos;est enregistrée</span>
-                            {' '}— simulation 100% locale.
+                            <span className="bg-zinc-100/90 text-zinc-400 font-bold rounded-lg px-2 py-0.5">Aucune donnée n&apos;est enregistrée</span>
+                            <span className="block mt-1.5">simulation 100% locale.</span>
                         </OnboardingSubtitle>
                     </div>
                 </div>

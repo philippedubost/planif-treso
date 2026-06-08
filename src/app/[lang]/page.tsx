@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { motion } from 'framer-motion';
@@ -48,24 +48,97 @@ const SHAPES = [
     { top: '38%', right: '2%',  w: 24, h: 16,  color: '#fcd34d', radius: '4px',       rotate: -10 },
 ];
 
-function Confetti() {
+const MOBILE_FLOATIES = [
+    { top: '7%', left: '5%', w: 26, h: 26, color: '#fcd34d', radius: '50%', rotate: 0, drift: 18 },
+    { top: '4%', right: '7%', w: 22, h: 22, color: '#c4b5fd', radius: '50%', rotate: 12, drift: 14 },
+    { top: '18%', left: '2%', w: 16, h: 16, color: '#67e8f9', radius: '4px', rotate: -15, drift: 12 },
+    { top: '24%', right: '3%', w: 18, h: 18, color: '#f87171', radius: '50%', rotate: 0, drift: 16 },
+    { bottom: '22%', left: '4%', w: 24, h: 24, color: '#86efac', radius: '50%', rotate: 8, drift: 20 },
+    { bottom: '14%', right: '5%', w: 28, h: 28, color: '#fcd34d', radius: '6px', rotate: -10, drift: 15 },
+    { bottom: '30%', left: '10%', w: 14, h: 20, color: '#a78bfa', radius: '4px', rotate: 20, drift: 11 },
+    { bottom: '26%', right: '11%', w: 16, h: 16, color: '#67e8f9', radius: '50%', rotate: 0, drift: 13 },
+];
+
+const MOBILE_EMOJI_FLOATIES = [
+    { top: '12%', right: '14%', emoji: '💰', drift: 10, delay: 0 },
+    { top: '20%', left: '12%', emoji: '📈', drift: 12, delay: 0.4 },
+    { bottom: '20%', right: '16%', emoji: '✨', drift: 9, delay: 0.8 },
+    { bottom: '16%', left: '14%', emoji: '🔮', drift: 11, delay: 1.1 },
+];
+
+function FloatShape({
+    style,
+    drift,
+    rotate,
+    delay = 0,
+}: {
+    style: CSSProperties;
+    drift: number;
+    rotate: number;
+    delay?: number;
+}) {
     return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none hidden md:block">
-            {SHAPES.map((s, i) => (
-                <motion.div
-                    key={i}
-                    animate={{ y: [0, -12, 0], rotate: [s.rotate, s.rotate + 8, s.rotate] }}
-                    transition={{ duration: 3 + (i % 4) * 0.7, repeat: Infinity, ease: 'easeInOut', delay: i * 0.15 }}
+        <motion.div
+            animate={{ y: [0, -drift, 0], rotate: [rotate, rotate + 10, rotate] }}
+            transition={{ duration: 2.8 + delay, repeat: Infinity, ease: 'easeInOut', delay }}
+            style={{ position: 'absolute', opacity: 0.9, ...style }}
+        />
+    );
+}
+
+function MobileFloaties() {
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none md:hidden">
+            {MOBILE_FLOATIES.map((s, i) => (
+                <FloatShape
+                    key={`m-${i}`}
+                    drift={s.drift}
+                    rotate={s.rotate}
+                    delay={i * 0.12}
                     style={{
-                        position: 'absolute',
                         top: s.top,
-                        left: (s as any).left,
-                        right: (s as any).right,
+                        bottom: (s as { bottom?: string }).bottom,
+                        left: (s as { left?: string }).left,
+                        right: (s as { right?: string }).right,
                         width: s.w,
                         height: s.h,
                         backgroundColor: s.color,
                         borderRadius: s.radius,
-                        opacity: 0.85,
+                    }}
+                />
+            ))}
+            {MOBILE_EMOJI_FLOATIES.map((e, i) => (
+                <motion.span
+                    key={`e-${i}`}
+                    className="absolute text-lg leading-none"
+                    style={{ top: e.top, bottom: (e as { bottom?: string }).bottom, left: (e as { left?: string }).left, right: (e as { right?: string }).right }}
+                    animate={{ y: [0, -e.drift, 0], rotate: [0, 6, -4, 0] }}
+                    transition={{ duration: 3.2 + i * 0.3, repeat: Infinity, ease: 'easeInOut', delay: e.delay }}
+                >
+                    {e.emoji}
+                </motion.span>
+            ))}
+        </div>
+    );
+}
+
+function Confetti() {
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none hidden md:block">
+            {SHAPES.map((s, i) => (
+                <FloatShape
+                    key={i}
+                    drift={12 + (i % 3) * 4}
+                    rotate={s.rotate}
+                    delay={i * 0.15}
+                    style={{
+                        top: s.top,
+                        left: (s as { left?: string }).left,
+                        right: (s as { right?: string }).right,
+                        width: s.w,
+                        height: s.h,
+                        backgroundColor: s.color,
+                        borderRadius: s.radius,
                     }}
                 />
             ))}
@@ -111,6 +184,7 @@ export default function LandingPage() {
             style={{ background: 'linear-gradient(160deg, #ede9fe 0%, #ddd6fe 40%, #c4b5fd 100%)' }}
         >
             <Confetti />
+            <MobileFloaties />
 
             {/* Logo — top left */}
             <motion.header
@@ -151,25 +225,32 @@ export default function LandingPage() {
                     }
                 </motion.h1>
 
-                {/* Hero — under title */}
+                {/* Hero — under title, larger + gentle float on mobile */}
                 <motion.div
                     initial={{ opacity: 0, y: 20, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="mt-3 sm:mt-4 md:mt-5 [@media(max-height:820px)]:mt-2 w-full max-w-[200px] sm:max-w-sm md:max-w-xl mx-auto overflow-hidden shrink-0
-                        max-h-[12dvh] sm:max-h-[16dvh] md:max-h-[22dvh] [@media(min-height:951px)]:md:max-h-[28dvh] [@media(min-height:1100px)]:md:max-h-[34dvh]
-                        [@media(max-height:640px)]:max-h-[10dvh] [@media(max-height:820px)]:max-h-[8dvh] [@media(max-height:820px)]:sm:max-h-[10dvh]"
+                    className="relative mt-3 sm:mt-4 md:mt-5 [@media(max-height:820px)]:mt-2 w-full max-w-[min(320px,92vw)] sm:max-w-sm md:max-w-xl mx-auto shrink-0"
                 >
-                    <Image
-                        src="/images/hero4.png"
-                        alt="Planif app preview"
-                        width={1335}
-                        height={619}
-                        unoptimized
-                        priority
-                        sizes="(max-width: 768px) 220px, (max-width: 1200px) 480px, 640px"
-                        className="w-full h-auto max-h-[inherit] object-contain object-center drop-shadow-xl md:drop-shadow-2xl"
-                    />
+                    <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
+                        className="overflow-hidden
+                            max-h-[26dvh] sm:max-h-[22dvh] md:max-h-[24dvh]
+                            [@media(min-height:951px)]:md:max-h-[28dvh] [@media(min-height:1100px)]:md:max-h-[34dvh]
+                            [@media(max-height:820px)]:max-h-[20dvh] [@media(max-height:820px)]:sm:max-h-[18dvh]"
+                    >
+                        <Image
+                            src="/images/hero4.png"
+                            alt="Planif app preview"
+                            width={1335}
+                            height={619}
+                            unoptimized
+                            priority
+                            sizes="(max-width: 768px) 320px, (max-width: 1200px) 480px, 640px"
+                            className="w-full h-auto max-h-[inherit] object-contain object-center drop-shadow-2xl"
+                        />
+                    </motion.div>
                 </motion.div>
 
                 {/* Steps */}
