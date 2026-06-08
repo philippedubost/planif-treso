@@ -47,7 +47,7 @@
         "flowPlaceholder": "Amount...",
         "addMonthlyIncome": "Add a monthly income",
         "addMonthlyExpense": "Add a monthly expense",
-        "addOneOff": "Add an extra (positive or negative)",
+        "addOneOff": "Add an event (positive or negative)",
         "months": {
             "01": "Jan",
             "02": "Feb",
@@ -64,7 +64,7 @@
         },
         "emptyIncome": "Add what comes in every month to start",
         "emptyExpense": "Add your fixed costs to see your baseline",
-        "emptyOneOff": "Add a future extra to test its impact",
+        "emptyOneOff": "Add a future event to test its impact",
         "hintIncome": "E.g. Salary, Benefits, Allowances...",
         "hintExpense": "People often forget: taxes, insurance, subscriptions...",
         "hintOneOff": "E.g. Vacations, Gifts, Repairs, Bonuses..."

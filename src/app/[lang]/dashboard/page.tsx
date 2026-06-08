@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { KPISection } from '@/components/kpi/KPISection';
@@ -14,6 +14,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useTranslation } from '@/components/i18n/TranslationProvider';
 import Image from 'next/image';
+import { computeBilanFromFinanceState } from '@/lib/onboardingBilan';
+import { InterpretationRecapBanner } from '@/components/dashboard/InterpretationRecapBanner';
 
 const COLUMN_WIDTH = 96;
 const LABEL_WIDTH = 128;
@@ -63,6 +65,11 @@ export default function DashboardPage() {
     });
 
     const TOTAL_WIDTH = LABEL_WIDTH + (projectionMonths * COLUMN_WIDTH);
+
+    const bilan = useMemo(
+        () => computeBilanFromFinanceState(startingBalance, startingMonth, transactions, projectionMonths),
+        [startingBalance, startingMonth, transactions, projectionMonths]
+    );
 
     useEffect(() => {
         const sharedData = searchParams.get('data');
@@ -220,6 +227,10 @@ export default function DashboardPage() {
                 {/* Horizontal scroll area: month axis + graph + extras */}
                 <div className="overflow-x-auto no-scrollbar -mx-4 md:-mx-6 px-4 md:px-6 mt-6">
                     <div style={{ minWidth: `${TOTAL_WIDTH}px` }}>
+
+                        <div className="sticky left-0 z-30 w-full max-w-full mb-2 box-border">
+                            <InterpretationRecapBanner bilan={bilan} />
+                        </div>
 
                         {/* Month axis with alternating backgrounds */}
                         <div className="flex border-b border-zinc-200 pb-3 pt-2">

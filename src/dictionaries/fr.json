@@ -47,7 +47,7 @@
         "flowPlaceholder": "Montant...",
         "addMonthlyIncome": "Ajouter une entrée chaque mois",
         "addMonthlyExpense": "Ajouter une sortie chaque mois",
-        "addOneOff": "Ajouter un extra (positif ou négatif)",
+        "addOneOff": "Ajouter un événement (positif ou négatif)",
         "months": {
             "01": "Jan",
             "02": "Fév",
@@ -64,7 +64,7 @@
         },
         "emptyIncome": "Ajoute ce qui rentre chaque mois pour démarrer",
         "emptyExpense": "Ajoute tes sorties fixes pour voir ta base",
-        "emptyOneOff": "Ajoute un extra futur pour tester son impact",
+        "emptyOneOff": "Ajoute un événement futur pour tester son impact",
         "hintIncome": "Ex. : Salaire, Pension, Bourses, Allocations...",
         "hintExpense": "Les gens oublient souvent : impôts, assurances, abonnements...",
         "hintOneOff": "Ex. : Vacances, Cadeaux, Réparations, Primes..."

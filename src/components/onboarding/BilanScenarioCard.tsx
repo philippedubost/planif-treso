@@ -31,6 +31,7 @@ interface BilanScenarioCardProps {
     showMessage?: boolean;
     hideHeadline?: boolean;
     stamp?: boolean;
+    compact?: boolean;
     className?: string;
 }
 
@@ -56,22 +57,28 @@ function BilanContentInner({
     showMessage,
     hideHeadline,
     stamp,
+    compact,
 }: {
     bilan: OnboardingBilan;
     showMessage: boolean;
     hideHeadline: boolean;
     stamp: boolean;
+    compact: boolean;
 }) {
     return (
         <>
-            <BilanScenarioEmoji severity={bilan.severity} emoji={bilan.emoji} size="lg" />
-            <div className="space-y-1 min-w-0 text-left">
+            <BilanScenarioEmoji severity={bilan.severity} emoji={bilan.emoji} size={compact ? 'md' : 'lg'} />
+            <div className={clsx('min-w-0 text-left', compact ? 'space-y-0.5' : 'space-y-1')}>
                 {!hideHeadline && (
                     <motion.p
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: stamp ? 0.62 : 0.1, ...SPRING_SNAPPY }}
-                        className={clsx('text-sm font-black leading-snug uppercase tracking-tight', bilan.colorClass)}
+                        className={clsx(
+                            'font-black leading-snug uppercase tracking-tight',
+                            compact ? 'text-xs' : 'text-sm',
+                            bilan.colorClass
+                        )}
                     >
                         {bilan.headline}
                     </motion.p>
@@ -81,7 +88,7 @@ function BilanContentInner({
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: hideHeadline ? 0.58 : 0.7, duration: 0.25 }}
-                        className={clsx('text-[13px] font-bold leading-snug', bilan.textClass)}
+                        className={clsx('font-bold leading-snug', compact ? 'text-[11px]' : 'text-[13px]', bilan.textClass)}
                     >
                         {bilan.message}
                     </motion.p>
@@ -96,11 +103,12 @@ export function BilanScenarioCard({
     showMessage = true,
     hideHeadline = false,
     stamp = true,
+    compact = false,
     className,
 }: BilanScenarioCardProps) {
     if (stamp) {
         return (
-            <div className={clsx('relative pt-1', className)}>
+            <div className={clsx('relative', compact ? 'pt-0.5' : 'pt-1', className)}>
                 <motion.div
                     variants={stampRingVariants}
                     initial="initial"
@@ -116,7 +124,8 @@ export function BilanScenarioCard({
                     initial="initial"
                     animate="animate"
                     className={clsx(
-                        'p-3.5 rounded-2xl flex gap-3 items-start border-2 border-dashed shadow-sm relative',
+                        'rounded-2xl flex items-start border-2 border-dashed shadow-sm relative',
+                        compact ? 'p-2.5 gap-2' : 'p-3.5 gap-3',
                         bilan.bgClass,
                         STAMP_BORDER[bilan.severity]
                     )}
@@ -126,6 +135,7 @@ export function BilanScenarioCard({
                         showMessage={showMessage}
                         hideHeadline={hideHeadline}
                         stamp={stamp}
+                        compact={compact}
                     />
                 </motion.div>
             </div>
@@ -138,13 +148,19 @@ export function BilanScenarioCard({
             initial={{ opacity: 0, y: 10, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={SPRING_SNAPPY}
-            className={clsx('p-3 rounded-2xl flex gap-3 items-start', bilan.bgClass, className)}
+            className={clsx(
+                'rounded-2xl flex items-start',
+                compact ? 'p-2 gap-2' : 'p-3 gap-3',
+                bilan.bgClass,
+                className
+            )}
         >
             <BilanContentInner
                 bilan={bilan}
                 showMessage={showMessage}
                 hideHeadline={hideHeadline}
                 stamp={false}
+                compact={compact}
             />
         </motion.div>
     );

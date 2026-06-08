@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
@@ -31,6 +31,8 @@ import {
 import { Transaction, TransactionDirection } from '@/lib/financeEngine';
 import { MobileTransactionEditor } from '@/components/lists/MobileTransactionEditor';
 import { SentenceTransactionEditor } from '@/components/lists/SentenceTransactionEditor';
+import { computeBilanFromFinanceState } from '@/lib/onboardingBilan';
+import { InterpretationRecapBanner } from '@/components/dashboard/InterpretationRecapBanner';
 
 // ── Column width for mobile (narrower than desktop's 96px) ──
 const MOBILE_COL = 82; // px per month column
@@ -349,7 +351,7 @@ function OneOffPill({ transaction, months, onTargetMonthChange }: {
                         ref={labelRef}
                         className="bg-transparent text-[8px] font-black italic uppercase leading-none mb-0.5 text-zinc-400 text-center w-full outline-none border-none p-0"
                         value={localLabel}
-                        placeholder="Extra..."
+                        placeholder="Événement..."
                         autoFocus={transaction.label === ''}
                         onChange={e => setLocalLabel(e.target.value)}
                         onFocus={e => { scrollIntoView(e.currentTarget); setIsFocused(true); }}
@@ -823,6 +825,11 @@ export default function DashboardMobilePage() {
 
     const TOTAL_WIDTH = LABEL_WIDTH + projectionMonths * MOBILE_COL;
 
+    const bilan = useMemo(
+        () => computeBilanFromFinanceState(startingBalance, startingMonth, transactions, projectionMonths),
+        [startingBalance, startingMonth, transactions, projectionMonths]
+    );
+
     return (
         <div className={clsx(
             'min-h-screen bg-zinc-50/50 flex flex-col overflow-hidden relative font-sans transition-all duration-500',
@@ -908,6 +915,10 @@ export default function DashboardMobilePage() {
                     className="overflow-x-auto no-scrollbar pb-4"
                 >
                     <div style={{ minWidth: `${TOTAL_WIDTH}px` }} className="flex flex-col space-y-0 relative">
+
+                        <div className="sticky left-0 z-30 w-screen max-w-full px-1 mb-1.5 box-border">
+                            <InterpretationRecapBanner bilan={bilan} />
+                        </div>
 
                         {/* Months axis — alternating backgrounds */}
                         <div className="flex border-b-2 border-zinc-100 pb-2.5 pt-1.5 sticky top-0 z-20 backdrop-blur-md" style={{ backgroundColor: 'rgba(249,249,251,0.95)' }}>

@@ -148,7 +148,7 @@ export default function OnboardingFlow() {
         if (numExtra > 0) {
             const appliedMonth = extraMonth || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().substring(0, 7);
             await addTransaction({
-                label: extraLabel || 'Extra',
+                label: extraLabel || 'Événement',
                 categoryId: extraDirection === 'expense' ? 'cat-shopping' : 'cat-salary',
                 amount: numExtra,
                 direction: extraDirection,
@@ -316,37 +316,34 @@ export default function OnboardingFlow() {
         const numIncome = parseFloat(income) || 0;
         const numExpense = parseFloat(expense) || 0;
         const numBalance = parseFloat(balance) || 0;
-        const cashflow = bilan.cashflow;
-        const isPositive = cashflow >= 0;
-
         return (
-            <div className="flex flex-col pt-[8vh] px-6 space-y-6 items-center h-full no-scrollbar overflow-y-auto">
-                <div className="flex flex-col items-center space-y-5 w-full max-w-sm mx-auto">
-                    <OnboardingMascot className="h-[13vh] w-full max-w-[120px] relative">
+            <div className="flex flex-col pt-12 px-5 space-y-3 items-center h-full no-scrollbar overflow-y-auto">
+                <div className="flex flex-col items-center space-y-2 w-full max-w-sm mx-auto">
+                    <OnboardingMascot className="h-[7vh] max-h-16 w-full max-w-[72px] relative">
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-overview.webp"
                             srcPng="/illustrations/mascot-graph-overview.png"
-                            alt="Bilan mensuel"
+                            alt="Micro-bilan"
                             fill
                             priority
                             className="object-contain"
                         />
                     </OnboardingMascot>
-                    <div className="text-center space-y-1 w-full">
-                        <OnboardingTitle className="text-2xl font-black italic tracking-tighter text-zinc-900">
+                    <div className="text-center space-y-0.5 w-full">
+                        <OnboardingTitle className="text-xl font-black italic tracking-tighter text-zinc-900">
                             Ton micro-bilan
                         </OnboardingTitle>
-                        <OnboardingSubtitle className="text-sm font-medium text-zinc-400">
-                            Voilà ce que j&apos;ai retenu — tu pourras tout affiner après.
+                        <OnboardingSubtitle className="text-xs font-medium text-zinc-400">
+                            Tu pourras affiner plus tard.
                         </OnboardingSubtitle>
                     </div>
 
-                    <OnboardingStagger className="w-full bg-white rounded-3xl p-5 shadow-soft border-2 border-zinc-100 space-y-3">
+                    <OnboardingStagger className="w-full bg-white rounded-2xl p-3 shadow-soft border-2 border-zinc-100 space-y-2">
                         <OnboardingStaggerItem>
-                            <div className="text-center pb-3 border-b border-zinc-100">
-                                <p className="text-[10px] uppercase font-black tracking-widest text-zinc-400">Solde actuel</p>
+                            <div className="text-center pb-2 border-b border-zinc-100">
+                                <p className="text-[9px] uppercase font-black tracking-widest text-zinc-400">Solde actuel</p>
                                 <motion.p
-                                    className="font-black text-3xl tabular-nums text-zinc-900"
+                                    className="font-black text-xl tabular-nums text-zinc-900"
                                     initial={{ scale: 0.8, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ type: 'spring', stiffness: 500, damping: 20, delay: 0.28 }}
@@ -355,34 +352,28 @@ export default function OnboardingFlow() {
                                 </motion.p>
                             </div>
                         </OnboardingStaggerItem>
-                        <OnboardingStaggerItem className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-500">Entrées mensuelles</span>
-                            <span className="font-black text-emerald-500">+{numIncome.toLocaleString('fr-FR')} €</span>
+                        <OnboardingStaggerItem className="space-y-1">
+                            <p className="text-[9px] uppercase font-black tracking-widest text-zinc-400 text-center">Par mois</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-zinc-500">Entrées</span>
+                                <span className="font-black text-sm text-emerald-500 tabular-nums">+{numIncome.toLocaleString('fr-FR')} €</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-zinc-500">Sorties</span>
+                                <span className="font-black text-sm text-rose-500 tabular-nums">−{numExpense.toLocaleString('fr-FR')} €</span>
+                            </div>
                         </OnboardingStaggerItem>
-                        <OnboardingStaggerItem className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-500">Sorties mensuelles</span>
-                            <span className="font-black text-rose-500">−{numExpense.toLocaleString('fr-FR')} €</span>
-                        </OnboardingStaggerItem>
-                        <OnboardingStaggerItem>
-                            <div className="h-px bg-zinc-100" />
-                        </OnboardingStaggerItem>
-                        <OnboardingStaggerItem className="flex justify-between items-center">
-                            <span className="text-sm font-black text-zinc-700">Bilan mensuel</span>
-                            <span className={clsx("font-black text-lg", isPositive ? "text-emerald-500" : "text-rose-500")}>
-                                {isPositive ? "+" : "−"}{Math.abs(cashflow).toLocaleString('fr-FR')} €
-                            </span>
-                        </OnboardingStaggerItem>
-                        <BilanScenarioCard bilan={bilan} stamp />
+                        <BilanScenarioCard bilan={bilan} stamp compact />
                     </OnboardingStagger>
                 </div>
 
-                <div className="w-full max-w-sm mx-auto flex flex-col items-center space-y-3">
+                <div className="w-full max-w-sm mx-auto flex flex-col items-center space-y-2">
                     <OnboardingCTAButton onClick={handleSkipToFinal}>
                         <span>Voir mon compte sur l&apos;année</span>
                         <ChevronRight className="w-4 h-4" />
                     </OnboardingCTAButton>
-                    <OnboardingCTAButton variant="secondary" onClick={handleNext} className="!py-3.5 !text-[13px]">
-                        <span>+ Ajouter un extra ponctuel d&apos;abord</span>
+                    <OnboardingCTAButton variant="secondary" onClick={handleNext} className="!py-2.5 !text-[12px]">
+                        <span>+ Ajouter un événement d&apos;abord</span>
                     </OnboardingCTAButton>
                     <div className="h-[env(safe-area-inset-bottom)]" />
                 </div>
@@ -403,7 +394,7 @@ export default function OnboardingFlow() {
                         <ImageWithFallback
                             srcWebp="/illustrations/mascot-graph-edit.webp"
                             srcPng="/illustrations/mascot-income-oneoff.png"
-                            alt="Extra ponctuel"
+                            alt="Événement"
                             fill
                             priority
                             className="object-contain"
@@ -412,7 +403,7 @@ export default function OnboardingFlow() {
 
                     <div className="text-center space-y-1 w-full">
                         <OnboardingTitle className="text-2xl font-black italic tracking-tighter text-zinc-900">
-                            Un extra prévu ?
+                            Un événement prévu ?
                         </OnboardingTitle>
                         <OnboardingSubtitle className="text-sm font-medium text-zinc-400">
                             Facultatif — voyage, prime, réparation...
@@ -595,7 +586,7 @@ export default function OnboardingFlow() {
                             </OnboardingStaggerItem>
                             {numExtra > 0 && (
                                 <OnboardingStaggerItem className="flex justify-between items-center">
-                                    <span className="text-sm font-bold text-zinc-500">Extra ponctuel</span>
+                                    <span className="text-sm font-bold text-zinc-500">Événement</span>
                                     <span className={clsx("font-black text-sm", extraDirection === 'income' ? 'text-emerald-500' : 'text-rose-500')}>
                                         {extraDirection === 'income' ? '+' : '−'}{numExtra.toLocaleString('fr-FR')} €
                                         {extraMonth && <span className="text-[10px] text-zinc-400 font-medium ml-1">en {format(new Date(extraMonth + '-01'), 'MMMM', { locale: fr })}</span>}

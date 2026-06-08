@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { calculateProjection, Transaction } from '@/lib/financeEngine';
+import { calculateProjection, Transaction, type MonthData } from '@/lib/financeEngine';
 
 export type BilanSeverity = 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -19,6 +19,165 @@ export interface OnboardingBilan {
 
 function fmt(n: number) {
     return Math.round(n).toLocaleString('fr-FR');
+}
+
+interface EventImpact {
+    hasEvents: boolean;
+    eventDelta: number;
+    positiveEventTotal: number;
+    negativeEventTotal: number;
+    recurringMonthsToZero: number | null;
+    recurringProjectedEnd: number;
+}
+
+function computeEventImpact(
+    balance: number,
+    startingMonth: string,
+    transactions: Transaction[],
+    projectionMonths: number,
+    projectedBalance12: number
+): EventImpact {
+    const recurringTxs = transactions.filter((t) => t.recurrence !== 'none');
+    const recurringProjection = calculateProjection(balance, startingMonth, recurringTxs, projectionMonths);
+    const recurringProjectedEnd = recurringProjection[recurringProjection.length - 1]?.balance ?? balance;
+    const recurringFirstNeg = recurringProjection.findIndex((p) => p.balance < 0);
+    const recurringMonthsToZero = recurringFirstNeg === -1 ? null : recurringFirstNeg;
+
+    let positiveEventTotal = 0;
+    let negativeEventTotal = 0;
+    for (const t of transactions) {
+        if (t.recurrence === 'none') {
+            const abs = Math.abs(t.amount);
+            if (t.direction === 'income') positiveEventTotal += abs;
+            else negativeEventTotal += abs;
+        }
+    }
+
+    return {
+        hasEvents: positiveEventTotal > 0 || negativeEventTotal > 0,
+        eventDelta: projectedBalance12 - recurringProjectedEnd,
+        positiveEventTotal,
+        negativeEventTotal,
+        recurringMonthsToZero,
+        recurringProjectedEnd,
+    };
+}
+
+function impactThreshold(balance: number) {
+    return Math.max(150, Math.abs(balance) * 0.03);
+}
+
+function applyEventAdjustments(
+    bilan: OnboardingBilan,
+    cashflow: number,
+    impact: EventImpact
+): OnboardingBilan {
+    if (!impact.hasEvents) return bilan;
+
+    const threshold = impactThreshold(bilan.balance);
+    const monthsChanged = bilan.monthsToZero !== impact.recurringMonthsToZero;
+    const deltaSignificant = Math.abs(impact.eventDelta) >= threshold;
+
+    if (!monthsChanged && !deltaSignificant) return bilan;
+
+    const { monthsToZero, projectedBalance12 } = bilan;
+    const rZero = impact.recurringMonthsToZero;
+
+    const recurringLooksBad = cashflow < 0 || (rZero !== null && rZero <= 12);
+    const eventsRescue =
+        impact.positiveEventTotal > 0 &&
+        ((rZero !== null && monthsToZero === null) ||
+            (rZero !== null && monthsToZero !== null && monthsToZero > rZero) ||
+            (cashflow < 0 && impact.eventDelta >= threshold));
+
+    if (recurringLooksBad && eventsRescue) {
+        if (rZero !== null && monthsToZero === null) {
+            const zeroLabel =
+                rZero === 1 ? 'dès le mois prochain' : `dans ${rZero} mois`;
+            return {
+                ...bilan,
+                severity: 'warning',
+                emoji: '✨',
+                headline: 'Tes événements te sauvent la mise',
+                message: `Ta tendance mensuelle mènerait à zéro ${zeroLabel} — tes entrées ponctuelles (+${fmt(impact.positiveEventTotal)} €) maintiennent le cap : ${fmt(projectedBalance12)} € à horizon.`,
+                colorClass: 'text-amber-500',
+                bgClass: 'bg-amber-50',
+                textClass: 'text-amber-600',
+            };
+        }
+        if (rZero !== null && monthsToZero !== null && monthsToZero > rZero) {
+            return {
+                ...bilan,
+                severity: bilan.severity === 'danger' ? 'warning' : bilan.severity,
+                emoji: '🛟',
+                headline: 'Tes événements repoussent la limite',
+                message: `Sans eux, passage à zéro dans ${rZero} mois — avec tes entrées ponctuelles, tu gagnes ${monthsToZero - rZero} mois (zéro repoussé à ${monthsToZero} mois).`,
+                colorClass: 'text-amber-500',
+                bgClass: 'bg-amber-50',
+                textClass: 'text-amber-600',
+            };
+        }
+    }
+
+    const recurringLooksGood = cashflow > 0 || (rZero === null && cashflow >= 0);
+    const eventsHurt =
+        impact.negativeEventTotal > 0 &&
+        ((rZero === null && monthsToZero !== null) ||
+            (rZero !== null && monthsToZero !== null && monthsToZero < rZero) ||
+            (cashflow > 0 && impact.eventDelta <= -threshold));
+
+    if (recurringLooksGood && eventsHurt) {
+        if (rZero === null && monthsToZero !== null) {
+            const isUrgent = monthsToZero <= 3;
+            return {
+                ...bilan,
+                severity: isUrgent ? 'danger' : 'warning',
+                emoji: '💸',
+                headline: 'Des événements pénalisent ta projection',
+                message:
+                    cashflow > 0
+                        ? `Ta base mensuelle est positive (+${fmt(cashflow)} €/mois), mais tes sorties ponctuelles (−${fmt(impact.negativeEventTotal)} €) plombent l'année — passage à zéro dans ${monthsToZero} mois.`
+                        : `Tes événements négatifs (−${fmt(impact.negativeEventTotal)} €) tirent le solde vers le bas — passage à zéro dans ${monthsToZero} mois.`,
+                colorClass: isUrgent ? 'text-rose-500' : 'text-amber-500',
+                bgClass: isUrgent ? 'bg-rose-50' : 'bg-amber-50',
+                textClass: isUrgent ? 'text-rose-600' : 'text-amber-600',
+            };
+        }
+        if (cashflow > 0 && impact.eventDelta <= -threshold) {
+            return {
+                ...bilan,
+                severity: projectedBalance12 < bilan.balance ? 'warning' : bilan.severity,
+                emoji: '⚡',
+                headline: 'Des imprévus freinent ta progression',
+                message: `Sans événements, tu serais à ${fmt(impact.recurringProjectedEnd)} € — avec eux, ${fmt(projectedBalance12)} € (${fmt(impact.eventDelta)} € sur l'année).`,
+                colorClass: 'text-amber-500',
+                bgClass: 'bg-amber-50',
+                textClass: 'text-amber-600',
+            };
+        }
+        if (rZero !== null && monthsToZero !== null && monthsToZero < rZero) {
+            return {
+                ...bilan,
+                severity: monthsToZero <= 3 ? 'danger' : 'warning',
+                emoji: '⚠️',
+                headline: 'Des événements accélèrent la chute',
+                message: `Sans eux, tu tiendrais ${rZero} mois avant zéro — tes sorties ponctuelles avancent l'échéance à ${monthsToZero} mois.`,
+                colorClass: monthsToZero <= 3 ? 'text-rose-500' : 'text-amber-500',
+                bgClass: monthsToZero <= 3 ? 'bg-rose-50' : 'bg-amber-50',
+                textClass: monthsToZero <= 3 ? 'text-rose-600' : 'text-amber-600',
+            };
+        }
+    }
+
+    if (deltaSignificant) {
+        const suffix =
+            impact.eventDelta > 0
+                ? ` Tes événements ajoutent +${fmt(impact.eventDelta)} € sur la période.`
+                : ` Tes événements retirent ${fmt(Math.abs(impact.eventDelta))} € sur la période.`;
+        return { ...bilan, message: bilan.message + suffix };
+    }
+
+    return bilan;
 }
 
 function buildOnboardingTransactions(
@@ -56,7 +215,7 @@ function buildOnboardingTransactions(
     if (extra > 0 && extraMonth) {
         txs.push({
             id: 'ext',
-            label: 'Extra 1',
+            label: 'Événement',
             amount: extra,
             direction: extraDirection,
             recurrence: 'none',
@@ -68,19 +227,18 @@ function buildOnboardingTransactions(
     return txs;
 }
 
-export function computeOnboardingBilan(
+function evaluateBilan(
     balance: number,
     income: number,
     expense: number,
-    extra = 0,
-    extraMonth = '',
-    extraDirection: 'income' | 'expense' = 'expense'
+    projection: MonthData[],
+    transactions: Transaction[],
+    startingMonth: string,
+    projectionMonths: number
 ): OnboardingBilan {
     const cashflow = income - expense;
-    const currentMonth = format(new Date(), 'yyyy-MM');
-    const txs = buildOnboardingTransactions(income, expense, extra, extraMonth, extraDirection);
-    const projection = calculateProjection(balance, currentMonth, txs, 12);
     const projectedBalance12 = projection[projection.length - 1]?.balance ?? balance;
+    const eventImpact = computeEventImpact(balance, startingMonth, transactions, projectionMonths, projectedBalance12);
 
     const firstNegIndex = projection.findIndex((p) => p.balance < 0);
     const monthsToZero = firstNegIndex === -1 ? null : firstNegIndex;
@@ -99,16 +257,29 @@ export function computeOnboardingBilan(
         headline = 'Ton solde est déjà négatif';
         message = `Tu es à découvert de ${fmt(Math.abs(balance))} €. Reprends le contrôle avant que ça s'aggrave.`;
     } else if (income === 0 && expense === 0) {
-        severity = 'neutral';
-        emoji = '📊';
-        headline = 'Solde sans flux';
-        message =
-            balance > 0
-                ? `Ton solde de ${fmt(balance)} € reste stable — ajoute entrées et sorties pour une vraie projection.`
-                : 'Ajoute tes entrées et sorties mensuelles pour voir la suite.';
-        colorClass = 'text-zinc-500';
-        bgClass = 'bg-zinc-50';
-        textClass = 'text-zinc-500';
+        if (eventImpact.hasEvents && Math.abs(eventImpact.eventDelta) >= impactThreshold(balance)) {
+            severity = eventImpact.eventDelta >= 0 ? 'success' : 'warning';
+            emoji = eventImpact.eventDelta >= 0 ? '📅' : '💸';
+            headline = eventImpact.eventDelta >= 0 ? 'Tes événements font bouger la ligne' : 'Tes événements pèsent sur le solde';
+            message =
+                eventImpact.eventDelta >= 0
+                    ? `Pas de flux mensuel — tes entrées ponctuelles (+${fmt(eventImpact.positiveEventTotal)} €) portent le solde à ${fmt(projectedBalance12)} €.`
+                    : `Pas de flux mensuel — tes sorties ponctuelles (−${fmt(eventImpact.negativeEventTotal)} €) tirent le solde à ${fmt(projectedBalance12)} €.`;
+            colorClass = eventImpact.eventDelta >= 0 ? 'text-emerald-500' : 'text-amber-500';
+            bgClass = eventImpact.eventDelta >= 0 ? 'bg-emerald-50' : 'bg-amber-50';
+            textClass = eventImpact.eventDelta >= 0 ? 'text-emerald-600' : 'text-amber-600';
+        } else {
+            severity = 'neutral';
+            emoji = '📊';
+            headline = 'Solde sans flux';
+            message =
+                balance > 0
+                    ? `Ton solde de ${fmt(balance)} € reste stable — ajoute entrées et sorties pour une vraie projection.`
+                    : 'Ajoute tes entrées et sorties mensuelles pour voir la suite.';
+            colorClass = 'text-zinc-500';
+            bgClass = 'bg-zinc-50';
+            textClass = 'text-zinc-500';
+        }
     } else if (income === 0 && expense > 0) {
         severity = 'danger';
         emoji = '🚨';
@@ -197,7 +368,7 @@ export function computeOnboardingBilan(
         textClass = 'text-rose-600';
     }
 
-    return {
+    const base: OnboardingBilan = {
         severity,
         emoji,
         headline,
@@ -210,4 +381,49 @@ export function computeOnboardingBilan(
         cashflow,
         balance,
     };
+
+    const eventsOnlyPlan =
+        income === 0 &&
+        expense === 0 &&
+        eventImpact.hasEvents &&
+        Math.abs(eventImpact.eventDelta) >= impactThreshold(balance);
+
+    if (eventsOnlyPlan) return base;
+
+    return applyEventAdjustments(base, cashflow, eventImpact);
+}
+
+export function computeOnboardingBilan(
+    balance: number,
+    income: number,
+    expense: number,
+    extra = 0,
+    extraMonth = '',
+    extraDirection: 'income' | 'expense' = 'expense'
+): OnboardingBilan {
+    const currentMonth = format(new Date(), 'yyyy-MM');
+    const txs = buildOnboardingTransactions(income, expense, extra, extraMonth, extraDirection);
+    const projection = calculateProjection(balance, currentMonth, txs, 12);
+    return evaluateBilan(balance, income, expense, projection, txs, currentMonth, 12);
+}
+
+export function computeBilanFromFinanceState(
+    balance: number,
+    startingMonth: string,
+    transactions: Transaction[],
+    projectionMonths: number
+): OnboardingBilan {
+    const projection = calculateProjection(balance, startingMonth, transactions, projectionMonths);
+
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+        if (t.recurrence === 'monthly') {
+            const abs = Math.abs(t.amount);
+            if (t.direction === 'income') income += abs;
+            else expense += abs;
+        }
+    }
+
+    return evaluateBilan(balance, income, expense, projection, transactions, startingMonth, projectionMonths);
 }
