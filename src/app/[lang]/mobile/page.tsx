@@ -684,7 +684,7 @@ export default function DashboardMobilePage() {
     const {
         transactions, currency, textSize,
         startingBalance, startingMonth,
-        loadProject, projectionMonths, title,
+        loadProject, projectionMonths,
         undo, redo, undoStack, redoStack
     } = useFinanceStore();
 
@@ -778,25 +778,15 @@ export default function DashboardMobilePage() {
         )}>
             {/* ── Header ── */}
             <header className="fixed top-0 left-0 right-0 h-14 bg-white/85 backdrop-blur-xl z-50 border-b border-zinc-100 px-4 flex items-center justify-between">
-                {/* Left: logo + planification */}
-                <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1.5">
-                        <button onClick={() => router.push(`/${locale}`)} className="active:scale-95 transition-transform">
-                            <Image
-                                src="/images/favicon.png"
-                                alt="Planif.app"
-                                width={28}
-                                height={28}
-                                className="w-7 h-7 rounded-xl shadow-premium"
-                            />
-                        </button>
-                    </div>
-
-                    {/* Title pill */}
-                    <div className="flex items-center px-2.5 py-1 rounded-xl border bg-zinc-50 border-zinc-100">
-                        <span className="truncate max-w-[120px] text-[10px] font-black uppercase tracking-wider text-zinc-600">{title}</span>
-                    </div>
-                </div>
+                <button onClick={() => router.push(`/${locale}`)} className="active:scale-95 transition-transform">
+                    <Image
+                        src="/images/favicon.png"
+                        alt="Planif.app"
+                        width={28}
+                        height={28}
+                        className="w-7 h-7 rounded-xl shadow-premium"
+                    />
+                </button>
 
                 {/* Right: undo/redo + share + settings + profile */}
                 <div className="flex items-center space-x-1.5">
@@ -838,13 +828,18 @@ export default function DashboardMobilePage() {
             {searchParams.get('demo') === 'true' && (
                 <div className="fixed top-14 left-0 right-0 z-40 bg-violet-600 text-white px-3 py-2 flex items-center justify-between gap-2">
                     <span className="text-xs font-bold leading-tight">👀 Exemple — tes données seront différentes.</span>
-                    <button
-                        onClick={() => router.push(`/${locale}/onboarding`)}
-                        className="shrink-0 flex items-center gap-1 bg-white text-violet-700 font-black italic text-[11px] px-2.5 py-1.5 rounded-xl active:scale-95 transition-transform"
-                    >
-                        Essayer
-                        <ArrowRight className="w-3 h-3" />
-                    </button>
+                    <div className="shrink-0 flex flex-col items-end gap-0.5">
+                        <button
+                            onClick={() => router.push(`/${locale}/onboarding`)}
+                            className="flex items-center gap-1 bg-white text-violet-700 font-black italic text-[11px] px-2.5 py-1.5 rounded-xl active:scale-95 transition-transform"
+                        >
+                            {locale === 'fr' ? 'Essayer en 30 sec' : 'Try in 30 sec'}
+                            <ArrowRight className="w-3 h-3" />
+                        </button>
+                        <span className="text-[9px] font-medium text-white/80 leading-tight text-right">
+                            {locale === 'fr' ? 'sans inscription · gratuit · données non enregistrées' : 'no signup · free · data not saved'}
+                        </span>
+                    </div>
                 </div>
             )}
 

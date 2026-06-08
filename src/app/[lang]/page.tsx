@@ -50,7 +50,7 @@ const SHAPES = [
 
 function Confetti() {
     return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none hidden md:block">
             {SHAPES.map((s, i) => (
                 <motion.div
                     key={i}
@@ -76,10 +76,10 @@ function Confetti() {
 export default function LandingPage() {
     const router = useRouter();
     const params = useParams();
-    const { hasCompletedOnboarding, transactions, loadProject } = useFinanceStore();
+    const { hasCompletedOnboarding, loadProject } = useFinanceStore();
     const lang = (params?.lang as string) || 'fr';
 
-    const hasSession = hasCompletedOnboarding || transactions.length > 0;
+    const hasSession = hasCompletedOnboarding;
 
     // Prefetch next routes so clicks feel instant
     useEffect(() => {
@@ -131,7 +131,7 @@ export default function LandingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.55, delay: 0.1 }}
-                    className="text-3xl md:text-5xl font-black italic tracking-tighter text-zinc-900 text-center leading-tight max-w-2xl"
+                    className="mt-3 text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] font-black italic tracking-tighter text-zinc-900 text-center leading-snug max-w-2xl"
                 >
                     {isFr
                         ? <>À quoi ressemblera<br className="hidden md:block" /> ton compte en banque<br className="hidden md:block" /> dans 12 mois&nbsp;?</>
@@ -139,15 +139,23 @@ export default function LandingPage() {
                     }
                 </motion.h1>
 
-                {/* Subtitle */}
-                <motion.p
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="mt-4 text-base md:text-lg text-zinc-600 font-medium text-center"
+                {/* Illustration */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.28 }}
+                    className="mt-5 md:mt-6 w-full max-w-sm md:max-w-xl"
                 >
-                    {isFr ? 'Entre quelques chiffres. On fait le reste.' : 'Enter a few numbers. We do the rest.'}
-                </motion.p>
+                    <Image
+                        src="/images/hero4.png"
+                        alt="Planif app preview"
+                        width={1335}
+                        height={619}
+                        unoptimized
+                        priority
+                        className="w-full h-auto object-contain drop-shadow-2xl"
+                    />
+                </motion.div>
 
                 {/* Steps — inline text, above the fold */}
                 <motion.div
@@ -176,7 +184,7 @@ export default function LandingPage() {
                         onClick={() => router.push(`/${lang}/onboarding`)}
                         className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-black italic text-base md:text-lg rounded-2xl shadow-lg transition-all"
                     >
-                        {isFr ? "J'essaye en 30 sec !" : 'Try it in 30 sec!'}
+                        {isFr ? 'Essayer en 30 sec' : 'Try in 30 sec'}
                         <ArrowRight className="w-5 h-5" />
                     </button>
 
@@ -206,27 +214,8 @@ export default function LandingPage() {
                     transition={{ delay: 0.5 }}
                     className="mt-3 text-xs text-violet-500 font-medium tracking-wide"
                 >
-                    {isFr ? 'sans inscription • gratuit' : 'no signup • free'}
+                    {isFr ? 'sans inscription · gratuit · données non enregistrées' : 'no signup · free · data not saved'}
                 </motion.p>
-
-                {/* Illustration */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.6, delay: 0.45 }}
-                    className="mt-6 md:mt-8 w-64 h-64 md:w-96 md:h-96 relative"
-                >
-                    <picture>
-                        <source srcSet="/images/hero3.webp" type="image/webp" />
-                        <Image
-                            src="/images/hero3.png"
-                            alt="Planif app preview"
-                            fill
-                            className="object-contain drop-shadow-2xl"
-                            priority
-                        />
-                    </picture>
-                </motion.div>
             </div>
         </div>
     );

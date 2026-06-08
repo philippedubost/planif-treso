@@ -97,8 +97,8 @@
         "step1": {
             "title": "What will your bank account look like in 12 months?",
             "subtitle": "Enter a few numbers. We'll do the rest.",
-            "cta": "Try it in 30 sec!",
-            "disclaimer": "no signup • free"
+            "cta": "Try in 30 sec",
+            "disclaimer": "no signup · free · data not saved"
         }
     }
 }

@@ -7,7 +7,7 @@ import { KPISection } from '@/components/kpi/KPISection';
 import { CashflowGraph } from '@/components/graph/CashflowGraph';
 import { Pill, RecurringPill } from '@/components/timeline/TimelineView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronRight, ArrowRight, Settings, Share2, Check, Download, Upload, Undo2, Redo2, Pencil, X, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ArrowRight, Settings, Share2, Check, Download, Upload, Undo2, Redo2, X, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -34,10 +34,7 @@ export default function DashboardPage() {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isShared, setIsShared] = useState(false);
-    const [isEditingTitle, setIsEditingTitle] = useState(false);
-    const [titleDraft, setTitleDraft] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const titleInputRef = useRef<HTMLInputElement>(null);
 
     const {
         transactions,
@@ -53,7 +50,6 @@ export default function DashboardPage() {
         undoStack,
         redoStack,
         title,
-        setTitle,
         addTransaction,
     } = useFinanceStore();
 
@@ -79,13 +75,6 @@ export default function DashboardPage() {
             }
         }
     }, [searchParams, loadProject]);
-
-    useEffect(() => {
-        if (isEditingTitle && titleInputRef.current) {
-            titleInputRef.current.focus();
-            titleInputRef.current.select();
-        }
-    }, [isEditingTitle]);
 
     const handleShare = async () => {
         const state = {
@@ -136,11 +125,6 @@ export default function DashboardPage() {
         router.push(`/${locale}/onboarding`);
     };
 
-    const handleTitleSave = () => {
-        if (titleDraft.trim()) setTitle(titleDraft.trim());
-        setIsEditingTitle(false);
-    };
-
     const handleAddOneOff = async (month: string) => {
         await addTransaction({
             label: '',
@@ -167,47 +151,21 @@ export default function DashboardPage() {
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-zinc-100 shadow-soft">
                 <div className="px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-3">
-                    {/* Logo + Title */}
-                    <div className="flex items-center gap-3 min-w-0">
-                        <button
-                            onClick={() => router.push(`/${locale}`)}
-                            className="flex items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
-                        >
-                            <Image
-                                src="/images/favicon.png"
-                                alt="Planif.app"
-                                width={32}
-                                height={32}
-                                className="w-8 h-8 rounded-xl shadow-premium select-none"
-                            />
-                            <span className="font-black italic text-base tracking-tighter text-zinc-900 hidden sm:block">
-                                PLANIF<span className="text-zinc-400 font-bold not-italic">.app</span>
-                            </span>
-                        </button>
-                        <div className="w-px h-5 bg-zinc-200 shrink-0 hidden sm:block" />
-                    </div>
-
-                    {/* Title */}
-                    <div className="flex items-center gap-2 min-w-0">
-                        {isEditingTitle ? (
-                            <input
-                                ref={titleInputRef}
-                                value={titleDraft}
-                                onChange={e => setTitleDraft(e.target.value)}
-                                onBlur={handleTitleSave}
-                                onKeyDown={e => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') setIsEditingTitle(false); }}
-                                className="font-black italic tracking-tighter text-xl md:text-2xl text-zinc-900 bg-transparent border-b-2 border-zinc-900 outline-none p-0 min-w-0 w-48 md:w-64"
-                            />
-                        ) : (
-                            <button
-                                onClick={() => { setTitleDraft(title); setIsEditingTitle(true); }}
-                                className="flex items-center gap-1.5 group"
-                            >
-                                <span className="font-black italic tracking-tighter text-xl md:text-2xl text-zinc-900 truncate max-w-[160px] md:max-w-xs">{title}</span>
-                                <Pencil className="w-3.5 h-3.5 text-zinc-300 group-hover:text-zinc-600 transition-colors shrink-0" />
-                            </button>
-                        )}
-                    </div>
+                    <button
+                        onClick={() => router.push(`/${locale}`)}
+                        className="flex items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
+                    >
+                        <Image
+                            src="/images/favicon.png"
+                            alt="Planif.app"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 rounded-xl shadow-premium select-none"
+                        />
+                        <span className="font-black italic text-base tracking-tighter text-zinc-900 hidden sm:block">
+                            PLANIF<span className="text-zinc-400 font-bold not-italic">.app</span>
+                        </span>
+                    </button>
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
@@ -240,13 +198,18 @@ export default function DashboardPage() {
                     <span className="text-sm font-bold">
                         👀 Ceci est un exemple — tes données seront différentes.
                     </span>
-                    <button
-                        onClick={() => router.push(`/${locale}/onboarding`)}
-                        className="shrink-0 flex items-center gap-1.5 bg-white text-violet-700 font-black italic text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-transform"
-                    >
-                        Essayer gratuitement en 30 sec
-                        <ArrowRight className="w-3 h-3" />
-                    </button>
+                    <div className="shrink-0 flex flex-col items-end gap-0.5">
+                        <button
+                            onClick={() => router.push(`/${locale}/onboarding`)}
+                            className="flex items-center gap-1.5 bg-white text-violet-700 font-black italic text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-transform"
+                        >
+                            {locale === 'fr' ? 'Essayer en 30 sec' : 'Try in 30 sec'}
+                            <ArrowRight className="w-3 h-3" />
+                        </button>
+                        <span className="text-[10px] font-medium text-white/80">
+                            {locale === 'fr' ? 'sans inscription · gratuit · données non enregistrées' : 'no signup · free · data not saved'}
+                        </span>
+                    </div>
                 </div>
             )}
 

@@ -97,8 +97,8 @@
         "step1": {
             "title": "À quoi ressemblera ton compte en banque dans 12 mois ?",
             "subtitle": "Entre quelques chiffres. On fait le reste.",
-            "cta": "J'essaye en 30 sec !",
-            "disclaimer": "sans inscription • gratuit"
+            "cta": "Essayer en 30 sec",
+            "disclaimer": "sans inscription · gratuit · données non enregistrées"
         }
     }
 }
