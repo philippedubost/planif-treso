@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { format, parseISO, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useFinanceStore, useProjection } from '@/store/useFinanceStore';
@@ -24,7 +24,6 @@ import {
     XAxis,
     YAxis,
     CartesianGrid,
-    Tooltip,
     Cell,
     ReferenceLine
 } from 'recharts';
@@ -444,7 +443,21 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
     const projection = useProjection();
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
+    const dismissMonthDetails = () => setSelectedMonth(null);
+
+    const selectMonthByIndex = (index: number) => {
+        const month = projection[index]?.month;
+        if (month) setSelectedMonth(month);
+    };
+
+    const selectMonthFromChart = (e: { activePayload?: { payload?: { month?: string } }[] }) => {
+        const month = e?.activePayload?.[0]?.payload?.month;
+        if (month) setSelectedMonth(month);
+    };
+
     if (projection.length === 0) return null;
+
+    const selectedPoint = selectedMonth ? projection.find(p => p.month === selectedMonth) : null;
 
     const startBal = projection[0].balance;
     const minBal = projection.reduce((min, p) => p.balance < min ? p.balance : min, projection[0].balance);
@@ -500,7 +513,7 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                 <ComposedChart
                     data={projection.map(p => ({ ...p, expense: -p.expense }))}
                     margin={{ top: 14, right: 4, bottom: 4, left: 0 }}
-                    onClick={(e: any) => e?.activePayload && setSelectedMonth(e.activePayload[0].payload.month)}
+                    onClick={selectMonthFromChart}
                 >
                     <defs>
                         <linearGradient id="mobileColorIncome" x1="0" y1="0" x2="0" y2="1">
@@ -545,31 +558,27 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
                             strokeOpacity={0.55}
                         />
                     )}
-                    <Tooltip
-                        content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null;
-                            const d = payload[0].payload;
-                            return (
-                                <div className="bg-white/95 backdrop-blur-xl p-3 rounded-2xl shadow-premium border border-white/40 min-w-[140px] text-xs">
-                                    <p className="font-black uppercase tracking-widest text-zinc-400 mb-2 text-[9px]">
-                                        {format(parseISO(`${d.month}-01`), 'MMMM yyyy', { locale: fr })}
-                                    </p>
-                                    <div className="space-y-1.5">
-                                        <div className="flex justify-between"><span className="text-zinc-400 font-bold">Revenus</span><span className="font-black text-emerald-500">+{d.income}€</span></div>
-                                        <div className="flex justify-between"><span className="text-zinc-400 font-bold">Dépenses</span><span className="font-black text-rose-500">-{Math.abs(d.expense)}€</span></div>
-                                        <div className="pt-1.5 border-t border-zinc-100 flex justify-between"><span className="font-bold text-zinc-900">Solde</span><span className="font-black text-slate-900">{d.balance}€</span></div>
-                                    </div>
-                                </div>
-                            );
-                        }}
-                        cursor={false}
-                    />
-                    <Bar dataKey="income" fill="url(#mobileColorIncome)" radius={[10, 10, 4, 4]} barSize={26} animationDuration={900} activeBar={{ fill: '#16a34a', opacity: 1 }}>
+                    <Bar
+                        dataKey="income"
+                        fill="url(#mobileColorIncome)"
+                        radius={[10, 10, 4, 4]}
+                        barSize={26}
+                        animationDuration={900}
+                        activeBar={{ fill: '#16a34a', opacity: 1 }}
+                        onClick={(_data, index) => selectMonthByIndex(index)}
+                    >
                         {projection.map((e, i) => (
                             <Cell key={i} fill={e.month === selectedMonth ? '#15803d' : 'url(#mobileColorIncome)'} />
                         ))}
                     </Bar>
-                    <Bar dataKey="expense" fill="url(#mobileColorExpense)" radius={[10, 10, 4, 4]} barSize={26} animationDuration={900}>
+                    <Bar
+                        dataKey="expense"
+                        fill="url(#mobileColorExpense)"
+                        radius={[10, 10, 4, 4]}
+                        barSize={26}
+                        animationDuration={900}
+                        onClick={(_data, index) => selectMonthByIndex(index)}
+                    >
                         {projection.map((e, i) => (
                             <Cell key={i} fill={e.month === selectedMonth ? '#dc2626' : 'url(#mobileColorExpense)'} />
                         ))}
@@ -597,20 +606,40 @@ function MobileGraph({ height, leftPadding = 0 }: { height: number; leftPadding?
             </ResponsiveContainer>
 
             <AnimatePresence>
-                {selectedMonth && (
+                {selectedMonth && selectedPoint && (
                     <motion.div
-                        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                        className="absolute inset-x-3 bottom-3 flex justify-between items-center bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-premium border border-white"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="absolute top-2 left-2 right-2 z-30 flex justify-center pointer-events-auto"
                     >
-                        <div className="flex flex-col">
-                            <span className="text-[9px] uppercase font-black tracking-widest text-zinc-400">Mois</span>
-                            <span className="text-zinc-900 font-black italic text-sm leading-tight">
-                                {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: fr })}
-                            </span>
+                        <div className="relative bg-white/95 backdrop-blur-xl p-3 pr-8 rounded-2xl shadow-premium border border-white/40 min-w-[140px] max-w-[220px] text-xs">
+                            <button
+                                type="button"
+                                aria-label="Fermer"
+                                onClick={dismissMonthDetails}
+                                className="absolute top-2 right-2 p-1 rounded-lg text-zinc-400 active:scale-90 active:text-zinc-700"
+                            >
+                                <X className="w-3 h-3 stroke-[2.5px]" />
+                            </button>
+                            <p className="font-black uppercase tracking-widest text-zinc-400 mb-2 text-[9px] pr-2">
+                                {format(parseISO(`${selectedPoint.month}-01`), 'MMMM yyyy', { locale: fr })}
+                            </p>
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between gap-3">
+                                    <span className="text-zinc-400 font-bold">Revenus</span>
+                                    <span className="font-black text-emerald-500">+{selectedPoint.income}€</span>
+                                </div>
+                                <div className="flex justify-between gap-3">
+                                    <span className="text-zinc-400 font-bold">Dépenses</span>
+                                    <span className="font-black text-rose-500">-{selectedPoint.expense}€</span>
+                                </div>
+                                <div className="pt-1.5 border-t border-zinc-100 flex justify-between gap-3">
+                                    <span className="font-bold text-zinc-900">Solde</span>
+                                    <span className="font-black text-slate-900">{selectedPoint.balance}€</span>
+                                </div>
+                            </div>
                         </div>
-                        <button onClick={() => setSelectedMonth(null)} className="bg-zinc-900 text-white p-1.5 rounded-xl active:scale-90">
-                            <X className="w-3.5 h-3.5" />
-                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -754,10 +783,27 @@ export default function DashboardMobilePage() {
     const mainScrollRef = useRef<HTMLElement>(null);
     const detailsRef = useRef<HTMLDivElement>(null);
 
-    // Scroll to top on mount
-    useEffect(() => {
-        mainScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+    const scrollPageToTop = useCallback(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        mainScrollRef.current?.scrollTo(0, 0);
+        scrollContainerRef.current?.scrollTo(0, 0);
     }, []);
+
+    useLayoutEffect(() => {
+        scrollPageToTop();
+        const raf = requestAnimationFrame(scrollPageToTop);
+        const t = setTimeout(scrollPageToTop, 120);
+        return () => {
+            cancelAnimationFrame(raf);
+            clearTimeout(t);
+        };
+    }, [scrollPageToTop]);
+
+    useEffect(() => {
+        scrollPageToTop();
+    }, [transactions.length, startingBalance, projectionMonths, scrollPageToTop]);
 
     useEffect(() => {
         if (!showDetails) return;

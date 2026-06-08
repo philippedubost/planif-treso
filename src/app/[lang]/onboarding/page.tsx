@@ -103,7 +103,8 @@ export default function OnboardingFlow() {
     const handleSkipToFinal = async () => {
         vibrate();
         await commitAndRedirect();
-        router.push(`/${locale}/dashboard`);
+        window.scrollTo(0, 0);
+        router.push(`/${locale}/dashboard`, { scroll: true });
     };
 
     const handleBack = () => {
@@ -117,7 +118,8 @@ export default function OnboardingFlow() {
     const handleSaveProfile = async () => {
         vibrate();
         await commitAndRedirect();
-        router.push(`/${locale}/dashboard`);
+        window.scrollTo(0, 0);
+        router.push(`/${locale}/dashboard`, { scroll: true });
     };
 
     const commitAndRedirect = async () => {
