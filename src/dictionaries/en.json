@@ -19,12 +19,12 @@
         "scenarioPrompt": "Log in to simulate multiple scenarios in parallel."
     },
     "dashboard": {
-        "title": "Simulator",
+        "title": "✏️ Income / Expenses / Events",
         "balance": "Balance",
         "startingBalance": "Balance today",
         "income": "Monthly Incomes",
         "expense": "Monthly Expenses",
-        "incomeExpenseTitle": "Incomes and Expenses"
+        "incomeExpenseTitle": "Income / Expenses / Events"
     },
     "kpi": {
         "currentBalance": "Today",
@@ -37,11 +37,11 @@
         "graph": "📈 Graph",
         "details": "📝 Data",
         "monthly": "Monthly",
-        "oneOff": "Extras"
+        "oneOff": "Events"
     },
     "timeline": {
         "monthly": "Monthly",
-        "oneOff": "Extras",
+        "oneOff": "Events",
         "clickToAdd": "Click + to start",
         "labelPlaceholder": "Name this item...",
         "flowPlaceholder": "Amount...",

@@ -1014,7 +1014,7 @@ export default function ProjectionHorizontalPage() {
                         <>
                             <div className="w-12 h-1.5 bg-zinc-200 rounded-full mt-3 mb-1" />
                             <div className="flex items-center space-x-2 text-zinc-900 mt-1">
-                                <span className="font-black italic tracking-tighter text-lg">Éditer Entrées et Sorties</span>
+                                <span className="font-black italic tracking-tighter text-lg">{dictionary.dashboard.title}</span>
                                 <ChevronRight className="w-5 h-5 -rotate-90" />
                             </div>
                         </>

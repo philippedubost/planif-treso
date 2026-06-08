@@ -908,7 +908,7 @@ export default function DashboardMobilePage() {
                                     {/* ── Extras (one-off) ── */}
                                     <div className="flex border-t border-zinc-100">
                                         <div style={{ width: LABEL_WIDTH }} className="flex-shrink-0 sticky left-0 bg-zinc-50/95 backdrop-blur-md z-10 px-1.5 pt-2">
-                                            <span className="text-[7px] uppercase font-black tracking-widest text-zinc-500">Extras</span>
+                                            <span className="text-[7px] uppercase font-black tracking-widest text-zinc-500">{dictionary.timeline.oneOff}</span>
                                         </div>
                                         <div className="flex flex-1">
                                             {months.map((m, i) => {
@@ -973,7 +973,7 @@ export default function DashboardMobilePage() {
                             className="mx-4 my-2 flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-xl shadow-soft border border-zinc-100 group transition-all active:scale-95 self-start"
                         >
                             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                {showDetails ? 'Masquer' : 'Editer entrées / sorties'}
+                                {showDetails ? 'Masquer' : dictionary.dashboard.title}
                             </span>
                             <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
                                 <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900" />

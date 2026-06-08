@@ -259,7 +259,7 @@ export default function DashboardPage() {
                                 >
                                     <div className="flex">
                                         <div className="w-32 flex-shrink-0 sticky left-0 bg-gradient-to-r from-zinc-50 via-zinc-50 to-transparent z-10 px-4 pt-2 flex items-start">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">EXTRAS</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{dictionary.timeline.oneOff}</span>
                                         </div>
                                         <div className="flex flex-1">
                                             {months.map((m, i) => {
@@ -344,7 +344,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-center gap-1">
                         <div className="w-10 h-1 bg-zinc-200 rounded-full" />
                         <div className="flex items-center gap-2 text-zinc-900">
-                            <span className="font-black italic tracking-tighter text-base md:text-lg">Éditer Entrées et Sorties</span>
+                            <span className="font-black italic tracking-tighter text-base md:text-lg">{dictionary.dashboard.title}</span>
                             <ChevronRight className="w-4 h-4 -rotate-90" />
                         </div>
                     </div>

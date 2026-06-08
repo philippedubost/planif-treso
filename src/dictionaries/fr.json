@@ -19,12 +19,12 @@
         "scenarioPrompt": "Connectez-vous pour simuler plusieurs scénarios en parallèle."
     },
     "dashboard": {
-        "title": "Editer Entrées / Sorties",
+        "title": "✏️ Revenus / Dépenses / Événements",
         "balance": "Solde",
         "startingBalance": "Solde aujourd'hui",
         "income": "Entrées chaque mois",
         "expense": "Sorties chaque mois",
-        "incomeExpenseTitle": "Entrées et sorties"
+        "incomeExpenseTitle": "Revenus / Dépenses / Événements"
     },
     "kpi": {
         "currentBalance": "Aujourd'hui",
@@ -37,11 +37,11 @@
         "graph": "📈 Graph",
         "details": "📝 Data",
         "monthly": "Chaque mois",
-        "oneOff": "Extras"
+        "oneOff": "Événements"
     },
     "timeline": {
         "monthly": "Chaque mois",
-        "oneOff": "Extras",
+        "oneOff": "Événements",
         "clickToAdd": "Clique sur + pour démarrer",
         "labelPlaceholder": "Nommer cet élément...",
         "flowPlaceholder": "Montant...",
